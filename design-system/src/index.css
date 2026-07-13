@@ -1,0 +1,30 @@
+/*
+ * Docs entry stylesheet.
+ *
+ * The library token layer already does `@import "tailwindcss"` and ships the
+ * full Layer-0 + logistic accent tokens plus the @theme mapping. Pulling it in
+ * here is exactly what a real consumer app does:
+ *
+ *   import "@dash-electric/logistic-kit/styles"
+ */
+@import "../kit/styles/tokens.css";
+
+/* Tailwind v4 ignores node_modules, so point it at the real atom source plus
+   this gallery's own files for class detection. */
+@source "../kit";
+@source ".";
+
+html {
+  font-family: var(--dash-font-family);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-white-0);
+  color: var(--text-strong-950);
+}
+
+/* Tabular numerals everywhere figures appear (brand rule). */
+.tabular { font-variant-numeric: tabular-nums; }

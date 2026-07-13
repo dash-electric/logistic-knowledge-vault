@@ -1,0 +1,24 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "logistic-ds-docs",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/Users/aldi/Desktop/dash/dash-logistic-design-system/apps/docs", "run", "dev"],
+      "port": 4321
+    },
+    {
+      "name": "logistic-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/Users/aldi/Desktop/dash/react-logistic-web", "start"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "design-system-docs",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/Users/aldi/Desktop/dash/logistic-knowledge-vault/design-system", "run", "dev"],
+      "port": 5180
+    }
+  ]
+}
