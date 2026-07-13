@@ -1,0 +1,1086 @@
+<!--
+title: Returns — Client portal (Dash Link) flow mockup
+module: returns
+doctype: mockup
+audience: client
+version: 1
+status: draft
+owner:
+created: 2026-06-26
+links:
+  prd-trd: (none yet)
+  rider-mockup: ./returns-mockup-rider-v1.html
+
+Follows docs/brand/gsm.md: Plus Jakarta Sans + JetBrains Mono, one accent
+(Dash Purple) used like punctuation, hairline rules, no gradients/glow/shadows,
+tabular numerals on every figure, sentence case (labels uppercase tracked).
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Returns · Client portal · Mockup · Dash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ===== Tokens (from docs/brand/gsm.md — never hardcode colors elsewhere) ===== */
+:root {
+  --primary: #5E2AAC;
+  --black: #171717;
+  --white: #FFFFFF;
+  --neutral: #5C5C5C;
+  --rule: rgba(23,23,23,0.10);
+  --rule-strong: rgba(23,23,23,0.22);
+  --tint: rgba(23,23,23,0.04);
+  --tint-strong: rgba(23,23,23,0.07);
+  --mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: var(--black);
+  background: var(--white);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11", "cv02";
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+::selection { background: var(--primary); color: var(--white); }
+
+/* ===== Page chrome ===== */
+.page-header, .page-footer {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 14px clamp(20px, 5vw, 64px);
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600;
+}
+.page-header { border-bottom: 1px solid var(--rule); }
+.page-footer { border-top: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+.page-header .left { display: flex; gap: 24px; align-items: baseline; }
+.page-header .right { color: var(--black); font-weight: 700; }
+.brand-mark {
+  display: inline-flex; align-items: center; gap: 0.42em;
+  font-weight: 800; letter-spacing: -0.01em; color: var(--black);
+}
+.logo-mark { display: inline-block; width: 1em; height: 1em; vertical-align: -0.14em; color: var(--primary); }
+.logo-mark svg { display: block; width: 100%; height: 100%; }
+
+/* ===== Intro ===== */
+.intro {
+  padding: clamp(28px, 5vh, 56px) clamp(20px, 5vw, 64px) 12px;
+  max-width: 1100px;
+}
+.intro .eyebrow {
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600; margin-bottom: 12px;
+}
+.intro .eyebrow .num { color: var(--primary); font-weight: 700; margin-right: 12px; }
+.intro h1 {
+  font-size: clamp(28px, 4vw, 40px); font-weight: 700; letter-spacing: -0.035em;
+  margin-bottom: 12px; max-width: 24ch;
+}
+.intro .lede {
+  font-size: 16px; color: var(--neutral); line-height: 1.55; max-width: 64ch;
+}
+
+/* ===== State board ===== */
+.board {
+  padding: 24px clamp(20px, 5vw, 64px) clamp(28px, 5vh, 56px);
+  display: flex; flex-direction: column; gap: clamp(48px, 6vh, 80px);
+}
+.state {
+  display: flex; flex-direction: column; gap: 16px;
+}
+.state-tag {
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600;
+}
+.state-tag .num { color: var(--primary); font-weight: 700; margin-right: 12px; }
+.state-title {
+  font-size: 22px; font-weight: 700; letter-spacing: -0.025em;
+  margin-bottom: 2px;
+}
+.state-sub {
+  font-size: 13px; color: var(--neutral); line-height: 1.5; max-width: 70ch;
+}
+
+/* ===== Web shell (mock browser frame) ===== */
+.shell {
+  border: 1px solid var(--rule-strong);
+  background: var(--white);
+  overflow: hidden;
+  position: relative;
+}
+.shell-chrome {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--tint);
+}
+.shell-chrome .dots {
+  display: inline-flex; gap: 6px;
+}
+.shell-chrome .dots span {
+  width: 9px; height: 9px; border-radius: 50%;
+  border: 1px solid var(--rule-strong); background: var(--white);
+}
+.shell-chrome .url {
+  flex: 1; margin-left: 12px;
+  font-family: var(--mono); font-size: 11px; color: var(--neutral);
+  padding: 4px 10px; background: var(--white);
+  border: 1px solid var(--rule);
+}
+.shell-body { display: flex; min-height: 700px; }
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: 220px; flex-shrink: 0;
+  border-right: 1px solid var(--rule);
+  padding: 20px 16px;
+  display: flex; flex-direction: column;
+}
+.sidebar .brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 6px 20px;
+  border-bottom: 1px solid var(--rule);
+}
+.sidebar .brand .mark {
+  width: 24px; height: 24px;
+  background: var(--black);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--primary);
+}
+.sidebar .brand .mark svg { width: 14px; height: 14px; }
+.sidebar .brand .name {
+  font-weight: 700; font-size: 14px; letter-spacing: -0.015em;
+}
+.sidebar .section-label {
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600;
+  padding: 18px 6px 8px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; margin: 0 -4px;
+  font-size: 13px; font-weight: 500; color: var(--black);
+  cursor: pointer; position: relative;
+  border-left: 2px solid transparent;
+}
+.nav-item:hover { background: var(--tint); }
+.nav-item.active {
+  font-weight: 700;
+  border-left-color: var(--primary);
+  background: var(--tint);
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--neutral); }
+.nav-item.active svg { color: var(--black); }
+.nav-item .chev { margin-left: auto; color: var(--neutral); }
+.nav-item .badge {
+  margin-left: auto;
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border: 1px solid var(--black); color: var(--black);
+  font-variant-numeric: tabular-nums;
+}
+.sidebar .who {
+  margin-top: auto;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 8px;
+  border-top: 1px solid var(--rule);
+  font-size: 12px;
+}
+.sidebar .who .avatar {
+  width: 30px; height: 30px;
+  border: 1px solid var(--black);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+}
+.sidebar .who .who-name { font-weight: 700; }
+.sidebar .who .who-mail { font-size: 11px; color: var(--neutral); }
+
+/* ===== Main content ===== */
+.main {
+  flex: 1; padding: 28px clamp(20px, 3vw, 40px) 32px;
+  display: flex; flex-direction: column;
+  min-width: 0;
+}
+.main-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 24px;
+}
+.main-header .titles { max-width: 60ch; }
+.main-header .eyebrow {
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600; margin-bottom: 8px;
+}
+.main-header .eyebrow .num { color: var(--primary); font-weight: 700; margin-right: 12px; }
+.main-header h2 {
+  font-size: 30px; font-weight: 700; letter-spacing: -0.03em;
+  margin-bottom: 6px;
+}
+.main-header .sub {
+  font-size: 13px; color: var(--neutral); line-height: 1.5;
+}
+.main-header .actions {
+  display: flex; gap: 10px; flex-shrink: 0;
+}
+.btn {
+  padding: 10px 16px; cursor: pointer;
+  border: 1px solid var(--black); background: var(--black); color: var(--white);
+  font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: -0.005em;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn.secondary { background: var(--white); color: var(--black); }
+.btn.secondary:hover { background: var(--tint-strong); }
+.btn svg { width: 14px; height: 14px; }
+
+/* ===== Stat cards ===== */
+.stats {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 0;
+  border: 1px solid var(--rule-strong);
+  margin-bottom: 24px;
+}
+.stat {
+  padding: 16px 18px;
+  border-right: 1px solid var(--rule);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.stat:last-child { border-right: none; }
+.stat .label {
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.stat .dot {
+  width: 7px; height: 7px;
+  flex-shrink: 0;
+  border: 1px solid var(--black);
+}
+.stat .dot.solid { background: var(--black); }
+.stat .dot.ring { background: var(--white); }
+.stat .dot.primary { background: var(--primary); border-color: var(--primary); }
+.stat .num {
+  font-size: 26px; font-weight: 700; letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.stat.focus .num { color: var(--primary); }
+.stat .delta {
+  font-size: 11px; color: var(--neutral);
+  font-variant-numeric: tabular-nums;
+}
+.stat .delta.up { color: var(--black); font-weight: 600; }
+
+/* ===== Search bar / filters ===== */
+.toolbar {
+  display: flex; gap: 12px; margin-bottom: 16px; align-items: stretch;
+}
+.search {
+  flex: 1; display: flex; align-items: center;
+  border: 1px solid var(--rule-strong);
+  padding: 0 12px;
+  background: var(--white);
+}
+.search svg { width: 14px; height: 14px; color: var(--neutral); }
+.search input {
+  flex: 1; border: none; outline: none; padding: 11px 10px;
+  font-family: inherit; font-size: 13px;
+  background: transparent;
+}
+.search input::placeholder { color: var(--neutral); }
+.chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--rule-strong);
+  font-size: 11px; font-weight: 600;
+  cursor: pointer;
+}
+.chip.active {
+  border-color: var(--black);
+  font-weight: 700;
+}
+.chip .x {
+  display: inline-flex; width: 12px; height: 12px;
+}
+
+/* ===== Table ===== */
+.table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px;
+}
+.table thead th {
+  text-align: left;
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600;
+  padding: 12px 14px;
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--tint);
+}
+.table tbody td {
+  padding: 14px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+}
+.table tbody tr:hover { background: var(--tint); cursor: pointer; }
+.table tbody tr.focused {
+  background: var(--tint-strong);
+}
+.table tbody tr.focused td:first-child {
+  box-shadow: inset 2px 0 0 0 var(--primary);
+}
+.table .id {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.table .date {
+  font-variant-numeric: tabular-nums; color: var(--black);
+}
+.table .awb {
+  font-family: var(--mono); font-size: 11px; color: var(--neutral);
+}
+.table .rider { color: var(--black); }
+.table .row-arrow { color: var(--neutral); width: 16px; }
+
+/* Status pills — restraint: only "Returned" gets the accent dot */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  font-weight: 700;
+  padding: 4px 8px;
+  border: 1px solid var(--rule-strong);
+  background: var(--white);
+  white-space: nowrap;
+}
+.pill .dot {
+  width: 6px; height: 6px;
+  background: var(--black);
+}
+.pill.outline .dot { background: var(--white); border: 1px solid var(--black); }
+.pill.muted { color: var(--neutral); border-color: var(--rule); }
+.pill.muted .dot { background: var(--white); border: 1px solid var(--neutral); }
+.pill.returned {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.pill.returned .dot {
+  background: var(--primary);
+  border: none;
+}
+
+/* ===== Drawer (return detail) ===== */
+.shell.has-drawer .scrim {
+  position: absolute; inset: 0;
+  background: rgba(23,23,23,0.32);
+  z-index: 5;
+}
+.drawer {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 560px;
+  background: var(--white);
+  border-left: 1px solid var(--rule-strong);
+  z-index: 10;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.drawer-head {
+  padding: 20px 24px 18px;
+  border-bottom: 1px solid var(--rule);
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 16px;
+}
+.drawer-head .crumb {
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600; margin-bottom: 10px;
+}
+.drawer-head .crumb .num { color: var(--primary); font-weight: 700; margin-right: 12px; }
+.drawer-head h3 {
+  font-size: 22px; font-weight: 700; letter-spacing: -0.025em;
+  line-height: 1.15; margin-bottom: 4px;
+}
+.drawer-head .meta {
+  font-size: 12px; color: var(--neutral);
+  font-variant-numeric: tabular-nums;
+}
+.drawer-head .close {
+  width: 32px; height: 32px;
+  border: 1px solid var(--black); background: var(--white);
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: pointer;
+}
+.drawer-head .close svg { width: 14px; height: 14px; }
+
+.drawer-body {
+  flex: 1; overflow-y: auto;
+  padding: 0;
+}
+.drawer-block {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--rule);
+}
+.drawer-block:last-child { border-bottom: none; }
+.drawer-block .label {
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600; margin-bottom: 12px;
+}
+.drawer-block .label .num { color: var(--primary); font-weight: 700; margin-right: 12px; }
+
+/* Identity grid: AWB, Delivery ID, reason, etc. */
+.id-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--rule-strong);
+}
+.id-cell {
+  padding: 12px 14px;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.id-cell:nth-child(2n) { border-right: none; }
+.id-cell:nth-last-child(-n+2) { border-bottom: none; }
+.id-cell .k {
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600; margin-bottom: 6px;
+}
+.id-cell .v {
+  font-size: 14px; font-weight: 700; color: var(--black);
+  letter-spacing: -0.005em;
+}
+.id-cell .v.mono {
+  font-family: var(--mono); font-size: 12px; font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.id-cell .v.with-tag {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.id-cell .copy {
+  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600; cursor: pointer;
+  padding: 3px 6px; border: 1px solid var(--rule-strong);
+}
+
+/* Photo proof grid */
+.photo-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.photo {
+  border: 1px solid var(--rule-strong);
+  background: var(--tint);
+  position: relative;
+  aspect-ratio: 1/1;
+  overflow: hidden;
+  cursor: pointer;
+}
+.photo svg { width: 100%; height: 100%; display: block; }
+.photo .meta {
+  position: absolute; left: 6px; bottom: 6px;
+  font-family: var(--mono); font-size: 9px;
+  color: var(--black); background: var(--white);
+  padding: 2px 5px; border: 1px solid var(--rule);
+}
+.photo .badge {
+  position: absolute; right: 6px; top: 6px;
+  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+  font-weight: 700;
+  padding: 3px 6px; background: var(--white); color: var(--black);
+  border: 1px solid var(--black);
+}
+
+/* Rider note */
+.note-card {
+  border-left: 2px solid var(--primary);
+  padding: 6px 0 6px 16px;
+  font-size: 13px; line-height: 1.55;
+}
+.note-card .who {
+  font-size: 11px; color: var(--neutral); margin-top: 8px;
+}
+
+/* Activity timeline */
+.timeline {
+  display: flex; flex-direction: column; gap: 0;
+}
+.tl-row {
+  display: grid; grid-template-columns: 70px 14px 1fr;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 10px 0;
+  font-size: 12px;
+}
+.tl-row .time {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--neutral); padding-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.tl-row .marker {
+  position: relative; height: 100%; min-height: 24px;
+}
+.tl-row .marker::before {
+  content: ''; position: absolute; left: 5px; top: 6px;
+  width: 4px; height: 4px;
+  background: var(--black);
+  border-radius: 50%;
+}
+.tl-row.live .marker::before {
+  background: var(--primary);
+  width: 7px; height: 7px;
+  left: 3px; top: 4px;
+}
+.tl-row .marker::after {
+  content: ''; position: absolute; left: 6px; top: 14px;
+  width: 1px; bottom: -10px;
+  background: var(--rule);
+}
+.tl-row:last-child .marker::after { display: none; }
+.tl-row .body .who { font-weight: 700; }
+.tl-row .body .what { color: var(--black); }
+
+/* Drawer footer actions */
+.drawer-foot {
+  padding: 16px 24px;
+  border-top: 1px solid var(--rule-strong);
+  display: flex; gap: 10px;
+}
+.drawer-foot .btn { flex: 1; justify-content: center; }
+
+/* Caption under each state */
+.frame-caption {
+  font-size: 12px; color: var(--neutral); line-height: 1.5;
+  border-top: 1px solid var(--rule); padding-top: 10px;
+  max-width: 80ch;
+}
+
+/* Legend */
+.flow-legend {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px clamp(20px, 5vw, 64px);
+  border-top: 1px solid var(--rule);
+  font-size: 11px; color: var(--neutral); line-height: 1.5;
+}
+.flow-legend .dot {
+  width: 8px; height: 8px; background: var(--primary); flex-shrink: 0;
+  border-radius: 50%;
+}
+
+@media (max-width: 1100px) {
+  .stats { grid-template-columns: repeat(3, 1fr); }
+  .stat { border-bottom: 1px solid var(--rule); }
+  .drawer { width: 88%; }
+}
+@media (max-width: 720px) {
+  .sidebar { display: none; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .main-header { flex-direction: column; gap: 16px; }
+  .table .awb, .table .date { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Logo sprite — copy verbatim from gsm.html -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <symbol id="dash-logo" viewBox="0 0 44 43">
+    <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M11.2196 5.93653C11.1018 6.17664 11.0055 6.42114 11.0055 6.47999C11.0055 6.53876 10.958 6.65766 10.8999 6.74411C10.8418 6.83063 10.7463 7.02704 10.6876 7.18055C10.6288 7.33406 10.5093 7.62114 10.4218 7.81851C10.3342 8.01588 10.1634 8.41062 10.0419 8.69571C9.92058 8.9808 9.69691 9.50114 9.54489 9.85202C9.39278 10.2029 9.02627 11.0641 8.73038 11.7659C8.4344 12.4677 8.16024 13.076 8.12101 13.1176C8.08179 13.1593 8.04975 13.2415 8.04975 13.3004C8.04975 13.3592 7.94566 13.6301 7.81841 13.9024C7.69115 14.1747 7.38088 14.8819 7.12876 15.4741C6.87672 16.0662 6.54592 16.8377 6.39366 17.1886C6.24139 17.5395 6.05231 17.988 5.97346 18.1854C5.83718 18.5265 5.25306 19.8792 5.09536 20.2189C5.05462 20.3066 4.96755 20.513 4.90196 20.6774L4.78261 20.9765H8.12389H11.4652L11.6284 20.5977C11.7821 20.2414 12.0609 19.6451 12.9613 17.7468C13.1693 17.3082 13.7452 16.0881 14.2409 15.0355C14.7368 13.9828 15.3302 12.7268 15.5597 12.2444C16.2469 10.7996 16.6773 9.87865 16.6773 9.85297C16.6773 9.83152 17.3934 8.32593 18.1571 6.74195C18.3051 6.43493 18.4632 6.08509 18.5084 5.96444C18.5536 5.84386 18.6275 5.74514 18.6725 5.74514C18.7274 5.74514 18.7597 7.39626 18.7706 10.7492C18.7794 13.5014 18.7943 15.8608 18.8037 15.9924C18.8129 16.124 18.8235 17.2992 18.8274 18.6041L18.8342 20.9765H22.5841C25.3165 20.9765 26.3494 21.0013 26.3906 21.0679C26.4217 21.1181 26.3716 21.3065 26.2791 21.4865C26.0908 21.8532 25.4223 23.2644 25.0173 24.1505C24.8708 24.4708 24.5894 25.0629 24.3919 25.4663C24.1944 25.8697 23.8656 26.5586 23.6612 26.9972C23.4568 27.4358 23.1091 28.1715 22.8885 28.632C22.6679 29.0925 22.2729 29.9179 22.0108 30.4662C21.7487 31.0144 21.3356 31.8757 21.0929 32.38C20.8501 32.8844 20.4426 33.7516 20.1872 34.3071C19.9318 34.8626 19.6864 35.3829 19.6418 35.4634C19.4959 35.727 18.9782 36.8015 18.9025 36.998L18.8285 37.1902L20.2893 37.1321C21.0927 37.1001 21.8938 37.0605 22.0696 37.0441C23.1606 36.9421 23.5058 36.8951 24.1866 36.7558C24.604 36.6705 25.0713 36.5823 25.2251 36.5598C25.867 36.4661 28.0722 35.7112 29.1394 35.2196C32.02 33.893 34.4145 31.7796 36.332 28.8713C36.559 28.5269 37.1237 27.4764 37.3827 26.9165C37.9035 25.7907 38.0866 25.374 38.0866 25.3141C38.0866 25.2818 38.1732 25.0373 38.279 24.7706C38.6817 23.7564 39.2762 21.4304 39.4831 20.0594C39.6359 19.0472 39.6396 17.0707 39.4904 16.2245C39.1959 14.554 38.7424 13.3161 37.9009 11.8855C37.4905 11.1877 37.2285 10.8681 36.3295 9.96797C35.6811 9.31876 35.0115 8.73295 34.6515 8.49978C33.924 8.02856 32.6273 7.32337 31.9754 7.04435C31.0309 6.6402 29.2403 6.05423 28.1808 5.80263L27.1024 5.54657L19.268 5.52329L11.4338 5.5L11.2196 5.93653ZM11.3363 21.6344C11.2052 21.9085 10.9675 22.4378 10.8079 22.8106C10.6485 23.1834 10.4854 23.5484 10.4455 23.6216C10.4056 23.6949 10.1702 24.2153 9.92242 24.7779C9.67462 25.3407 9.37042 26.0164 9.24643 26.2795C9.12245 26.5427 8.89079 27.063 8.73165 27.4358C8.57252 27.8087 8.37409 28.2572 8.29077 28.4327C8.10432 28.8252 7.59345 29.9638 6.89525 31.5427C6.60439 32.2006 6.29795 32.8824 6.21431 33.0579C6.13067 33.2333 5.90132 33.7357 5.70465 34.1743C5.50789 34.6129 5.14361 35.4203 4.89517 35.9686C4.64665 36.5168 4.42409 37.0103 4.4006 37.0651C4.36665 37.1444 5.82008 37.1648 11.5162 37.1648H18.6745V29.1504V21.136H15.1246H11.5747L11.3363 21.6344Z"/>
+  </symbol>
+</svg>
+
+<!-- ============ Reusable photo SVGs (mock proofs) ============ -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <symbol id="photo-bag-damaged" viewBox="0 0 240 240">
+    <rect width="240" height="240" fill="rgba(23,23,23,0.06)"/>
+    <!-- bag silhouette -->
+    <path d="M70 80 L80 60 H160 L170 80 V200 H70 Z" fill="none" stroke="#171717" stroke-width="1.2"/>
+    <path d="M105 60 V52 a15 15 0 0 1 30 0 V60" fill="none" stroke="#171717" stroke-width="1.2"/>
+    <!-- seal label -->
+    <rect x="92" y="120" width="56" height="20" fill="none" stroke="#171717" stroke-width="0.8"/>
+    <text x="120" y="134" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#171717">AWB02TLL0</text>
+    <!-- damage marks -->
+    <path d="M85 95 L100 105 L92 118 L108 128" stroke="#171717" stroke-width="1.4" fill="none"/>
+    <path d="M140 160 L155 170 L148 185" stroke="#171717" stroke-width="1.4" fill="none"/>
+    <!-- subtle grid overlay -->
+    <line x1="0" y1="50" x2="240" y2="50" stroke="#171717" stroke-opacity="0.06"/>
+    <line x1="0" y1="200" x2="240" y2="200" stroke="#171717" stroke-opacity="0.06"/>
+  </symbol>
+  <symbol id="photo-seal-close" viewBox="0 0 240 240">
+    <rect width="240" height="240" fill="rgba(23,23,23,0.05)"/>
+    <!-- close-up of broken seal -->
+    <rect x="40" y="80" width="160" height="80" fill="none" stroke="#171717" stroke-width="1.2"/>
+    <path d="M40 120 L200 120" stroke="#171717" stroke-width="1" stroke-dasharray="4 4"/>
+    <!-- torn seal -->
+    <path d="M105 80 L120 100 L100 115 L130 125 L110 140 L130 160" stroke="#171717" stroke-width="1.6" fill="none"/>
+    <!-- tape edges -->
+    <line x1="40" y1="100" x2="200" y2="100" stroke="#171717" stroke-width="0.6"/>
+    <line x1="40" y1="140" x2="200" y2="140" stroke="#171717" stroke-width="0.6"/>
+    <text x="50" y="70" font-family="JetBrains Mono" font-size="9" fill="#171717">SEAL · BROKEN</text>
+  </symbol>
+  <symbol id="photo-items-counter" viewBox="0 0 240 240">
+    <rect width="240" height="240" fill="rgba(23,23,23,0.06)"/>
+    <!-- counter top -->
+    <line x1="20" y1="170" x2="220" y2="170" stroke="#171717" stroke-width="1.4"/>
+    <line x1="20" y1="180" x2="220" y2="180" stroke="#171717" stroke-width="0.6"/>
+    <!-- boxes -->
+    <rect x="40" y="120" width="36" height="50" fill="none" stroke="#171717" stroke-width="1.2"/>
+    <rect x="86" y="100" width="36" height="70" fill="none" stroke="#171717" stroke-width="1.2"/>
+    <rect x="132" y="130" width="36" height="40" fill="none" stroke="#171717" stroke-width="1.2"/>
+    <rect x="178" y="115" width="30" height="55" fill="none" stroke="#171717" stroke-width="1.2"/>
+    <!-- small box labels -->
+    <line x1="48" y1="135" x2="68" y2="135" stroke="#171717" stroke-width="0.6"/>
+    <line x1="48" y1="145" x2="68" y2="145" stroke="#171717" stroke-width="0.6"/>
+    <line x1="94" y1="115" x2="114" y2="115" stroke="#171717" stroke-width="0.6"/>
+    <line x1="94" y1="125" x2="114" y2="125" stroke="#171717" stroke-width="0.6"/>
+    <line x1="140" y1="145" x2="160" y2="145" stroke="#171717" stroke-width="0.6"/>
+    <line x1="186" y1="130" x2="200" y2="130" stroke="#171717" stroke-width="0.6"/>
+    <!-- hand silhouette suggestion -->
+    <path d="M30 200 Q 60 170, 100 195 Q 140 215, 180 200" fill="none" stroke="#171717" stroke-width="0.8" stroke-opacity="0.4"/>
+    <text x="20" y="40" font-family="JetBrains Mono" font-size="9" fill="#171717">8 ITEMS · ON COUNTER</text>
+  </symbol>
+</svg>
+
+<header class="page-header">
+  <div class="left">
+    <span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span>
+    <span>Returns · Dash Link client portal · Mockup v1</span>
+  </div>
+  <div class="right">Draft — not a real UI</div>
+</header>
+
+<section class="intro">
+  <div class="eyebrow"><span class="num">02</span>The flow</div>
+  <h1>The client sees the return before they ask about it.</h1>
+  <p class="lede">A returned delivery surfaces three places at once: a counter at the top, a status pill in the row, and a focused drawer that puts the waybill, the delivery ID, and the photo proof on the same screen. No PDF emails, no follow-up tickets.</p>
+</section>
+
+<div class="board">
+
+  <!-- ============ STATE 01 — Deliveries list with returns surfaced ============ -->
+  <div class="state">
+    <div class="state-tag"><span class="num">01</span>Deliveries · returns surfaced</div>
+    <div>
+      <div class="state-title">Returns count alongside every other status.</div>
+      <p class="state-sub">A new "Returned" counter joins the existing five. Rows carry a "Returned" or "Partial return" pill where they used to read "Completed". The accent purple appears only on the new state — every other column stays editorial.</p>
+    </div>
+
+    <div class="shell">
+      <div class="shell-chrome">
+        <span class="dots"><span></span><span></span><span></span></span>
+        <span class="url">link.dashelectric.co/deliveries</span>
+      </div>
+      <div class="shell-body">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <div class="brand">
+            <span class="mark"><svg viewBox="0 0 44 43" aria-hidden="true"><use href="#dash-logo"/></svg></span>
+            <span class="name">Dash Link</span>
+          </div>
+          <div class="section-label">Main</div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg>
+            Shipments
+            <span class="chev">›</span>
+          </div>
+          <div class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h13v9H3z"/><path d="M16 12h4l1 5h-5"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>
+            Deliveries
+            <span class="chev">›</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="16" height="13"/><path d="M4 10h16"/></svg>
+            Packages
+            <span class="chev">›</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+            Invoices
+            <span class="chev">›</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9.5 10a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>
+            Support
+          </div>
+          <div class="who">
+            <span class="avatar">SW</span>
+            <div>
+              <div class="who-name">SwipeRX</div>
+              <div class="who-mail">isumi.karina@…</div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main -->
+        <main class="main">
+          <div class="main-header">
+            <div class="titles">
+              <div class="eyebrow"><span class="num">02</span>Deliveries</div>
+              <h2>Deliveries</h2>
+              <p class="sub">Setiap pengiriman milik Anda di seluruh outlet — lengkap dengan order ID, jadwal, status, driver, dan SLA. Klik baris untuk membuka detail.</p>
+            </div>
+            <div class="actions">
+              <button class="btn secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 4v4h-4"/></svg>
+                Refresh
+              </button>
+              <button class="btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 21h14"/></svg>
+                Export CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <span class="label"><span class="dot ring"></span>Pending</span>
+              <span class="num">7</span>
+            </div>
+            <div class="stat">
+              <span class="label"><span class="dot solid"></span>In delivery</span>
+              <span class="num">8</span>
+            </div>
+            <div class="stat">
+              <span class="label"><span class="dot solid"></span>Completed</span>
+              <span class="num">68,970</span>
+            </div>
+            <div class="stat focus">
+              <span class="label"><span class="dot primary"></span>Returned</span>
+              <span class="num">142</span>
+              <span class="delta">12 today · +4 vs. yesterday</span>
+            </div>
+            <div class="stat">
+              <span class="label"><span class="dot solid"></span>Failed</span>
+              <span class="num">694</span>
+            </div>
+            <div class="stat">
+              <span class="label"><span class="dot ring"></span>Cancelled</span>
+              <span class="num">172</span>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <div class="search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg>
+              <input placeholder="Search delivery ID, waybill, rider…">
+            </div>
+            <span class="chip active">Returned <span class="x">×</span></span>
+            <span class="chip">Filter</span>
+          </div>
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Delivery ID</th>
+                <th>Created</th>
+                <th>Waybill</th>
+                <th>Recipient</th>
+                <th>Status</th>
+                <th>Rider</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="id">DESWP260626EYL7IK</td>
+                <td class="date">26 Jun · 09:45</td>
+                <td class="awb">AWB02TLL0</td>
+                <td>Apotek Inofarma Tanah Pasir</td>
+                <td><span class="pill returned"><span class="dot"></span>Returned</span></td>
+                <td class="rider">Ichsan Febriansyal</td>
+                <td class="row-arrow">›</td>
+              </tr>
+              <tr>
+                <td class="id">DESWP260626LB76HCY</td>
+                <td class="date">26 Jun · 09:22</td>
+                <td class="awb">AWB02TLKS</td>
+                <td>Apotek Inofarma Koja</td>
+                <td><span class="pill returned"><span class="dot"></span>Returned</span></td>
+                <td class="rider">Muhammad Syaifu…</td>
+                <td class="row-arrow">›</td>
+              </tr>
+              <tr>
+                <td class="id">DESWP260626Q1M30S2</td>
+                <td class="date">26 Jun · 09:10</td>
+                <td class="awb">AWB02TLL6</td>
+                <td>Apotek Inofarma Warakas</td>
+                <td><span class="pill returned"><span class="dot"></span>Returned</span></td>
+                <td class="rider">Zulham Rahadians…</td>
+                <td class="row-arrow">›</td>
+              </tr>
+              <tr>
+                <td class="id">DESWP260626A6RUL0S</td>
+                <td class="date">26 Jun · 08:55</td>
+                <td class="awb">AWB02TLN9</td>
+                <td>Apotek Inofarma Pulogebang</td>
+                <td><span class="pill"><span class="dot"></span>Completed</span></td>
+                <td class="rider">Yogi pradipta</td>
+                <td class="row-arrow">›</td>
+              </tr>
+              <tr>
+                <td class="id">DESWP260626HCDMAKO</td>
+                <td class="date">26 Jun · 08:30</td>
+                <td class="awb">AWB02TLKL</td>
+                <td>Apotek Inofarma Pisangan Lama</td>
+                <td><span class="pill returned"><span class="dot"></span>Returned</span></td>
+                <td class="rider">SDR Slamet Riyant…</td>
+                <td class="row-arrow">›</td>
+              </tr>
+              <tr>
+                <td class="id">DESWP260626HXOP3UK</td>
+                <td class="date">26 Jun · 08:12</td>
+                <td class="awb">AWB02TLM2</td>
+                <td>Apotek Inofarma Ampera</td>
+                <td><span class="pill"><span class="dot"></span>Completed</span></td>
+                <td class="rider">Christanto Efendy</td>
+                <td class="row-arrow">›</td>
+              </tr>
+            </tbody>
+          </table>
+        </main>
+      </div>
+    </div>
+    <p class="frame-caption">Six stats now, not five. The accent purple appears once — on the new "Returned" counter and its pill — exactly like a live brand moment in the GSM (logo, eyebrow numerals, live dots).</p>
+  </div>
+
+  <!-- ============ STATE 02 — Drawer open ============ -->
+  <div class="state">
+    <div class="state-tag"><span class="num">02</span>Return detail · drawer</div>
+    <div>
+      <div class="state-title">One row, one drawer — waybill, delivery ID, and proof on the same screen.</div>
+      <p class="state-sub">Clicking any return-flagged row slides a 560px drawer over the list. The client never leaves the page. Identity sits at the top in a 2×2 grid so it can be copied, scanned, or pasted into a follow-up message without scrolling.</p>
+    </div>
+
+    <div class="shell has-drawer">
+      <div class="shell-chrome">
+        <span class="dots"><span></span><span></span><span></span></span>
+        <span class="url">link.dashelectric.co/deliveries/DESWP260626EYL7IK</span>
+      </div>
+      <div class="shell-body" style="position: relative;">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <div class="brand">
+            <span class="mark"><svg viewBox="0 0 44 43" aria-hidden="true"><use href="#dash-logo"/></svg></span>
+            <span class="name">Dash Link</span>
+          </div>
+          <div class="section-label">Main</div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg>
+            Shipments<span class="chev">›</span>
+          </div>
+          <div class="nav-item active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h13v9H3z"/><path d="M16 12h4l1 5h-5"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>
+            Deliveries<span class="chev">›</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="16" height="13"/><path d="M4 10h16"/></svg>
+            Packages<span class="chev">›</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+            Invoices<span class="chev">›</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9.5 10a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/></svg>
+            Support
+          </div>
+          <div class="who">
+            <span class="avatar">SW</span>
+            <div>
+              <div class="who-name">SwipeRX</div>
+              <div class="who-mail">isumi.karina@…</div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main (dimmed beneath drawer; row that opened the drawer is focused) -->
+        <main class="main" style="opacity: 0.45;">
+          <div class="main-header">
+            <div class="titles">
+              <div class="eyebrow"><span class="num">02</span>Deliveries</div>
+              <h2>Deliveries</h2>
+              <p class="sub">Setiap pengiriman milik Anda di seluruh outlet — lengkap dengan order ID, jadwal, status, driver, dan SLA.</p>
+            </div>
+          </div>
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Delivery ID</th>
+                <th>Created</th>
+                <th>Waybill</th>
+                <th>Recipient</th>
+                <th>Status</th>
+                <th>Rider</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="focused">
+                <td class="id">DESWP260626EYL7IK</td>
+                <td class="date">26 Jun · 09:45</td>
+                <td class="awb">AWB02TLL0</td>
+                <td>Apotek Inofarma Tanah Pasir</td>
+                <td><span class="pill returned"><span class="dot"></span>Returned</span></td>
+                <td class="rider">Ichsan Febriansyal</td>
+                <td class="row-arrow">›</td>
+              </tr>
+              <tr>
+                <td class="id">DESWP260626LB76HCY</td>
+                <td class="date">26 Jun · 09:22</td>
+                <td class="awb">AWB02TLKS</td>
+                <td>Apotek Inofarma Koja</td>
+                <td><span class="pill returned"><span class="dot"></span>Returned</span></td>
+                <td class="rider">Muhammad Syaifu…</td>
+                <td class="row-arrow">›</td>
+              </tr>
+              <tr>
+                <td class="id">DESWP260626Q1M30S2</td>
+                <td class="date">26 Jun · 09:10</td>
+                <td class="awb">AWB02TLL6</td>
+                <td>Apotek Inofarma Warakas</td>
+                <td><span class="pill returned"><span class="dot"></span>Returned</span></td>
+                <td class="rider">Zulham Rahadians…</td>
+                <td class="row-arrow">›</td>
+              </tr>
+            </tbody>
+          </table>
+        </main>
+
+        <div class="scrim"></div>
+
+        <!-- Drawer -->
+        <aside class="drawer">
+          <div class="drawer-head">
+            <div>
+              <div class="crumb"><span class="num">RTN</span>Return · 260626001</div>
+              <h3>Return on Apotek Inofarma Tanah Pasir</h3>
+              <div class="meta">26 Jun 2026 · 09:45 WIB · reported by rider</div>
+            </div>
+            <button class="close" aria-label="Close drawer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+
+          <div class="drawer-body">
+
+            <!-- Identity grid -->
+            <div class="drawer-block">
+              <div class="label"><span class="num">01</span>Identity</div>
+              <div class="id-grid">
+                <div class="id-cell">
+                  <div class="k">Waybill · AWB</div>
+                  <div class="v with-tag">
+                    <span class="mono">AWB02TLL0</span>
+                    <span class="copy">Copy</span>
+                  </div>
+                </div>
+                <div class="id-cell">
+                  <div class="k">Delivery ID</div>
+                  <div class="v with-tag">
+                    <span class="mono">DESWP260626EYL7IK</span>
+                    <span class="copy">Copy</span>
+                  </div>
+                </div>
+                <div class="id-cell">
+                  <div class="k">Reason</div>
+                  <div class="v" style="font-size: 13px;">Damaged packaging</div>
+                </div>
+                <div class="id-cell">
+                  <div class="k">Rider</div>
+                  <div class="v" style="font-size: 13px;">Ichsan Febriansyal</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Photo proof -->
+            <div class="drawer-block">
+              <div class="label"><span class="num">02</span>Photo proof · 3 attached</div>
+              <div class="photo-grid">
+                <div class="photo">
+                  <svg viewBox="0 0 240 240" aria-hidden="true"><use href="#photo-bag-damaged"/></svg>
+                  <span class="badge">1 / 3</span>
+                  <span class="meta">09:44 · -6.121, 106.778</span>
+                </div>
+                <div class="photo">
+                  <svg viewBox="0 0 240 240" aria-hidden="true"><use href="#photo-seal-close"/></svg>
+                  <span class="badge">2 / 3</span>
+                  <span class="meta">09:44</span>
+                </div>
+                <div class="photo">
+                  <svg viewBox="0 0 240 240" aria-hidden="true"><use href="#photo-items-counter"/></svg>
+                  <span class="badge">3 / 3</span>
+                  <span class="meta">09:45</span>
+                </div>
+              </div>
+              <p style="font-size: 11px; color: var(--neutral); margin-top: 10px; line-height: 1.5;">Captured by Ichsan Febriansyal at the recipient counter. GPS and timestamp embedded in EXIF.</p>
+            </div>
+
+            <!-- Rider note -->
+            <div class="drawer-block">
+              <div class="label"><span class="num">03</span>Note from rider</div>
+              <div class="note-card">
+                "Seal broken on receipt. Apoteker confirmed at counter and refused the batch."
+                <div class="who">Ichsan Febriansyal · signed by Sdri. Karina (Apoteker)</div>
+              </div>
+            </div>
+
+            <!-- Activity -->
+            <div class="drawer-block">
+              <div class="label"><span class="num">04</span>Activity</div>
+              <div class="timeline">
+                <div class="tl-row">
+                  <span class="time">09:42</span>
+                  <span class="marker"></span>
+                  <div class="body"><span class="who">Ichsan Febriansyal</span> <span class="what">arrived at the stop.</span></div>
+                </div>
+                <div class="tl-row">
+                  <span class="time">09:43</span>
+                  <span class="marker"></span>
+                  <div class="body"><span class="what">Reason captured: damaged packaging.</span></div>
+                </div>
+                <div class="tl-row">
+                  <span class="time">09:44</span>
+                  <span class="marker"></span>
+                  <div class="body"><span class="what">3 photos captured with GPS and timestamp.</span></div>
+                </div>
+                <div class="tl-row">
+                  <span class="time">09:45</span>
+                  <span class="marker"></span>
+                  <div class="body"><span class="what">Recipient signed. POD updated as returned.</span></div>
+                </div>
+                <div class="tl-row live">
+                  <span class="time">09:45</span>
+                  <span class="marker"></span>
+                  <div class="body"><span class="what">Return logged on Dash Link.</span></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="drawer-foot">
+            <button class="btn secondary">Download proof · ZIP</button>
+            <button class="btn">Open dispute</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+    <p class="frame-caption">Identity (waybill + delivery ID) is the first block so the client can act on it without reading any further. Photo proof is the second block — three frames captioned with time and GPS, never floating. Notes and activity follow. The drawer dismisses with the close button or the scrim; the list is exactly where the user left it.</p>
+  </div>
+
+</div>
+
+<div class="flow-legend">
+  <span class="dot"></span>
+  <span>The list scales to 6 statuses; the drawer scales to multiple returns per delivery (timeline accumulates). Photo enlargement and dispute submission are next-iteration scope. See <code>returns-mockup-rider-v1.html</code> for the upstream rider flow.</span>
+</div>
+
+<footer class="page-footer">
+  <span>Mockups follow docs/brand/gsm.md — layout is illustrative, copy is operator voice</span>
+  <span>v1 · 2026-06-26</span>
+</footer>
+
+</body>
+</html>

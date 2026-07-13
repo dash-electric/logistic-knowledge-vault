@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "noEmit": true,
+    "paths": {
+      "@dash-electric/logistic-kit": ["./kit/index.tsx"],
+      "@dash-electric/logistic-kit/lib/utils": ["./kit/lib/utils.tsx"]
+    }
+  },
+  "include": ["src", "kit", "vite.config.ts"]
+}

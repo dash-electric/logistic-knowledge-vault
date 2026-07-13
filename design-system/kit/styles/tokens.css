@@ -1,0 +1,527 @@
+/*
+ * Dash Logistic Design System — token layer (self-contained)
+ * ============================================================
+ *
+ * This file IS the theme. It encodes the **Dash Logistic Graphic Standard
+ * Manual** (logistic-knowledge-vault/docs/brand/gsm.md · v1.0) as a token
+ * layer, so every atom in `@dash-electric/logistic-kit` inherits the GSM
+ * automatically — no per-component edits.
+ *
+ * GSM in four rules:
+ *   01 Editorial restraint — hairline rules + whitespace, not glow/gradients/shadows.
+ *   02 Evidence over decoration — tabular numerals, numbers earn their size.
+ *   03 One accent, used like punctuation — Ink, White, four greys, one Dash
+ *      Purple #5E2AAC. Purple shows ONLY at brand moments (logo, eyebrow
+ *      numerals, live dots, selection) — never as a fill on text blocks,
+ *      large backgrounds, or buttons.
+ *   04 Grid-anchored — consistent rhythm.
+ *
+ * GSM palette:
+ *   Primary · Dash Purple  #5E2AAC   accent / punctuation only
+ *   Ink                    #171717   body text, wordmark, high-emphasis, inverse surfaces
+ *   White                  #FFFFFF   page + card surface
+ *   Neutral                #5C5C5C   secondary text, labels, captions
+ *   Rule / Rule strong     10% / 22% black hairlines
+ *   Tint / Tint strong     4% / 7% black fills + hover
+ *
+ * Type: Plus Jakarta Sans (200–800) + JetBrains Mono (400–600), tabular nums,
+ *       OpenType ss01/cv11/cv02. Fonts are the one permitted external resource
+ *       (loaded by the consumer app).
+ *
+ * NOTE on "operational" color: the GSM permits non-brand color as *operational
+ * data* (field-app zone colors, status). The semantic state ramps below
+ * (success / warning / error / …) are kept for that purpose — they are
+ * information, not brand decoration.
+ */
+
+@import "tailwindcss";
+
+/* Class-based dark mode: `.dark` on <html> or any ancestor. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+ * Raw palettes
+ * ============================================================
+ * The GREY ramp below already encodes the GSM anchors:
+ *   gray-950 #171717 = Ink · gray-600 #5c5c5c = Neutral · gray-0 #fff = White.
+ * Semantic surfaces are anchored to it. Chromatic ramps remain for
+ * operational status only.
+ */
+:root {
+  /* ------ GSM greys (Ink / Neutral / White + steps) ------ */
+  --dash-gray-0: #ffffff;
+  --dash-gray-50: #f7f7f7;
+  --dash-gray-100: #f5f5f5;
+  --dash-gray-200: #ebebeb;
+  --dash-gray-300: #d1d1d1;
+  --dash-gray-400: #a3a3a3;
+  --dash-gray-500: #7b7b7b;
+  --dash-gray-600: #5c5c5c; /* Neutral */
+  --dash-gray-700: #333333;
+  --dash-gray-800: #262626;
+  --dash-gray-900: #1c1c1c;
+  --dash-gray-950: #171717; /* Ink */
+  --dash-gray-alpha-10: #a3a3a31a;
+  --dash-gray-alpha-16: #a3a3a329;
+  --dash-gray-alpha-24: #a3a3a33d;
+
+  /* GSM rules + tints — all derived from Ink #171717 */
+  --dash-black-alpha-4:  #1717170a; /* 4%  — Tint (code bg, faint field fill) */
+  --dash-black-alpha-7:  #17171712; /* 7%  — Tint strong (hover / pressed) */
+  --dash-black-alpha-10: #1717171a; /* 10% — Rule (hairlines) */
+  --dash-black-alpha-16: #17171729;
+  --dash-black-alpha-22: #17171738; /* 22% — Rule strong (section breaks, borders) */
+  --dash-black-alpha-24: #1717173d;
+  --dash-white-alpha-10: #ffffff1a;
+  --dash-white-alpha-16: #ffffff29;
+  --dash-white-alpha-24: #ffffff3d;
+
+  /* Slate retained only for subtle neutral focus rings on legacy atoms. */
+  --dash-slate-0: #ffffff;
+  --dash-slate-100: #f2f5f8;
+  --dash-slate-200: #e1e4ea;
+  --dash-slate-300: #cacfd8;
+  --dash-slate-400: #99a0ae;
+  --dash-slate-500: #717784;
+  --dash-slate-600: #525866;
+  --dash-slate-700: #2b303b;
+  --dash-slate-950: #0e121b;
+  --dash-slate-alpha-10: #1717170d;
+  --dash-slate-alpha-16: #17171714;
+  --dash-slate-alpha-24: #1717171f;
+
+  /* ------ Operational status ramps (information, not brand) ------ */
+  --dash-red-50: #ffebec;  --dash-red-100: #ffd5d8; --dash-red-200: #ffc0c5;
+  --dash-red-300: #ff97a0; --dash-red-400: #ff6875; --dash-red-500: #fb3748;
+  --dash-red-600: #e93544; --dash-red-700: #d02533; --dash-red-800: #ad1f2b;
+  --dash-red-900: #8b1822; --dash-red-950: #681219;
+  --dash-red-alpha-10: #fb37481a; --dash-red-alpha-16: #fb374829; --dash-red-alpha-24: #fb37483d;
+
+  --dash-orange-50: #fff3eb;  --dash-orange-100: #ffe6d5; --dash-orange-200: #ffd9c0;
+  --dash-orange-300: #ffc197; --dash-orange-400: #ffa468; --dash-orange-500: #fa7319;
+  --dash-orange-600: #e16614; --dash-orange-700: #ce5e12; --dash-orange-800: #b75310;
+  --dash-orange-900: #96440d; --dash-orange-950: #71330a;
+  --dash-orange-alpha-10: #fa73191a; --dash-orange-alpha-16: #fa731929; --dash-orange-alpha-24: #fa73193d;
+
+  --dash-yellow-50: #fffaeb;  --dash-yellow-100: #ffefcc; --dash-yellow-200: #ffecc0;
+  --dash-yellow-300: #ffe097; --dash-yellow-400: #ffd268; --dash-yellow-500: #f6b51e;
+  --dash-yellow-600: #e6a819; --dash-yellow-700: #c99a2c; --dash-yellow-800: #a78025;
+  --dash-yellow-900: #86661d; --dash-yellow-950: #624c18;
+  --dash-yellow-alpha-10: #fbc64b1a; --dash-yellow-alpha-16: #fbc64b29; --dash-yellow-alpha-24: #fbc64b3d;
+
+  --dash-green-50: #e0faec;  --dash-green-100: #d0fbe9; --dash-green-200: #c2f5da;
+  --dash-green-300: #84ebb4; --dash-green-400: #3ee089; --dash-green-500: #1fc16b;
+  --dash-green-600: #1daf61; --dash-green-700: #178c4e; --dash-green-800: #1a7544;
+  --dash-green-900: #16643b; --dash-green-950: #0b4627;
+  --dash-green-alpha-10: #1fc16b1a; --dash-green-alpha-16: #1fc16b29; --dash-green-alpha-24: #1fc16b3d;
+
+  --dash-teal-50: #e4fbf8;  --dash-teal-100: #d0fbf5; --dash-teal-200: #c2f5ee;
+  --dash-teal-300: #84ebdd; --dash-teal-400: #3fdec9; --dash-teal-500: #22d3bb;
+  --dash-teal-600: #1daf9c; --dash-teal-700: #178c7d; --dash-teal-800: #1a7569;
+  --dash-teal-900: #16645a; --dash-teal-950: #0b463e;
+  --dash-teal-alpha-10: #22d3bb1a; --dash-teal-alpha-16: #22d3bb29; --dash-teal-alpha-24: #22d3bb3d;
+
+  --dash-sky-50: #ebf8ff;  --dash-sky-100: #d5f1ff; --dash-sky-200: #c0eaff;
+  --dash-sky-300: #97dcff; --dash-sky-400: #68cdff; --dash-sky-500: #47c2ff;
+  --dash-sky-600: #35ade9; --dash-sky-700: #2597d0; --dash-sky-800: #1f7ead;
+  --dash-sky-900: #18658b; --dash-sky-950: #124b68;
+  --dash-sky-alpha-10: #47c2ff1a; --dash-sky-alpha-16: #47c2ff29; --dash-sky-alpha-24: #47c2ff3d;
+
+  --dash-blue-50: #ebf1ff;  --dash-blue-100: #d5e2ff; --dash-blue-200: #c0d5ff;
+  --dash-blue-300: #97baff; --dash-blue-400: #6895ff; --dash-blue-500: #335cff;
+  --dash-blue-600: #3559e9; --dash-blue-700: #2547d0; --dash-blue-800: #1f3bad;
+  --dash-blue-900: #182f8b; --dash-blue-950: #122368;
+  --dash-blue-alpha-10: #476cff1a; --dash-blue-alpha-16: #476cff29; --dash-blue-alpha-24: #476cff3d;
+
+  --dash-pink-50: #ffebf4;  --dash-pink-100: #ffd5ea; --dash-pink-200: #ffc0df;
+  --dash-pink-300: #ff97cb; --dash-pink-400: #ff68b3; --dash-pink-500: #fb4ba3;
+  --dash-pink-600: #e9358f; --dash-pink-700: #d0257a; --dash-pink-800: #ad1f66;
+  --dash-pink-900: #8b1852; --dash-pink-950: #68123d;
+  --dash-pink-alpha-10: #fb4ba31a; --dash-pink-alpha-16: #fb4ba329; --dash-pink-alpha-24: #fb4ba33d;
+
+  /* ------ DASH PURPLE — the one accent (#5E2AAC at -500) ------ */
+  --dash-purple-50: #efeaf7;
+  --dash-purple-100: #cdbde5;
+  --dash-purple-200: #b59dd9;
+  --dash-purple-300: #9370c7;
+  --dash-purple-400: #7e55bd;
+  --dash-purple-500: #5e2aac; /* Primary · Dash Purple */
+  --dash-purple-600: #56269d;
+  --dash-purple-700: #431e7a;
+  --dash-purple-800: #34175f;
+  --dash-purple-900: #271248;
+  --dash-purple-950: #1b0c32;
+  --dash-purple-alpha-10: #5e2aac1a;
+  --dash-purple-alpha-16: #5e2aac29;
+  --dash-purple-alpha-24: #5e2aac3d;
+
+  /* ------ Primary brand alias (Dash Purple — punctuation accent) ------ */
+  --primary-base:     var(--dash-purple-500);
+  --primary-dark:     var(--dash-purple-700);
+  --primary-darker:   var(--dash-purple-800);
+  --primary-alpha-10: var(--dash-purple-alpha-10);
+  --primary-alpha-16: var(--dash-purple-alpha-16);
+  --primary-alpha-24: var(--dash-purple-alpha-24);
+
+  /* ------ State semantic — LIGHT (operational data) ------ */
+  --state-error-dark: var(--dash-red-950); --state-error-base: var(--dash-red-500); --state-error-light: var(--dash-red-200); --state-error-lighter: var(--dash-red-50);
+  --state-warning-dark: var(--dash-orange-950); --state-warning-base: var(--dash-orange-500); --state-warning-light: var(--dash-orange-200); --state-warning-lighter: var(--dash-orange-50);
+  --state-success-dark: var(--dash-green-950); --state-success-base: var(--dash-green-500); --state-success-light: var(--dash-green-200); --state-success-lighter: var(--dash-green-50);
+  --state-information-dark: var(--dash-blue-950); --state-information-base: var(--dash-blue-500); --state-information-light: var(--dash-blue-200); --state-information-lighter: var(--dash-blue-50);
+  --state-feature-dark: var(--dash-purple-950); --state-feature-base: var(--dash-purple-500); --state-feature-light: var(--dash-purple-200); --state-feature-lighter: var(--dash-purple-50);
+  --state-highlighted-dark: var(--dash-pink-950); --state-highlighted-base: var(--dash-pink-500); --state-highlighted-light: var(--dash-pink-200); --state-highlighted-lighter: var(--dash-pink-50);
+  --state-stable-dark: var(--dash-teal-950); --state-stable-base: var(--dash-teal-500); --state-stable-light: var(--dash-teal-200); --state-stable-lighter: var(--dash-teal-50);
+  --state-verified-dark: var(--dash-sky-950); --state-verified-base: var(--dash-sky-500); --state-verified-light: var(--dash-sky-200); --state-verified-lighter: var(--dash-sky-50);
+  --state-away-dark: var(--dash-yellow-950); --state-away-base: var(--dash-yellow-500); --state-away-light: var(--dash-yellow-200); --state-away-lighter: var(--dash-yellow-50);
+  --state-faded-dark: var(--dash-gray-800); --state-faded-base: var(--dash-gray-600); --state-faded-light: var(--dash-gray-200); --state-faded-lighter: var(--dash-gray-100);
+
+  /* ============================================================
+   * Semantic surfaces — GSM anchored (Ink / White / Neutral / greys)
+   * ============================================================ */
+  --bg-white-0:        var(--dash-gray-0);    /* White page + card */
+  --bg-weak-50:        var(--dash-gray-50);   /* faint field fill */
+  --bg-soft-200:       var(--dash-gray-200);  /* zone mark / hover */
+  --bg-sub-300:        var(--dash-gray-300);
+  --bg-surface-800:    var(--dash-gray-800);  /* near-ink fill */
+  --bg-strong-950:     var(--dash-gray-950);  /* Ink — inverse surface */
+
+  --text-strong-950:   var(--dash-gray-950);  /* Ink — body / high-emphasis */
+  --text-sub-600:      var(--dash-gray-600);  /* Neutral — secondary / labels */
+  --text-soft-400:     var(--dash-gray-400);  /* captions */
+  --text-disabled-300: var(--dash-gray-300);
+  --text-white-0:      var(--dash-gray-0);
+
+  --icon-strong-950:   var(--dash-gray-950);
+  --icon-sub-600:      var(--dash-gray-600);
+  --icon-soft-400:     var(--dash-gray-400);
+  --icon-disabled-300: var(--dash-gray-300);
+  --icon-white-0:      var(--dash-gray-0);
+
+  --stroke-soft-200:   var(--dash-black-alpha-10);  /* Rule — 10% black hairline */
+  --stroke-sub-300:    var(--dash-black-alpha-22);  /* Rule strong — 22% black */
+  --stroke-strong-950: var(--dash-gray-950);        /* Ink border (active) */
+  --stroke-white-0:    var(--dash-gray-0);
+
+  --static-white:      #ffffff;
+  --static-black:      var(--dash-gray-950);
+  --overlay-overlay-gray:  #1717178f;
+  --overlay-overlay-slate: #1717178f;
+
+  /* ------ Spacing ------ */
+  --spacing-0: 0px; --spacing-2: 2px; --spacing-4: 4px; --spacing-6: 6px;
+  --spacing-8: 8px; --spacing-10: 10px; --spacing-12: 12px; --spacing-14: 14px;
+  --spacing-16: 16px; --spacing-24: 24px; --spacing-32: 32px; --spacing-40: 40px; --spacing-48: 48px;
+
+  /* ------ Radius ------ */
+  --radius-0: 0px; --radius-2: 2px; --radius-4: 4px; --radius-6: 6px; --radius-8: 8px;
+  --radius-10: 10px; --radius-12: 12px; --radius-16: 16px; --radius-20: 20px;
+  --radius-24: 24px; --radius-28: 28px; --radius-full: 9999px;
+
+  /* ------ Elevation — GSM editorial: inset hairline ring, no glow ------
+   * gsm.html uses exactly one elevation primitive: `inset 0 0 0 1px var(--rule)`.
+   * Inline surfaces (cards, stroke buttons, inputs) reproduce that flat ring.
+   * Only genuinely floating overlays (Modal / Popover / Toast / Tooltip) add
+   * the gentlest outer lift for legibility — never a glossy multi-layer shadow. */
+  --shadow-custom-shadows-x-small: inset 0 0 0 1px var(--dash-black-alpha-10);
+  --shadow-custom-shadows-small:   inset 0 0 0 1px var(--dash-black-alpha-10);
+  --shadow-custom-shadows-medium:  0 2px 8px -4px #1717171a, 0 0 0 1px var(--dash-black-alpha-10);
+  --shadow-custom-shadows-large:   0 12px 32px -12px #1717171f, 0 0 0 1px var(--dash-black-alpha-10);
+  --shadow-tooltip:                0 6px 20px -8px #1717171f, 0 0 0 1px var(--dash-black-alpha-22);
+
+  /* ------ Motion (sober feedback) ------ */
+  --duration-fast: 150ms; --duration-base: 250ms; --duration-slow: 400ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ------ Type families ------ */
+  --dash-font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --dash-font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+
+/* ============================================================
+ * Accent overlay — ONE accent: Dash Purple (punctuation only)
+ * ============================================================
+ * Unlike the parent design system's per-product accents, the GSM mandates a
+ * single chromatic color. `--theme-accent-*` therefore mirrors Dash Purple.
+ * Reserve `bg-accent` / `text-accent` for brand moments: eyebrow numerals,
+ * live-state dots, selection, do-markers — never washes or button fills.
+ */
+:root {
+  --theme-accent-50:  var(--dash-purple-50);
+  --theme-accent-100: var(--dash-purple-100);
+  --theme-accent-200: var(--dash-purple-200);
+  --theme-accent-300: var(--dash-purple-300);
+  --theme-accent-400: var(--dash-purple-400);
+  --theme-accent-500: var(--dash-purple-500);
+  --theme-accent-600: var(--dash-purple-600);
+  --theme-accent-700: var(--dash-purple-700);
+  --theme-accent-800: var(--dash-purple-800);
+  --theme-accent-900: var(--dash-purple-900);
+  --theme-accent-950: var(--dash-purple-950);
+
+  --theme-accent-base:    var(--dash-purple-500);
+  --theme-accent-dark:    var(--dash-purple-700);
+  --theme-accent-darker:  var(--dash-purple-800);
+  --theme-accent-light:   var(--dash-purple-100);
+  --theme-accent-lighter: var(--dash-purple-50);
+  --theme-accent-on:      #ffffff;
+
+  --theme-accent-alpha-10: var(--dash-purple-alpha-10);
+  --theme-accent-alpha-16: var(--dash-purple-alpha-16);
+  --theme-accent-alpha-24: var(--dash-purple-alpha-24);
+}
+
+/* ============================================================
+ * DARK mode (one inverse Ink surface; greys re-anchored)
+ * ============================================================ */
+.dark {
+  --bg-white-0:        var(--dash-gray-950);
+  --bg-weak-50:        var(--dash-gray-900);
+  --bg-soft-200:       var(--dash-gray-800);
+  --bg-sub-300:        var(--dash-gray-700);
+  --bg-surface-800:    var(--dash-gray-200);
+  --bg-strong-950:     var(--dash-gray-0);
+
+  --text-strong-950:   var(--dash-gray-0);
+  --text-sub-600:      var(--dash-gray-400);
+  --text-soft-400:     var(--dash-gray-500);
+  --text-disabled-300: var(--dash-gray-700);
+  --text-white-0:      var(--dash-gray-950);
+
+  --icon-strong-950:   var(--dash-gray-0);
+  --icon-sub-600:      var(--dash-gray-400);
+  --icon-soft-400:     var(--dash-gray-500);
+  --icon-disabled-300: var(--dash-gray-700);
+  --icon-white-0:      var(--dash-gray-950);
+
+  --stroke-soft-200:   var(--dash-white-alpha-10);
+  --stroke-sub-300:    var(--dash-white-alpha-24);
+  --stroke-strong-950: var(--dash-gray-0);
+  --stroke-white-0:    var(--dash-gray-950);
+
+  --static-white:      #ffffff;
+  --static-black:      var(--dash-gray-950);
+
+  /* State semantic — DARK */
+  --state-error-dark: var(--dash-red-400); --state-error-base: var(--dash-red-600); --state-error-light: var(--dash-red-alpha-24); --state-error-lighter: var(--dash-red-alpha-16);
+  --state-warning-dark: var(--dash-orange-400); --state-warning-base: var(--dash-orange-600); --state-warning-light: var(--dash-orange-alpha-24); --state-warning-lighter: var(--dash-orange-alpha-16);
+  --state-success-dark: var(--dash-green-400); --state-success-base: var(--dash-green-600); --state-success-light: var(--dash-green-alpha-24); --state-success-lighter: var(--dash-green-alpha-16);
+  --state-information-dark: var(--dash-blue-400); --state-information-base: var(--dash-blue-600); --state-information-light: var(--dash-blue-alpha-24); --state-information-lighter: var(--dash-blue-alpha-16);
+  --state-feature-dark: var(--dash-purple-400); --state-feature-base: var(--dash-purple-600); --state-feature-light: var(--dash-purple-alpha-24); --state-feature-lighter: var(--dash-purple-alpha-16);
+  --state-highlighted-dark: var(--dash-pink-400); --state-highlighted-base: var(--dash-pink-600); --state-highlighted-light: var(--dash-pink-alpha-24); --state-highlighted-lighter: var(--dash-pink-alpha-16);
+  --state-stable-dark: var(--dash-teal-400); --state-stable-base: var(--dash-teal-600); --state-stable-light: var(--dash-teal-alpha-24); --state-stable-lighter: var(--dash-teal-alpha-16);
+  --state-verified-dark: var(--dash-sky-400); --state-verified-base: var(--dash-sky-600); --state-verified-light: var(--dash-sky-alpha-24); --state-verified-lighter: var(--dash-sky-alpha-16);
+  --state-away-dark: var(--dash-yellow-400); --state-away-base: var(--dash-yellow-600); --state-away-light: var(--dash-yellow-alpha-24); --state-away-lighter: var(--dash-yellow-alpha-16);
+  --state-faded-dark: var(--dash-gray-300); --state-faded-base: var(--dash-gray-500); --state-faded-light: var(--dash-white-alpha-24); --state-faded-lighter: var(--dash-white-alpha-16);
+
+  --overlay-overlay-gray:  #0000009f;
+  --overlay-overlay-slate: #0000009f;
+}
+
+/* ============================================================
+ * Tailwind v4 — surface tokens to utilities
+ * ============================================================ */
+@theme inline {
+  --color-bg-strong-950:   var(--bg-strong-950);
+  --color-bg-surface-800:  var(--bg-surface-800);
+  --color-bg-sub-300:      var(--bg-sub-300);
+  --color-bg-soft-200:     var(--bg-soft-200);
+  --color-bg-weak-50:      var(--bg-weak-50);
+  --color-bg-white-0:      var(--bg-white-0);
+  --color-text-strong-950: var(--text-strong-950);
+  --color-text-sub-600:    var(--text-sub-600);
+  --color-text-soft-400:   var(--text-soft-400);
+  --color-text-disabled-300: var(--text-disabled-300);
+  --color-text-white-0:    var(--text-white-0);
+  --color-icon-strong-950: var(--icon-strong-950);
+  --color-icon-sub-600:    var(--icon-sub-600);
+  --color-icon-soft-400:   var(--icon-soft-400);
+  --color-icon-disabled-300: var(--icon-disabled-300);
+  --color-icon-white-0:    var(--icon-white-0);
+  --color-stroke-strong-950: var(--stroke-strong-950);
+  --color-stroke-sub-300:  var(--stroke-sub-300);
+  --color-stroke-soft-200: var(--stroke-soft-200);
+  --color-stroke-white-0:  var(--stroke-white-0);
+  --color-static-black:    var(--static-black);
+  --color-static-white:    var(--static-white);
+
+  /* Bare semantic aliases */
+  --color-primary:         var(--primary-base);
+  --color-primary-base:    var(--primary-base);
+  --color-primary-dark:    var(--primary-dark);
+  --color-primary-darker:  var(--primary-darker);
+
+  /* Accent = Dash Purple (one accent). Punctuation use only. */
+  --color-accent:          var(--theme-accent-base);
+  --color-accent-base:     var(--theme-accent-base);
+  --color-accent-dark:     var(--theme-accent-dark);
+  --color-accent-darker:   var(--theme-accent-darker);
+  --color-accent-light:    var(--theme-accent-light);
+  --color-accent-lighter:  var(--theme-accent-lighter);
+  --color-accent-on:       var(--theme-accent-on);
+  --color-accent-50:  var(--theme-accent-50);
+  --color-accent-100: var(--theme-accent-100);
+  --color-accent-200: var(--theme-accent-200);
+  --color-accent-300: var(--theme-accent-300);
+  --color-accent-400: var(--theme-accent-400);
+  --color-accent-500: var(--theme-accent-500);
+  --color-accent-600: var(--theme-accent-600);
+  --color-accent-700: var(--theme-accent-700);
+  --color-accent-800: var(--theme-accent-800);
+  --color-accent-900: var(--theme-accent-900);
+  --color-accent-950: var(--theme-accent-950);
+
+  /* Focus ring color (selection = on-brand purple). Powers `ring-ring`. */
+  --color-ring:        var(--theme-accent-base);
+
+  /* GSM rules + tints as utilities (border-rule, bg-tint, …) */
+  --color-rule:        var(--dash-black-alpha-10);
+  --color-rule-strong: var(--dash-black-alpha-22);
+  --color-tint:        var(--dash-black-alpha-4);
+  --color-tint-strong: var(--dash-black-alpha-7);
+  --color-ink:         var(--dash-gray-950);
+  --color-neutral-text: var(--dash-gray-600);
+
+  --color-destructive: var(--state-error-base);
+
+  /* State semantic — bare */
+  --color-error-base: var(--state-error-base); --color-error-dark: var(--state-error-dark); --color-error-light: var(--state-error-light); --color-error-lighter: var(--state-error-lighter);
+  --color-warning-base: var(--state-warning-base); --color-warning-dark: var(--state-warning-dark); --color-warning-light: var(--state-warning-light); --color-warning-lighter: var(--state-warning-lighter);
+  --color-success-base: var(--state-success-base); --color-success-dark: var(--state-success-dark); --color-success-light: var(--state-success-light); --color-success-lighter: var(--state-success-lighter);
+  --color-information-base: var(--state-information-base); --color-information-dark: var(--state-information-dark); --color-information-light: var(--state-information-light); --color-information-lighter: var(--state-information-lighter);
+  --color-feature-base: var(--state-feature-base); --color-feature-dark: var(--state-feature-dark); --color-feature-light: var(--state-feature-light); --color-feature-lighter: var(--state-feature-lighter);
+  --color-faded-base: var(--state-faded-base); --color-faded-dark: var(--state-faded-dark); --color-faded-light: var(--state-faded-light); --color-faded-lighter: var(--state-faded-lighter);
+  --color-highlighted-base: var(--state-highlighted-base); --color-highlighted-dark: var(--state-highlighted-dark); --color-highlighted-light: var(--state-highlighted-light); --color-highlighted-lighter: var(--state-highlighted-lighter);
+  --color-stable-base: var(--state-stable-base); --color-stable-dark: var(--state-stable-dark); --color-stable-light: var(--state-stable-light); --color-stable-lighter: var(--state-stable-lighter);
+  --color-verified-base: var(--state-verified-base); --color-verified-dark: var(--state-verified-dark); --color-verified-light: var(--state-verified-light); --color-verified-lighter: var(--state-verified-lighter);
+  --color-away-base: var(--state-away-base); --color-away-dark: var(--state-away-dark); --color-away-light: var(--state-away-light); --color-away-lighter: var(--state-away-lighter);
+
+  /* State namespaced */
+  --color-state-error-base: var(--state-error-base); --color-state-error-dark: var(--state-error-dark); --color-state-error-light: var(--state-error-light); --color-state-error-lighter: var(--state-error-lighter);
+  --color-state-warning-base: var(--state-warning-base); --color-state-warning-dark: var(--state-warning-dark); --color-state-warning-light: var(--state-warning-light); --color-state-warning-lighter: var(--state-warning-lighter);
+  --color-state-success-base: var(--state-success-base); --color-state-success-dark: var(--state-success-dark); --color-state-success-light: var(--state-success-light); --color-state-success-lighter: var(--state-success-lighter);
+  --color-state-information-base: var(--state-information-base); --color-state-information-dark: var(--state-information-dark); --color-state-information-light: var(--state-information-light); --color-state-information-lighter: var(--state-information-lighter);
+  --color-state-feature-base: var(--state-feature-base); --color-state-feature-dark: var(--state-feature-dark); --color-state-feature-light: var(--state-feature-light); --color-state-feature-lighter: var(--state-feature-lighter);
+  --color-state-faded-base: var(--state-faded-base); --color-state-faded-dark: var(--state-faded-dark); --color-state-faded-light: var(--state-faded-light); --color-state-faded-lighter: var(--state-faded-lighter);
+  --color-state-highlighted-base: var(--state-highlighted-base); --color-state-highlighted-dark: var(--state-highlighted-dark); --color-state-highlighted-light: var(--state-highlighted-light); --color-state-highlighted-lighter: var(--state-highlighted-lighter);
+  --color-state-stable-base: var(--state-stable-base); --color-state-stable-dark: var(--state-stable-dark); --color-state-stable-light: var(--state-stable-light); --color-state-stable-lighter: var(--state-stable-lighter);
+  --color-state-verified-base: var(--state-verified-base); --color-state-verified-dark: var(--state-verified-dark); --color-state-verified-light: var(--state-verified-light); --color-state-verified-lighter: var(--state-verified-lighter);
+  --color-state-away-base: var(--state-away-base); --color-state-away-dark: var(--state-away-dark); --color-state-away-light: var(--state-away-light); --color-state-away-lighter: var(--state-away-lighter);
+
+  /* Shorthand aliases */
+  --color-icon-soft:   var(--icon-soft-400);
+  --color-icon-sub:    var(--icon-sub-600);
+  --color-icon-strong: var(--icon-strong-950);
+  --color-text-soft:   var(--text-soft-400);
+  --color-text-sub:    var(--text-sub-600);
+  --color-text-strong: var(--text-strong-950);
+  --color-stroke-soft: var(--stroke-soft-200);
+  --color-stroke-sub:  var(--stroke-sub-300);
+  --color-stroke-strong: var(--stroke-strong-950);
+
+  /* Font families */
+  --font-sans: var(--dash-font-family);
+  --font-mono: var(--dash-font-mono);
+
+  /* ------ Radius — GSM sharp/editorial scale ------
+   * The GSM only ever uses 2px corners (and 50% for dots). We collapse the
+   * whole named Tailwind scale toward 2px so every atom (rounded-md / -lg /
+   * -xl / -2xl) reads as the GSM newspaper square. `rounded-full` stays for
+   * dots, pills, avatars, and spinners. */
+  --radius-xs:  2px;
+  --radius-sm:  2px;
+  --radius-md:  2px;
+  --radius-lg:  2px;
+  --radius-xl:  2px;
+  --radius-2xl: 2px;
+  --radius-3xl: 2px;
+  --radius-full: 9999px;
+
+  /* Numeric Dash radius tokens, GSM-compressed (rounded-2 … rounded-28). */
+  --radius-0: 0px;  --radius-2: 2px;  --radius-4: 2px;  --radius-6: 2px;
+  --radius-8: 2px;  --radius-10: 2px; --radius-12: 2px; --radius-16: 2px;
+  --radius-20: 2px; --radius-24: 2px; --radius-28: 2px;
+
+  /* Shadow aliases (hairline-forward). Every shadow utility the atoms use is
+     surfaced here and resolves to the GSM hairline/lift values in :root. */
+  --shadow-custom-shadows-x-small: var(--shadow-custom-shadows-x-small);
+  --shadow-custom-shadows-small:   var(--shadow-custom-shadows-small);
+  --shadow-custom-shadows-medium:  var(--shadow-custom-shadows-medium);
+  --shadow-custom-shadows-large:   var(--shadow-custom-shadows-large);
+  --shadow-tooltip: var(--shadow-tooltip);
+  --shadow-card-lg: var(--shadow-custom-shadows-large);
+  --shadow-card-md: var(--shadow-custom-shadows-medium);
+  --shadow-card-sm: var(--shadow-custom-shadows-small);
+  --shadow-card-xs: var(--shadow-custom-shadows-x-small);
+  --shadow-custom-lg: var(--shadow-custom-shadows-large);
+  --shadow-custom-md: var(--shadow-custom-shadows-medium);
+  --shadow-custom-sm: var(--shadow-custom-shadows-small);
+  --shadow-custom-xs: var(--shadow-custom-shadows-x-small);
+  --shadow-regular-xs: var(--shadow-custom-shadows-x-small);
+  /* Switch thumb — subtle lift on the moving knob. */
+  --shadow-switch-thumb: 0 1px 2px 0 #1717172e, 0 0 0 1px var(--dash-black-alpha-10);
+}
+
+/* ============================================================
+ * Base — GSM OpenType + tabular numerals
+ * ============================================================ */
+:where(html) {
+  font-family: var(--dash-font-family);
+  font-feature-settings: "ss01", "cv11", "cv02";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+/* Numerals always tabular on figures (GSM rule 02 / evidence). */
+:where(table, .tabular, [data-tabular]) { font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+ * GSM type scale (display / text / labels / mono)
+ * ============================================================ */
+.gsm-huge   { font-family: var(--dash-font-family); font-weight: 800; letter-spacing: -0.045em; line-height: 1.02; }
+.gsm-large  { font-family: var(--dash-font-family); font-weight: 700; letter-spacing: -0.035em; line-height: 1.08; }
+.gsm-medium { font-family: var(--dash-font-family); font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; }
+.gsm-lede   { font-family: var(--dash-font-family); font-weight: 400; letter-spacing: -0.005em; line-height: 1.5; }
+.gsm-body   { font-family: var(--dash-font-family); font-weight: 400; letter-spacing: normal; line-height: 1.55; }
+.gsm-label  { font-family: var(--dash-font-family); font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; }
+.gsm-mono   { font-family: var(--dash-font-mono); font-weight: 400; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+ * Existing Dash type utility classes (used by atoms) — Plus Jakarta
+ * ============================================================ */
+.text-title-h1 { font-family: var(--dash-font-family); font-size: 56px; font-weight: 500; line-height: 64px; letter-spacing: -0.56px; }
+.text-title-h2 { font-family: var(--dash-font-family); font-size: 48px; font-weight: 500; line-height: 56px; letter-spacing: -0.48px; }
+.text-title-h3 { font-family: var(--dash-font-family); font-size: 40px; font-weight: 500; line-height: 48px; letter-spacing: -0.4px; }
+.text-title-h4 { font-family: var(--dash-font-family); font-size: 32px; font-weight: 500; line-height: 40px; letter-spacing: -0.16px; }
+.text-title-h5 { font-family: var(--dash-font-family); font-size: 24px; font-weight: 500; line-height: 32px; }
+.text-title-h6 { font-family: var(--dash-font-family); font-size: 20px; font-weight: 500; line-height: 28px; }
+
+.text-label-x-large { font-family: var(--dash-font-family); font-size: 24px; font-weight: 500; line-height: 32px; letter-spacing: -0.36px; }
+.text-label-large   { font-family: var(--dash-font-family); font-size: 18px; font-weight: 500; line-height: 24px; letter-spacing: -0.27px; }
+.text-label-medium  { font-family: var(--dash-font-family); font-size: 16px; font-weight: 500; line-height: 24px; letter-spacing: -0.176px; }
+.text-label-small   { font-family: var(--dash-font-family); font-size: 14px; font-weight: 500; line-height: 20px; letter-spacing: -0.084px; }
+.text-label-x-small { font-family: var(--dash-font-family); font-size: 12px; font-weight: 500; line-height: 16px; }
+
+.text-paragraph-x-large { font-family: var(--dash-font-family); font-size: 24px; font-weight: 400; line-height: 32px; letter-spacing: -0.36px; }
+.text-paragraph-large   { font-family: var(--dash-font-family); font-size: 18px; font-weight: 400; line-height: 24px; letter-spacing: -0.27px; }
+.text-paragraph-medium  { font-family: var(--dash-font-family); font-size: 16px; font-weight: 400; line-height: 24px; letter-spacing: -0.176px; }
+.text-paragraph-small   { font-family: var(--dash-font-family); font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: -0.084px; }
+.text-paragraph-x-small { font-family: var(--dash-font-family); font-size: 12px; font-weight: 400; line-height: 16px; }
+
+.text-subheading-medium   { font-family: var(--dash-font-family); font-size: 16px; font-weight: 500; line-height: 24px; letter-spacing: 0.96px; }
+.text-subheading-small    { font-family: var(--dash-font-family); font-size: 14px; font-weight: 500; line-height: 20px; letter-spacing: 0.84px; }
+.text-subheading-x-small  { font-family: var(--dash-font-family); font-size: 12px; font-weight: 500; line-height: 16px; letter-spacing: 0.48px; }
+.text-subheading-2x-small { font-family: var(--dash-font-family); font-size: 11px; font-weight: 500; line-height: 12px; letter-spacing: 0.22px; }
+
+.text-docs { font-family: var(--dash-font-family); font-size: 18px; font-weight: 400; line-height: 32px; letter-spacing: -0.27px; }
+
+/* ============================================================
+ * A11y — reduced-motion gate (WCAG 2.3.3)
+ * ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

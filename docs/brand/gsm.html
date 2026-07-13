@@ -1,0 +1,2401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logistic · Graphic Standard Manual · Dash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #5E2AAC;
+  --primary-soft: rgba(94, 42, 172, 0.08);
+  --primary-medium: rgba(94, 42, 172, 0.16);
+  --primary-strong: rgba(94, 42, 172, 0.28);
+  --black: #171717;
+  --white: #FFFFFF;
+  --neutral: #5C5C5C;
+  --rule: rgba(23,23,23,0.10);
+  --rule-strong: rgba(23,23,23,0.22);
+  --tint: rgba(23,23,23,0.04);
+  --tint-strong: rgba(23,23,23,0.07);
+  --mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+}
+
+.logo-mark {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.14em;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.logo-mark svg, .logo-mark > svg { display: block; width: 100%; height: 100%; }
+.brand-mark { display: inline-flex; align-items: center; gap: 0.42em; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: var(--black);
+  background: var(--white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11", "cv02";
+  scroll-snap-type: y mandatory;
+  overflow-y: scroll;
+  height: 100vh;
+}
+
+::selection { background: var(--primary); color: var(--white); }
+
+.slide {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  height: 100vh;
+  width: 100vw;
+  padding: clamp(16px, 2.4vh, 28px) clamp(40px, 7vw, 96px);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.slide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+  flex-shrink: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.slide-header .left { display: flex; gap: 24px; align-items: baseline; }
+.slide-header .right { color: var(--black); font-weight: 700; }
+
+.brand-mark {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--black);
+}
+
+.slide-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(8px, 1.6vh, 18px) 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.slide-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--neutral);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+
+/* ===== Typography primitives ===== */
+
+.section-tag {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.section-tag .num {
+  color: var(--primary);
+  font-weight: 700;
+  margin-right: 12px;
+}
+
+h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.025em; line-height: 1.05; }
+
+.huge {
+  font-size: clamp(56px, 11vw, 168px);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+.large {
+  font-size: clamp(28px, 3.8vw, 48px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+.medium {
+  font-size: clamp(20px, 2.4vw, 32px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.lede {
+  font-size: clamp(13px, 1.05vw, 16px);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  line-height: 1.4;
+  color: var(--neutral);
+  max-width: 64ch;
+}
+
+.lede.dark { color: var(--black); }
+
+.label {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+}
+
+code, .mono {
+  font-family: var(--mono);
+}
+
+/* ===== Cover ===== */
+
+.slide-cover .slide-content { justify-content: space-between; }
+
+.cover-eyebrow {
+  font-size: 13px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+  margin-top: clamp(40px, 8vh, 96px);
+}
+
+.cover-title { margin-top: auto; }
+
+.cover-title h1 {
+  font-size: clamp(64px, 13vw, 200px);
+  font-weight: 200;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+  color: var(--black);
+}
+
+.cover-title h1 strong { font-weight: 800; color: var(--primary); }
+.cover-title h1 .slash { color: var(--neutral); font-weight: 200; }
+
+.cover-meta {
+  margin-top: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+
+.cover-meta p {
+  max-width: 56ch;
+  font-size: clamp(16px, 1.4vw, 20px);
+  line-height: 1.5;
+  color: var(--neutral);
+  font-weight: 400;
+}
+
+.cover-meta .meta-block {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+  text-align: right;
+  line-height: 1.6;
+}
+
+.cover-meta .meta-block strong {
+  display: block;
+  color: var(--black);
+  font-weight: 700;
+}
+
+/* ===== Contents (slide 2) ===== */
+
+.contents {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--rule-strong);
+}
+
+.toc-item {
+  display: grid;
+  grid-template-columns: 36px 1fr 50px;
+  gap: 12px;
+  padding: 10px 24px 10px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+
+.toc-item:nth-child(odd) { border-right: 1px solid var(--rule); }
+.toc-item:nth-child(even) { padding-left: 24px; padding-right: 0; }
+
+.toc-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--neutral);
+  letter-spacing: 0.18em;
+}
+
+.toc-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--black);
+}
+
+.toc-title em {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--neutral);
+  letter-spacing: -0.005em;
+  margin-top: 2px;
+}
+
+.toc-page {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--neutral);
+  text-align: right;
+  letter-spacing: 0.16em;
+}
+
+/* ===== Principles (slide 3) ===== */
+
+.principles {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--rule-strong);
+}
+
+.principle {
+  padding: 18px 32px 18px 0;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.principle:nth-child(odd) { border-right: 1px solid var(--rule); }
+.principle:nth-child(even) { padding-left: 32px; padding-right: 0; }
+
+.principle-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  min-width: 44px;
+}
+
+.principle-body h3 {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 5px;
+}
+
+.principle-body p {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--neutral);
+  max-width: 42ch;
+}
+
+.principle-body .opp {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--neutral);
+  letter-spacing: 0.06em;
+}
+
+.principle-body .opp strong {
+  color: var(--black);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 10px;
+  margin-right: 8px;
+}
+
+/* ===== Logo (slide 4) ===== */
+
+.logo-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--rule-strong);
+  min-height: 0;
+}
+
+.logo-display {
+  padding: 24px 32px 24px 0;
+  border-right: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-content: start;
+}
+
+.logo-stage {
+  border: 1px solid var(--rule);
+  padding: clamp(20px, 3.5vh, 36px) 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: var(--white);
+  min-height: clamp(120px, 18vh, 180px);
+}
+
+.logo-stage.inverse { background: var(--black); }
+.logo-stage.inverse .wordmark { color: var(--white); }
+
+.wordmark {
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--black);
+  font-size: clamp(28px, 3.4vw, 48px);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32em;
+}
+
+.wordmark .symbol {
+  width: 0.92em;
+  height: 0.92em;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.wordmark .symbol svg { display: block; width: 100%; height: 100%; }
+
+.wordmark .sub {
+  font-size: 0.32em;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.2em;
+  margin-right: -0.18em;
+  color: var(--neutral);
+  border-left: 1px solid var(--rule-strong);
+  padding-left: 0.6em;
+}
+
+.logo-stage.inverse .wordmark .sub { color: var(--white); border-color: rgba(255,255,255,0.4); }
+.logo-stage.symbol-only { padding: 16px 24px; }
+.logo-stage.symbol-only .wordmark { font-size: clamp(48px, 6vw, 80px); }
+
+.logo-stage .stage-label {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+}
+
+.logo-stage.inverse .stage-label { color: rgba(255,255,255,0.6); }
+
+.logo-rules {
+  padding: 24px 0 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.rule-item {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.rule-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+.rule-item h4 {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.rule-item p {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--black);
+  font-weight: 400;
+}
+
+.rule-item p code {
+  font-size: 11px;
+  background: var(--tint);
+  padding: 1px 5px;
+  border: 1px solid var(--rule);
+}
+
+/* ===== Color system (slide 5) ===== */
+
+.color-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule-strong);
+}
+
+.swatch {
+  background: var(--white);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.swatch-chip {
+  height: clamp(56px, 9vh, 90px);
+  position: relative;
+  border-bottom: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+
+.swatch-chip.has-border { box-shadow: inset 0 0 0 1px var(--rule); }
+
+.swatch-info {
+  padding: 10px 12px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.swatch-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--black);
+}
+
+.swatch-hex {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--black);
+  letter-spacing: 0;
+}
+
+.swatch-rgb {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--neutral);
+}
+
+.swatch-use {
+  margin-top: auto;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--neutral);
+  line-height: 1.4;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule);
+}
+
+.color-rules {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule-strong);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  font-size: 11px;
+  color: var(--neutral);
+  line-height: 1.5;
+}
+
+.color-rules strong { color: var(--black); font-weight: 700; }
+
+.color-rules h5 {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--black);
+  margin-bottom: 4px;
+}
+
+/* ===== Typography (slide 6) ===== */
+
+.type-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--rule-strong);
+}
+
+.type-specimens {
+  padding: 14px 28px 14px 0;
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.specimen { display: flex; align-items: baseline; gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+.specimen:last-child { border-bottom: none; padding-bottom: 0; }
+
+.specimen-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--neutral);
+  min-width: 96px;
+  letter-spacing: 0;
+}
+
+.specimen-sample { flex: 1; line-height: 1; }
+
+.sample-huge { font-size: 38px; font-weight: 800; letter-spacing: -0.045em; line-height: 0.95; }
+.sample-large { font-size: 26px; font-weight: 700; letter-spacing: -0.035em; line-height: 1.02; }
+.sample-medium { font-size: 19px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.1; }
+.sample-lede { font-size: 14px; font-weight: 400; line-height: 1.4; color: var(--neutral); }
+.sample-body { font-size: 13px; font-weight: 400; line-height: 1.5; }
+.sample-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--neutral); font-weight: 600; }
+.sample-mono { font-family: var(--mono); font-size: 12px; }
+
+.type-meta {
+  padding: 14px 0 14px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.type-block {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.type-block:last-child { border-bottom: none; }
+
+.type-block h5 {
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--black);
+  margin-bottom: 5px;
+}
+
+.type-block p {
+  font-size: 11px;
+  color: var(--neutral);
+  line-height: 1.4;
+}
+
+.type-block code, .type-block .mono {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--tint);
+  padding: 1px 5px;
+  border: 1px solid var(--rule);
+  color: var(--black);
+}
+
+.weight-ladder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+  margin-top: 6px;
+}
+
+.weight-ladder span {
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  position: relative;
+  padding-right: 4px;
+}
+
+.weight-ladder span::after {
+  content: attr(data-w);
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--neutral);
+  font-family: var(--mono);
+}
+
+/* ===== Grid & layout (slide 7) ===== */
+
+.layout-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--rule-strong);
+}
+
+.canvas-demo {
+  padding: 24px 40px 24px 0;
+  border-right: 1px solid var(--rule);
+}
+
+.canvas {
+  position: relative;
+  border: 1px solid var(--rule-strong);
+  aspect-ratio: 16 / 9;
+  background:
+    linear-gradient(to right, transparent 0, transparent calc(100% - 1px), var(--rule) calc(100% - 1px)),
+    linear-gradient(to bottom, transparent 0, transparent calc(100% - 1px), var(--rule) calc(100% - 1px));
+  background-size: 12.5% 12.5%;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-pad {
+  margin: 7%;
+  flex: 1;
+  border: 1px dashed var(--rule-strong);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.canvas-pad::before {
+  content: 'Safe area';
+  position: absolute;
+  top: -10px;
+  left: 8px;
+  font-size: 8px;
+  font-family: var(--mono);
+  background: var(--white);
+  padding: 0 6px;
+  color: var(--neutral);
+  letter-spacing: 0.1em;
+}
+
+.canvas-zone {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.canvas-zone.head, .canvas-zone.foot {
+  flex: 0 0 14%;
+  background: var(--tint);
+  border: none;
+}
+
+.canvas-zone.body {
+  flex: 1;
+  background: transparent;
+}
+
+.canvas-caption {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--neutral);
+  font-family: var(--mono);
+  display: flex;
+  justify-content: space-between;
+}
+
+.layout-specs {
+  padding: 24px 0 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.spec-row {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.spec-row:last-child { border-bottom: none; }
+
+.spec-row h5 {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--black);
+  margin-bottom: 6px;
+}
+
+.spec-row code {
+  font-family: var(--mono);
+  font-size: 11px;
+  display: block;
+  background: var(--tint);
+  padding: 6px 8px;
+  border: 1px solid var(--rule);
+  color: var(--black);
+  margin-bottom: 6px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.spec-row p {
+  font-size: 12px;
+  color: var(--neutral);
+  line-height: 1.5;
+}
+
+/* ===== Iconography (slide 8) ===== */
+
+.icon-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--rule-strong);
+  border-left: 1px solid var(--rule);
+}
+
+.icon-cell {
+  padding: 14px 12px;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.icon-frame {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-frame svg { width: 19px; height: auto; }
+
+.icon-name {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--black);
+}
+
+.icon-meta {
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--neutral);
+}
+
+.icon-rules {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule-strong);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  font-size: 10px;
+  color: var(--neutral);
+  line-height: 1.45;
+}
+
+.icon-rules h5 {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--black);
+  margin-bottom: 6px;
+}
+
+.icon-rules code {
+  font-family: var(--mono);
+  font-size: 10px;
+  background: var(--tint);
+  padding: 1px 4px;
+  border: 1px solid var(--rule);
+  color: var(--black);
+}
+
+/* ===== Components (slide 9) ===== */
+
+.comp-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule-strong);
+}
+
+.comp-card {
+  background: var(--white);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.comp-card h6 {
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--neutral);
+}
+
+.comp-card .comp-demo {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--rule);
+  padding: 10px;
+  background: var(--tint);
+  min-height: 60px;
+}
+
+.comp-card .comp-note {
+  font-size: 10px;
+  color: var(--neutral);
+  line-height: 1.4;
+}
+
+.demo-tag {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+}
+.demo-tag .num { color: var(--black); font-weight: 700; margin-right: 12px; }
+
+.demo-flow-step {
+  border: 1px solid var(--rule-strong);
+  padding: 10px 12px;
+  width: 110px;
+  background: var(--white);
+}
+
+.demo-flow-step.terminal { background: var(--black); color: var(--white); }
+.demo-flow-step .num { font-size: 9px; font-variant-numeric: tabular-nums; letter-spacing: 0.16em; color: var(--neutral); font-weight: 600; }
+.demo-flow-step.terminal .num { color: rgba(255,255,255,0.6); }
+.demo-flow-step .name { font-size: 12px; font-weight: 700; letter-spacing: -0.015em; margin-top: 8px; }
+
+.demo-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--neutral);
+}
+.demo-status div { display: flex; align-items: center; gap: 8px; }
+.demo-status .dot { width: 8px; height: 8px; border-radius: 50%; }
+.demo-status .dot.live { background: var(--primary); }
+.demo-status .dot.next { background: var(--neutral); }
+.demo-status .dot.future { background: transparent; border: 1px solid var(--neutral); }
+
+.demo-quote {
+  font-size: 18px;
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--black);
+  text-align: center;
+}
+.demo-quote::before { content: '\201C'; }
+.demo-quote::after { content: '\201D'; }
+
+.demo-mark {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-size: 18px;
+}
+
+.demo-rule {
+  width: 100%;
+  border-top: 1px solid var(--rule);
+  position: relative;
+  padding: 14px 0 0;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  justify-content: space-between;
+}
+
+.demo-numfact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.demo-numfact dt {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+}
+
+.demo-numfact dd {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== Voice (slide 10) ===== */
+
+.voice-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--rule-strong);
+}
+
+.voice-col {
+  padding: 14px 28px 14px 0;
+  border-right: 1px solid var(--rule);
+}
+
+.voice-col:last-child { padding: 14px 0 14px 28px; border-right: none; }
+
+.voice-col h4 {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--black);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.voice-rule {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.voice-rule:last-child { border-bottom: none; }
+
+.voice-rule .vlabel {
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--neutral);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.voice-rule .vbody { font-size: 12px; line-height: 1.4; }
+.voice-rule .vbody strong { color: var(--black); font-weight: 600; }
+.voice-rule .vbody em { font-style: normal; color: var(--neutral); }
+
+.voice-rule .vbody code {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--tint);
+  padding: 1px 5px;
+  border: 1px solid var(--rule);
+}
+
+/* ===== Do / Don't (slide 11) ===== */
+
+.dodont {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--rule-strong);
+}
+
+.dodont-row {
+  display: contents;
+}
+
+.dodont-cell {
+  padding: 12px 20px 12px 0;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dodont-cell.do { border-right: 1px solid var(--rule); }
+.dodont-cell.dont { padding-left: 24px; padding-right: 0; }
+
+.dodont-cell .marker {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dodont-cell.do .marker { color: var(--primary); }
+.dodont-cell.dont .marker { color: var(--neutral); }
+
+.dodont-cell .marker::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border: 1px solid currentColor;
+  display: inline-block;
+}
+
+.dodont-cell.do .marker::before { background: var(--primary); border-color: var(--primary); }
+.dodont-cell.dont .marker::before {
+  background: var(--white);
+  background-image: linear-gradient(135deg, transparent 45%, var(--neutral) 45%, var(--neutral) 55%, transparent 55%);
+}
+
+.dodont-cell h4 {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.dodont-cell p {
+  font-size: 11px;
+  color: var(--neutral);
+  line-height: 1.4;
+}
+
+/* ===== Colophon (slide 12) ===== */
+
+.colophon {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--rule-strong);
+  flex: 1;
+}
+
+.colophon-col {
+  padding: 16px 28px 16px 0;
+  border-right: 1px solid var(--rule);
+}
+
+.colophon-col:last-child { padding: 16px 0 16px 28px; border-right: none; }
+
+.colo-block { padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.colo-block:last-child { border-bottom: none; }
+
+.colo-block dt {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.colo-block dd {
+  font-size: 13px;
+  color: var(--black);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.colo-block dd em {
+  font-style: normal;
+  color: var(--neutral);
+  font-weight: 400;
+  font-size: 11px;
+  display: block;
+  margin-top: 2px;
+}
+
+.colo-block dd code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--tint);
+  padding: 2px 6px;
+  border: 1px solid var(--rule);
+}
+
+/* ===== Nav help ===== */
+
+.nav-help {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+  pointer-events: none;
+  opacity: 0.7;
+  z-index: 10;
+  background: rgba(255,255,255,0.9);
+  padding: 8px 16px;
+  border: 1px solid var(--rule);
+  backdrop-filter: blur(8px);
+}
+
+.nav-help kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--white);
+  margin: 0 4px;
+  color: var(--black);
+}
+
+/* ===== Tablet ===== */
+@media (max-width: 1024px) and (min-width: 721px) {
+  .color-grid { grid-template-columns: repeat(3, 1fr); }
+  .icon-grid { grid-template-columns: repeat(4, 1fr); }
+  .comp-grid { grid-template-columns: repeat(2, 1fr); }
+  .icon-rules, .color-rules { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ===== Mobile: free-flow scroll, no snap ===== */
+@media (max-width: 720px) {
+  html { scroll-behavior: auto; }
+  body {
+    scroll-snap-type: none;
+    overflow-y: auto;
+    height: auto;
+  }
+
+  .slide {
+    scroll-snap-align: none;
+    height: auto;
+    min-height: auto;
+    width: 100%;
+    padding: 28px 20px 32px;
+    overflow: visible;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .slide-content {
+    justify-content: flex-start;
+    padding: 20px 0;
+  }
+
+  .slide-header, .slide-footer {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+  }
+  .slide-header .left { gap: 14px; flex-wrap: wrap; }
+
+  /* All grids collapse to 1 col by default */
+  .contents, .principles, .logo-grid, .type-grid, .layout-grid,
+  .voice-grid, .dodont, .colophon, .color-rules, .icon-rules,
+  .closing-meta, .three-col, .two-col {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Color and icon grids stay 2-col on mobile so they read as a system, not a list */
+  .color-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .icon-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .comp-grid { grid-template-columns: 1fr !important; gap: 1px; }
+
+  /* Reset right-borders that produced columns */
+  .toc-item, .principle, .logo-display, .type-specimens, .canvas-demo,
+  .voice-col, .colophon-col, .concept, .naming-card {
+    border-right: none !important;
+  }
+
+  /* Reset left-padding on what was a second column */
+  .toc-item:nth-child(even), .principle:nth-child(even),
+  .voice-col:last-child, .colophon-col:last-child,
+  .type-meta, .layout-specs, .logo-rules {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .toc-item, .principle, .voice-col, .colophon-col {
+    padding: 18px 0 !important;
+    border-bottom: 1px solid var(--rule);
+  }
+  .toc-item:last-child, .principle:last-child,
+  .voice-col:last-child, .colophon-col:last-child {
+    border-bottom: none;
+  }
+
+  /* Logo display stack vertically */
+  .logo-display { padding: 24px 0; gap: 16px; }
+  .logo-rules { padding: 24px 0; gap: 18px; }
+  .logo-stage { padding: 36px 24px; }
+  .logo-stage.symbol-only { padding: 28px 24px; }
+  .logo-stage.symbol-only .wordmark { font-size: 64px; }
+
+  /* Do/Don't cells */
+  .dodont-cell.do, .dodont-cell.dont {
+    padding: 18px 0 !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* Cover */
+  .cover-eyebrow { font-size: 11px; margin-top: 32px; }
+  .cover-title h1 { font-size: clamp(48px, 14vw, 72px); }
+  .cover-meta { gap: 24px; margin-top: 32px; }
+  .cover-meta p { font-size: 15px; }
+  .cover-meta .meta-block { text-align: left; font-size: 11px; }
+
+  /* Display type compresses */
+  .huge { font-size: clamp(48px, 14vw, 72px); }
+  .large { font-size: clamp(28px, 8vw, 40px); }
+  .medium { font-size: clamp(22px, 6.5vw, 30px); }
+  .lede { font-size: 14px; }
+
+  /* Type specimens stack label above sample */
+  .specimen { flex-direction: column; align-items: flex-start; gap: 6px; padding-bottom: 16px; }
+  .specimen-label { min-width: 0; }
+  .sample-huge { font-size: 44px; }
+  .sample-large { font-size: 28px; }
+  .sample-medium { font-size: 22px; }
+  .sample-lede { font-size: 15px; }
+
+  /* Canvas demo aspect */
+  .canvas { aspect-ratio: 4 / 3; }
+  .canvas-caption { flex-direction: column; gap: 4px; font-size: 10px; }
+
+  /* Color and icon grid cells smaller */
+  .swatch { min-height: 180px; }
+  .swatch-chip { height: 80px; }
+  .swatch-info { padding: 10px 12px; gap: 3px; }
+  .swatch-name { font-size: 12px; }
+  .swatch-hex { font-size: 10px; }
+  .swatch-rgb { font-size: 9px; }
+  .swatch-use { font-size: 9px; padding-top: 6px; }
+
+  .icon-cell { padding: 14px 10px; gap: 10px; }
+  .icon-frame { width: 36px; height: 36px; }
+  .icon-frame svg { width: 18px; }
+  .icon-name { font-size: 10px; }
+  .icon-meta { font-size: 9px; }
+
+  .color-rules, .icon-rules { gap: 14px; }
+  .color-rules > div, .icon-rules > div {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .color-rules > div:last-child, .icon-rules > div:last-child {
+    border-bottom: none;
+  }
+
+  /* Components grid */
+  .comp-card { min-height: 0; padding: 16px 18px; }
+
+  /* Voice rules */
+  .voice-rule { grid-template-columns: 70px 1fr; gap: 10px; padding: 10px 0; }
+  .voice-rule .vlabel { font-size: 9px; }
+  .voice-rule .vbody { font-size: 12px; }
+
+  /* Section tag spacing */
+  .section-tag { font-size: 9px; margin-bottom: 12px; }
+
+  /* Wordmark in slide-header logo: keep small */
+  .slide-header .brand-mark .logo-mark { width: 1.1em; height: 1.1em; }
+
+  /* TOC */
+  .toc-item { grid-template-columns: 32px 1fr 50px; gap: 10px; padding: 14px 0 !important; }
+  .toc-num { font-size: 10px; }
+  .toc-title { font-size: 14px; }
+  .toc-title em { font-size: 11px; }
+  .toc-page { font-size: 10px; }
+
+  /* Colophon */
+  .colo-block dd { font-size: 13px; }
+
+  .nav-help { display: none; }
+}
+
+/* Tighter still on very small phones */
+@media (max-width: 380px) {
+  .slide { padding: 24px 16px 28px; }
+  .color-grid { grid-template-columns: 1fr !important; }
+  .icon-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .cover-title h1 { font-size: 44px; }
+  .large { font-size: 26px; }
+  .medium { font-size: 22px; }
+}
+
+@media print {
+  body { scroll-snap-type: none; height: auto; }
+  .slide { page-break-after: always; min-height: 100vh; height: 100vh; }
+  .nav-help { display: none; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <symbol id="dash-logo" viewBox="0 0 44 43">
+    <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M11.2196 5.93653C11.1018 6.17664 11.0055 6.42114 11.0055 6.47999C11.0055 6.53876 10.958 6.65766 10.8999 6.74411C10.8418 6.83063 10.7463 7.02704 10.6876 7.18055C10.6288 7.33406 10.5093 7.62114 10.4218 7.81851C10.3342 8.01588 10.1634 8.41062 10.0419 8.69571C9.92058 8.9808 9.69691 9.50114 9.54489 9.85202C9.39278 10.2029 9.02627 11.0641 8.73038 11.7659C8.4344 12.4677 8.16024 13.076 8.12101 13.1176C8.08179 13.1593 8.04975 13.2415 8.04975 13.3004C8.04975 13.3592 7.94566 13.6301 7.81841 13.9024C7.69115 14.1747 7.38088 14.8819 7.12876 15.4741C6.87672 16.0662 6.54592 16.8377 6.39366 17.1886C6.24139 17.5395 6.05231 17.988 5.97346 18.1854C5.83718 18.5265 5.25306 19.8792 5.09536 20.2189C5.05462 20.3066 4.96755 20.513 4.90196 20.6774L4.78261 20.9765H8.12389H11.4652L11.6284 20.5977C11.7821 20.2414 12.0609 19.6451 12.9613 17.7468C13.1693 17.3082 13.7452 16.0881 14.2409 15.0355C14.7368 13.9828 15.3302 12.7268 15.5597 12.2444C16.2469 10.7996 16.6773 9.87865 16.6773 9.85297C16.6773 9.83152 17.3934 8.32593 18.1571 6.74195C18.3051 6.43493 18.4632 6.08509 18.5084 5.96444C18.5536 5.84386 18.6275 5.74514 18.6725 5.74514C18.7274 5.74514 18.7597 7.39626 18.7706 10.7492C18.7794 13.5014 18.7943 15.8608 18.8037 15.9924C18.8129 16.124 18.8235 17.2992 18.8274 18.6041L18.8342 20.9765H22.5841C25.3165 20.9765 26.3494 21.0013 26.3906 21.0679C26.4217 21.1181 26.3716 21.3065 26.2791 21.4865C26.0908 21.8532 25.4223 23.2644 25.0173 24.1505C24.8708 24.4708 24.5894 25.0629 24.3919 25.4663C24.1944 25.8697 23.8656 26.5586 23.6612 26.9972C23.4568 27.4358 23.1091 28.1715 22.8885 28.632C22.6679 29.0925 22.2729 29.9179 22.0108 30.4662C21.7487 31.0144 21.3356 31.8757 21.0929 32.38C20.8501 32.8844 20.4426 33.7516 20.1872 34.3071C19.9318 34.8626 19.6864 35.3829 19.6418 35.4634C19.4959 35.727 18.9782 36.8015 18.9025 36.998L18.8285 37.1902L20.2893 37.1321C21.0927 37.1001 21.8938 37.0605 22.0696 37.0441C23.1606 36.9421 23.5058 36.8951 24.1866 36.7558C24.604 36.6705 25.0713 36.5823 25.2251 36.5598C25.867 36.4661 28.0722 35.7112 29.1394 35.2196C32.02 33.893 34.4145 31.7796 36.332 28.8713C36.559 28.5269 37.1237 27.4764 37.3827 26.9165C37.9035 25.7907 38.0866 25.374 38.0866 25.3141C38.0866 25.2818 38.1732 25.0373 38.279 24.7706C38.6817 23.7564 39.2762 21.4304 39.4831 20.0594C39.6359 19.0472 39.6396 17.0707 39.4904 16.2245C39.1959 14.554 38.7424 13.3161 37.9009 11.8855C37.4905 11.1877 37.2285 10.8681 36.3295 9.96797C35.6811 9.31876 35.0115 8.73295 34.6515 8.49978C33.924 8.02856 32.6273 7.32337 31.9754 7.04435C31.0309 6.6402 29.2403 6.05423 28.1808 5.80263L27.1024 5.54657L19.268 5.52329L11.4338 5.5L11.2196 5.93653ZM11.3363 21.6344C11.2052 21.9085 10.9675 22.4378 10.8079 22.8106C10.6485 23.1834 10.4854 23.5484 10.4455 23.6216C10.4056 23.6949 10.1702 24.2153 9.92242 24.7779C9.67462 25.3407 9.37042 26.0164 9.24643 26.2795C9.12245 26.5427 8.89079 27.063 8.73165 27.4358C8.57252 27.8087 8.37409 28.2572 8.29077 28.4327C8.10432 28.8252 7.59345 29.9638 6.89525 31.5427C6.60439 32.2006 6.29795 32.8824 6.21431 33.0579C6.13067 33.2333 5.90132 33.7357 5.70465 34.1743C5.50789 34.6129 5.14361 35.4203 4.89517 35.9686C4.64665 36.5168 4.42409 37.0103 4.4006 37.0651C4.36665 37.1444 5.82008 37.1648 11.5162 37.1648H18.6745V29.1504V21.136H15.1246H11.5747L11.3363 21.6344Z"/>
+  </symbol>
+</svg>
+
+<!-- =================== 01 · COVER =================== -->
+<section class="slide slide-cover">
+  <header class="slide-header">
+    <div class="left">
+      <span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span>
+      <span>Graphic Standard Manual</span>
+    </div>
+    <div class="right">LOGISTIC · v1.0</div>
+  </header>
+
+  <div class="slide-content">
+    <div class="cover-eyebrow">Visual system documentation · May 2026</div>
+
+    <div class="cover-title">
+      <h1>Graphic<br><span class="slash">/</span> Standard<br><strong>Manual.</strong></h1>
+    </div>
+
+    <div class="cover-meta">
+      <p>The complete visual reference for Dash Logistic. Color, typography, grid, components, iconography, and copy. Derived from the deck. Source of truth for everything that comes next.</p>
+      <div class="meta-block">
+        <strong>Logistic · Dash</strong>
+        v1.0 · May 2026
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>Confidential · Internal use</span>
+    <span>01 / 12</span>
+  </footer>
+</section>
+
+<!-- =================== 02 · ABOUT =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Logistic GSM</span></div>
+    <div class="right">About this manual</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">01</span>About this manual</span>
+    <h2 class="large">A reference, not a<br>museum piece.</h2>
+    <p class="lede" style="margin-top: 12px;">This document captures the visual system that already exists in the Dash Logistic pitch deck. It is meant to be opened, copied from, and amended. Not laminated and forgotten.</p>
+
+    <div class="contents">
+      <div class="toc-item"><div class="toc-num">01</div><div class="toc-title">Cover<em>Title and version</em></div><div class="toc-page">p. 01</div></div>
+      <div class="toc-item"><div class="toc-num">02</div><div class="toc-title">About this manual<em>Scope and audience</em></div><div class="toc-page">p. 02</div></div>
+      <div class="toc-item"><div class="toc-num">03</div><div class="toc-title">Design principles<em>Four rules of restraint</em></div><div class="toc-page">p. 03</div></div>
+      <div class="toc-item"><div class="toc-num">04</div><div class="toc-title">Logo &amp; wordmark<em>DASH and the sub-brand lockup</em></div><div class="toc-page">p. 04</div></div>
+      <div class="toc-item"><div class="toc-num">05</div><div class="toc-title">Color system<em>Black, white, and four greys</em></div><div class="toc-page">p. 05</div></div>
+      <div class="toc-item"><div class="toc-num">06</div><div class="toc-title">Typography<em>Plus Jakarta Sans plus mono</em></div><div class="toc-page">p. 06</div></div>
+      <div class="toc-item"><div class="toc-num">07</div><div class="toc-title">Grid &amp; layout<em>Slide canvas, safe area, common grids</em></div><div class="toc-page">p. 07</div></div>
+      <div class="toc-item"><div class="toc-num">08</div><div class="toc-title">Iconography<em>Line icons in a 44px frame</em></div><div class="toc-page">p. 08</div></div>
+      <div class="toc-item"><div class="toc-num">09</div><div class="toc-title">Components<em>The repeatable building blocks</em></div><div class="toc-page">p. 09</div></div>
+      <div class="toc-item"><div class="toc-num">10</div><div class="toc-title">Voice &amp; copy<em>How sentences should sound</em></div><div class="toc-page">p. 10</div></div>
+      <div class="toc-item"><div class="toc-num">11</div><div class="toc-title">Do / Don't<em>The fastest way to stay on-brand</em></div><div class="toc-page">p. 11</div></div>
+      <div class="toc-item"><div class="toc-num">12</div><div class="toc-title">Colophon<em>Credits, version, next review</em></div><div class="toc-page">p. 12</div></div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>Maintained by Dash Design</span>
+    <span>02 / 12</span>
+  </footer>
+</section>
+
+<!-- =================== 03 · PRINCIPLES =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Logistic GSM</span></div>
+    <div class="right">Principles</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">02</span>Design principles</span>
+    <h2 class="large">Four rules.<br>The rest follows.</h2>
+
+    <div class="principles">
+      <div class="principle">
+        <div class="principle-num">01</div>
+        <div class="principle-body">
+          <h3>Editorial restraint</h3>
+          <p>Newspaper page, not dashboard. Hairline rules separate ideas. Whitespace does the heavy lifting. Decoration is suspect.</p>
+          <div class="opp"><strong>Not</strong> Glossy. Gradients. Glow.</div>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="principle-num">02</div>
+        <div class="principle-body">
+          <h3>Evidence over decoration</h3>
+          <p>Numbers earn their size. Quotes get their own slide. Process gets a diagram, not an icon. If it isn't load-bearing, it isn't on the page.</p>
+          <div class="opp"><strong>Not</strong> Stock photos. Generic illustrations.</div>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="principle-num">03</div>
+        <div class="principle-body">
+          <h3>One accent. Used like punctuation.</h3>
+          <p>Ink, white, four greys, and one Primary purple. The accent shows up at brand moments — symbol, eyebrow numerals, live dots — never as a background wash or text fill.</p>
+          <div class="opp"><strong>Not</strong> Brand-color washes. Tint accents. Purple text blocks.</div>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="principle-num">04</div>
+        <div class="principle-body">
+          <h3>Grid-anchored</h3>
+          <p>Every element sits on a column. Headers and footers carry the same weight on every slide. Consistency is the personality.</p>
+          <div class="opp"><strong>Not</strong> Centered free-floats. Composition gymnastics.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>Restraint is the brand</span>
+    <span>03 / 12</span>
+  </footer>
+</section>
+
+<!-- =================== 04 · LOGO & WORDMARK =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Logistic GSM</span></div>
+    <div class="right">Logo &amp; wordmark</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">03</span>Logo &amp; wordmark</span>
+    <h2 class="medium">A symbol in primary,<br>locked to a wordmark in ink.</h2>
+
+    <div class="logo-grid">
+      <div class="logo-display">
+        <div class="logo-stage symbol-only">
+          <span class="stage-label">Symbol</span>
+          <span class="wordmark"><span class="symbol"><svg aria-hidden="true"><use href="#dash-logo"/></svg></span></span>
+        </div>
+        <div class="logo-stage">
+          <span class="stage-label">Primary lockup</span>
+          <span class="wordmark"><span class="symbol"><svg aria-hidden="true"><use href="#dash-logo"/></svg></span>DASH</span>
+        </div>
+        <div class="logo-stage">
+          <span class="stage-label">Sub-brand lockup</span>
+          <span class="wordmark"><span class="symbol"><svg aria-hidden="true"><use href="#dash-logo"/></svg></span>DASH<span class="sub">Logistic</span></span>
+        </div>
+        <div class="logo-stage inverse">
+          <span class="stage-label">Reverse on Ink</span>
+          <span class="wordmark" style="color: var(--white);"><span class="symbol" style="color: var(--white);"><svg aria-hidden="true"><use href="#dash-logo"/></svg></span>DASH<span class="sub">Logistic</span></span>
+        </div>
+      </div>
+      <div class="logo-rules">
+        <div class="rule-item">
+          <h4>Construction</h4>
+          <p>Symbol — a stylized D in <strong>Primary</strong> (<code>#5E2AAC</code>). Wordmark — Plus Jakarta Sans, weight <code>800</code>, tracking <code>-0.025em</code>, in Ink.</p>
+        </div>
+        <div class="rule-item">
+          <h4>Lockup</h4>
+          <p>Symbol sits left of the wordmark at <code>0.92×</code> cap-height. Gap between them = <code>0.32em</code>. Symbol always in Primary; wordmark always in Ink (or White on inverse).</p>
+        </div>
+        <div class="rule-item">
+          <h4>Sub-brand</h4>
+          <p>Sub-brand follows DASH separated by a 1px rule. Sub-brand at <code>0.32em</code> of the wordmark, weight <code>600</code>, tracked <code>0.18em</code>, all caps, in Neutral.</p>
+        </div>
+        <div class="rule-item">
+          <h4>Clear space</h4>
+          <p>Half the cap-height of <code>D</code> on every side. The slide header reserves <code>16px</code> below; never less.</p>
+        </div>
+        <div class="rule-item">
+          <h4>Minimum size</h4>
+          <p>Header form: symbol <code>10px</code>, wordmark <code>10px</code>/<code>800</code>. Below that, the symbol stands alone. Below <code>16px</code>, drop the sub-brand.</p>
+        </div>
+        <div class="rule-item">
+          <h4>Don't</h4>
+          <p>Don't recolor the symbol (always Primary or White-on-Ink). Don't outline. Don't separate symbol from wordmark in the same composition.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>Symbol in Primary, wordmark in Ink, locked together</span>
+    <span>04 / 12</span>
+  </footer>
+</section>
+
+<!-- =================== 05 · COLOR =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Logistic GSM</span></div>
+    <div class="right">Color system</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">04</span>Color system</span>
+    <h2 class="medium">One brand. Two anchors. Four greys.<br>Color is information, not decoration.</h2>
+
+    <div class="color-grid">
+      <div class="swatch">
+        <div class="swatch-chip" style="background: #5E2AAC;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Primary · Dash Purple</div>
+          <div class="swatch-hex">#5E2AAC</div>
+          <div class="swatch-rgb">rgb(94, 42, 172)</div>
+          <div class="swatch-use">The brand. Logo, eyebrow numerals, live-state markers, selection highlight.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-chip" style="background: #171717;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Ink · Black</div>
+          <div class="swatch-hex">#171717</div>
+          <div class="swatch-rgb">rgb(23, 23, 23)</div>
+          <div class="swatch-use">Primary text. Wordmark. High-emphasis numerals. Terminal-state backgrounds.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-chip has-border" style="background: #FFFFFF;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">White</div>
+          <div class="swatch-hex">#FFFFFF</div>
+          <div class="swatch-rgb">rgb(255, 255, 255)</div>
+          <div class="swatch-use">Page background. Card surface. Text on inverted surfaces.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-chip" style="background: #5C5C5C;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Neutral</div>
+          <div class="swatch-hex">#5C5C5C</div>
+          <div class="swatch-rgb">rgb(92, 92, 92)</div>
+          <div class="swatch-use">Secondary text. Labels. Footers. Captions. Muted UI chrome.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-chip" style="background: rgba(23,23,23,0.10); box-shadow: inset 0 0 0 1px var(--rule);"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Rule</div>
+          <div class="swatch-hex">rgba(23,23,23,0.10)</div>
+          <div class="swatch-rgb">10% black</div>
+          <div class="swatch-use">All hairline dividers between rows, cards, and content blocks.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-chip" style="background: rgba(23,23,23,0.22);"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Rule strong</div>
+          <div class="swatch-hex">rgba(23,23,23,0.22)</div>
+          <div class="swatch-rgb">22% black</div>
+          <div class="swatch-use">Section breaks. Outer borders of grouped grids.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-chip" style="background: rgba(23,23,23,0.04);"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Tint</div>
+          <div class="swatch-hex">rgba(23,23,23,0.04)</div>
+          <div class="swatch-rgb">4% black</div>
+          <div class="swatch-use">Inline code background. Subtle field fills.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-chip" style="background: rgba(23,23,23,0.07);"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Tint strong</div>
+          <div class="swatch-hex">rgba(23,23,23,0.07)</div>
+          <div class="swatch-rgb">7% black</div>
+          <div class="swatch-use">Hover and pressed states. Faint zone marks.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="color-rules">
+      <div>
+        <h5>Contrast</h5>
+        Ink on white = <strong>14.4 : 1</strong> (AAA). Primary on white = <strong>8.6 : 1</strong> (AAA). Neutral on white = <strong>6.7 : 1</strong> (AA). Never set Neutral on Tint.
+      </div>
+      <div>
+        <h5>One accent only</h5>
+        Primary is the only chromatic color. No secondary brand palette. Color in the field app (zone tags) is <strong>operational data</strong>, not brand.
+      </div>
+      <div>
+        <h5>Where Primary lives</h5>
+        Logo, wordmark accent, eyebrow numerals, status dots (live), do-markers, selection. Never as a fill on text blocks or large backgrounds.
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>One brand. Two anchors. Four greys. One signal.</span>
+    <span>05 / 12</span>
+  </footer>
+</section>
+
+<!-- =================== 06 · TYPOGRAPHY =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Logistic GSM</span></div>
+    <div class="right">Typography</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">05</span>Typography</span>
+    <h2 class="medium">One sans for everything.<br>One mono for evidence.</h2>
+
+    <div class="type-grid">
+      <div class="type-specimens">
+        <div class="specimen">
+          <span class="specimen-label">.huge / 800</span>
+          <span class="specimen-sample sample-huge">Aa</span>
+        </div>
+        <div class="specimen">
+          <span class="specimen-label">.large / 700</span>
+          <span class="specimen-sample sample-large">Cross-dock, end to end.</span>
+        </div>
+        <div class="specimen">
+          <span class="specimen-label">.medium / 600</span>
+          <span class="specimen-sample sample-medium">Eight scan events. One audit trail.</span>
+        </div>
+        <div class="specimen">
+          <span class="specimen-label">.lede / 400</span>
+          <span class="specimen-sample sample-lede">Items in the same zone usually move together. Bags carry color, batches carry route.</span>
+        </div>
+        <div class="specimen">
+          <span class="specimen-label">.body / 400</span>
+          <span class="specimen-sample sample-body">Scan, sort, batch, deliver.</span>
+        </div>
+        <div class="specimen">
+          <span class="specimen-label">.label / 600 caps</span>
+          <span class="specimen-sample sample-label">Section heading</span>
+        </div>
+        <div class="specimen">
+          <span class="specimen-label">.mono / code</span>
+          <span class="specimen-sample sample-mono">ScanEvent: facility_inbound</span>
+        </div>
+      </div>
+      <div class="type-meta">
+        <div class="type-block">
+          <h5>Families</h5>
+          <p style="margin-bottom: 6px;"><strong>Display &amp; text</strong> — Plus Jakarta Sans</p>
+          <p style="margin-bottom: 6px;"><strong>Code &amp; evidence</strong> — JetBrains Mono</p>
+          <p><strong>Fallback</strong> — <code>-apple-system, BlinkMacSystemFont, system-ui, sans-serif</code></p>
+        </div>
+        <div class="type-block">
+          <h5>Weight ladder</h5>
+          <div class="weight-ladder">
+            <span data-w="200" style="font-weight: 200;">Aa</span>
+            <span data-w="300" style="font-weight: 300;">Aa</span>
+            <span data-w="400" style="font-weight: 400;">Aa</span>
+            <span data-w="500" style="font-weight: 500;">Aa</span>
+            <span data-w="600" style="font-weight: 600;">Aa</span>
+            <span data-w="700" style="font-weight: 700;">Aa</span>
+            <span data-w="800" style="font-weight: 800;">Aa</span>
+          </div>
+          <p style="margin-top: 22px;">Display headlines lean on <code>200</code> &amp; <code>800</code>. Body sits at <code>400</code>. Labels and labels-as-buttons at <code>600 / 700</code>.</p>
+        </div>
+        <div class="type-block">
+          <h5>Letter-spacing rule</h5>
+          <p>Tighter as text gets larger. Display: <code>-0.045em</code>. Lede: <code>-0.005em</code>. Labels (uppercase): <code>+0.18 to 0.22em</code>. Mono: <code>0</code>.</p>
+        </div>
+        <div class="type-block">
+          <h5>Numerals</h5>
+          <p>Always tabular. <code>font-variant-numeric: tabular-nums</code> on stats, page numbers, dates, IDs.</p>
+        </div>
+        <div class="type-block">
+          <h5>OpenType features</h5>
+          <p>Body inherits <code>font-feature-settings: "ss01", "cv11", "cv02"</code> for the working forms.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>One face. Seven weights. Tabular numerals.</span>
+    <span>06 / 12</span>
+  </footer>
+</section>
+
+<!-- =================== 07 · GRID & LAYOUT =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Logistic GSM</span></div>
+    <div class="right">Grid &amp; layout</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">06</span>Grid &amp; layout</span>
+    <h2 class="medium">Header, body, footer.<br>Always in that order.</h2>
+
+    <div class="layout-grid">
+      <div class="canvas-demo">
+        <div class="canvas">
+          <div class="canvas-pad">
+            <div class="canvas-zone head">Header · 10px caps</div>
+            <div class="canvas-zone body">Content · centered, max-width 64ch</div>
+            <div class="canvas-zone foot">Footer · 10px caps</div>
+          </div>
+        </div>
+        <div class="canvas-caption">
+          <span>16:9 · 100vw × 100vh</span>
+          <span>Safe area · clamp(24,3.5vh,44) × clamp(40,7vw,96)</span>
+        </div>
+      </div>
+      <div class="layout-specs">
+        <div class="spec-row">
+          <h5>Canvas</h5>
+          <code>width: 100vw; height: 100vh;</code>
+          <p>Each slide fills the viewport. Scroll-snap forces one slide per page.</p>
+        </div>
+        <div class="spec-row">
+          <h5>Safe area</h5>
+          <code>padding: clamp(24px, 3.5vh, 44px) clamp(40px, 7vw, 96px);</code>
+          <p>Vertical and horizontal padding scales with viewport, then clamps. Never edit raw pixel values.</p>
+        </div>
+        <div class="spec-row">
+          <h5>Three zones</h5>
+          <code>display: flex; flex-direction: column;</code>
+          <p>Header (auto) · Content (flex 1, justify-content center) · Footer (auto). Hairline rules above and below at 10% black.</p>
+        </div>
+        <div class="spec-row">
+          <h5>Common grids</h5>
+          <code>grid-template-columns: repeat(2, 1fr); /* facts */
+repeat(3, 1fr); /* concepts */
+repeat(8, 1fr); /* flow */</code>
+          <p>Use 2-col for comparisons, 3-col for triads, 8-col only for the end-to-end flow.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>Grid is the personality</span>
+    <span>07 / 12</span>
+  </footer>
+</section>
+
+<!-- =================== 08 · ICONOGRAPHY =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Logistic GSM</span></div>
+    <div class="right">Iconography</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">07</span>Iconography</span>
+    <h2 class="medium">Line icons. Always framed.<br>Always the same height.</h2>
+
+    <div class="icon-grid">
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
+            <rect x="0.5" y="4.5" width="22" height="11" stroke="currentColor"/>
+            <rect x="22.5" y="7.5" width="9" height="8" stroke="currentColor"/>
+            <circle cx="6.5" cy="16.5" r="2" stroke="currentColor" fill="white"/>
+            <circle cx="25.5" cy="16.5" r="2" stroke="currentColor" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">Van</div>
+          <div class="icon-meta">32×20 · stroke 1</div>
+        </div>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
+            <circle cx="6" cy="16" r="3.5" stroke="currentColor"/>
+            <circle cx="22" cy="16" r="3.5" stroke="currentColor"/>
+            <path d="M6 16 L14 6 L22 16 M14 6 L18 6" stroke="currentColor" fill="none"/>
+            <rect x="9" y="3" width="6" height="5" stroke="currentColor" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">Bike</div>
+          <div class="icon-meta">32×20 · stroke 1</div>
+        </div>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect x="0.5" y="6.5" width="27" height="21" stroke="currentColor"/>
+            <path d="M0 6 L14 0 L28 6" stroke="currentColor" fill="none"/>
+            <rect x="11" y="14" width="6" height="13" stroke="currentColor"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">Hub</div>
+          <div class="icon-meta">28×28 · stroke 1</div>
+        </div>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <rect x="3.5" y="6.5" width="17" height="13" stroke="currentColor"/>
+            <path d="M3.5 6.5 L12 1 L20.5 6.5" stroke="currentColor" fill="none"/>
+            <line x1="3.5" y1="11" x2="20.5" y2="11" stroke="currentColor"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">Bag</div>
+          <div class="icon-meta">24×24 · stroke 1</div>
+        </div>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor"/>
+            <path d="M12 7 V12 L15 14" stroke="currentColor" fill="none"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">ETA</div>
+          <div class="icon-meta">24×24 · stroke 1</div>
+        </div>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M3 12 L9 18 L21 6" stroke="currentColor" fill="none"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">Delivered</div>
+          <div class="icon-meta">24×24 · stroke 1</div>
+        </div>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M5 5 L19 19 M5 19 L19 5" stroke="currentColor" fill="none"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">Exception</div>
+          <div class="icon-meta">24×24 · stroke 1</div>
+        </div>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="24" height="20" viewBox="0 0 24 20" fill="none">
+            <rect x="3" y="3" width="14" height="14" stroke="currentColor"/>
+            <path d="M7 3 V7 H13 V3 M7 17 V11 H13 V17" stroke="currentColor" fill="none"/>
+            <line x1="20" y1="8" x2="20" y2="12" stroke="currentColor"/>
+            <path d="M20 8 L18 10 L20 12 L22 10 Z" stroke="currentColor" fill="white"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">Scan</div>
+          <div class="icon-meta">24×20 · stroke 1</div>
+        </div>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="24" height="22" viewBox="0 0 24 22" fill="none">
+            <rect x="2" y="6" width="20" height="14" stroke="currentColor"/>
+            <path d="M2 10 H22" stroke="currentColor"/>
+            <line x1="6" y1="14" x2="11" y2="14" stroke="currentColor"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">Manifest</div>
+          <div class="icon-meta">24×22 · stroke 1</div>
+        </div>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="9" r="3.5" stroke="currentColor"/>
+            <path d="M5 21 C5 16 8 13 12 13 C16 13 19 16 19 21" stroke="currentColor" fill="none"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">Rider</div>
+          <div class="icon-meta">24×24 · stroke 1</div>
+        </div>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3 C8 8 5 11 5 14 C5 18 8 21 12 21 C16 21 19 18 19 14 C19 11 16 8 12 3 Z" stroke="currentColor" fill="none"/>
+            <circle cx="12" cy="14" r="2" stroke="currentColor"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">Zone</div>
+          <div class="icon-meta">24×24 · stroke 1</div>
+        </div>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-frame">
+          <svg width="24" height="22" viewBox="0 0 24 22" fill="none">
+            <rect x="3" y="3" width="6" height="6" stroke="currentColor"/>
+            <rect x="15" y="3" width="6" height="6" stroke="currentColor"/>
+            <rect x="3" y="15" width="6" height="6" stroke="currentColor"/>
+            <rect x="15" y="15" width="6" height="6" stroke="currentColor"/>
+            <line x1="9" y1="6" x2="15" y2="6" stroke="currentColor"/>
+            <line x1="9" y1="18" x2="15" y2="18" stroke="currentColor"/>
+            <line x1="6" y1="9" x2="6" y2="15" stroke="currentColor"/>
+            <line x1="18" y1="9" x2="18" y2="15" stroke="currentColor"/>
+          </svg>
+        </div>
+        <div>
+          <div class="icon-name">Batch</div>
+          <div class="icon-meta">24×22 · stroke 1</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="icon-rules">
+      <div>
+        <h5>Stroke</h5>
+        Always <code>1</code>. Always <code>currentColor</code>. Never filled (except a small white inset for relief).
+      </div>
+      <div>
+        <h5>Frame</h5>
+        Always inside a <code>44×44</code> 1px square. Icon centered. Never breathes outside the frame.
+      </div>
+      <div>
+        <h5>Sizing</h5>
+        Glyph occupies <code>~24px</code> of the 44px frame. Stroke does not scale with display size.
+      </div>
+      <div>
+        <h5>Use sparingly</h5>
+        Icons label types (van, bike, hub). Labels do the rest. Never decorate.
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>Outline only. Frame always.</span>
+    <span>08 / 12</span>
+  </footer>
+</section>
+
+<!-- =================== 09 · COMPONENTS =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Logistic GSM</span></div>
+    <div class="right">Components</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">08</span>Components</span>
+    <h2 class="medium">Twelve building blocks.<br>Every slide is one of these, composed.</h2>
+
+    <div class="comp-grid">
+      <div class="comp-card">
+        <h6>Section tag</h6>
+        <div class="comp-demo"><span class="demo-tag"><span class="num">01</span>The problem</span></div>
+        <p class="comp-note">Numbered eyebrow above each headline. Tracks every section visually.</p>
+      </div>
+      <div class="comp-card">
+        <h6>Brand mark</h6>
+        <div class="comp-demo"><span class="demo-mark" style="display: inline-flex; align-items: center; gap: 6px;"><svg class="logo-mark" style="width: 22px; height: 22px;" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span></div>
+        <p class="comp-note">Logo symbol in primary, paired with the 800-weight DASH wordmark. Lives in the header.</p>
+      </div>
+      <div class="comp-card">
+        <h6>Header / footer rule</h6>
+        <div class="comp-demo" style="padding: 0;">
+          <div class="demo-rule" style="padding: 0; border-top: none; align-self: stretch;">
+            <span style="border-top: 1px solid var(--rule); padding-top: 8px; flex: 1;">DASH · Logistic</span>
+            <span style="border-top: 1px solid var(--rule); padding-top: 8px;">04 / 11</span>
+          </div>
+        </div>
+        <p class="comp-note">10px caps, 0.18-0.20em tracked, separated by a 10% rule top &amp; bottom.</p>
+      </div>
+      <div class="comp-card">
+        <h6>Flow step</h6>
+        <div class="comp-demo" style="gap: 4px;">
+          <div class="demo-flow-step">
+            <div class="num">03</div>
+            <div class="name">Hub intake</div>
+          </div>
+          <div class="demo-flow-step terminal">
+            <div class="num">08</div>
+            <div class="name">Reconciled</div>
+          </div>
+        </div>
+        <p class="comp-note">Sequential block in the 8-step flow. Terminal step inverts to black to mark closure.</p>
+      </div>
+      <div class="comp-card">
+        <h6>Status dots</h6>
+        <div class="comp-demo">
+          <div class="demo-status">
+            <div><span class="dot live"></span>In design</div>
+            <div><span class="dot next"></span>Committed next</div>
+            <div><span class="dot future"></span>On the horizon</div>
+          </div>
+        </div>
+        <p class="comp-note">Three states: filled (live), grey (next), outlined (future). Used on phase rows.</p>
+      </div>
+      <div class="comp-card">
+        <h6>Pull quote</h6>
+        <div class="comp-demo"><div class="demo-quote">As seamless as possible.</div></div>
+        <p class="comp-note">Light-weight serif curl marks. Quote sets at 300 weight, max 24ch.</p>
+      </div>
+      <div class="comp-card">
+        <h6>Number fact</h6>
+        <div class="comp-demo">
+          <dl class="demo-numfact">
+            <dt>Items</dt>
+            <dd>50&ndash;500+</dd>
+          </dl>
+        </div>
+        <p class="comp-note">Tabular figure paired with a 10px caps label. Uses an en-dash for ranges.</p>
+      </div>
+      <div class="comp-card">
+        <h6>Inline code</h6>
+        <div class="comp-demo">
+          <code style="font-family: var(--mono); background: var(--tint); padding: 3px 7px; border: 1px solid var(--rule); font-size: 12px;">ScanEvent: pickup</code>
+        </div>
+        <p class="comp-note">Mono on Tint with a Rule border. For API names, identifiers, and field paths.</p>
+      </div>
+      <div class="comp-card">
+        <h6>Surface card</h6>
+        <div class="comp-demo" style="padding: 0;">
+          <div style="border: 1px solid var(--rule-strong); padding: 12px 14px; align-self: stretch; min-height: 78px; display: flex; flex-direction: column;">
+            <div style="font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--neutral); font-weight: 600; margin-bottom: 8px;">Surface 02</div>
+            <div style="font-size: 14px; font-weight: 700; letter-spacing: -0.02em;">Facility app</div>
+            <div style="font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--neutral); font-weight: 600; margin-top: 4px;">Tablet · Bay-mounted</div>
+          </div>
+        </div>
+        <p class="comp-note">Bordered card for surfaces, products, and platform tiles. 1px Rule Strong outline.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>Compose. Don't invent.</span>
+    <span>09 / 12</span>
+  </footer>
+</section>
+
+<!-- =================== 10 · VOICE & COPY =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Logistic GSM</span></div>
+    <div class="right">Voice &amp; copy</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">09</span>Voice &amp; copy</span>
+    <h2 class="medium">Plain verbs. Short sentences.<br>Numbers when you have them.</h2>
+
+    <div class="voice-grid">
+      <div class="voice-col">
+        <h4>Sentence-level rules</h4>
+        <div class="voice-rule">
+          <span class="vlabel">case</span>
+          <span class="vbody"><strong>Sentence case</strong> for everything except labels and the wordmark. Headlines do not capitalize every word.</span>
+        </div>
+        <div class="voice-rule">
+          <span class="vlabel">length</span>
+          <span class="vbody">Two sentences max in headlines. <strong>Cap lines at 24 to 28ch</strong> on display copy.</span>
+        </div>
+        <div class="voice-rule">
+          <span class="vlabel">verbs</span>
+          <span class="vbody">Use working verbs: <strong>scan, sort, batch, reconcile</strong>. Not <em>"perform reconciliation activities."</em></span>
+        </div>
+        <div class="voice-rule">
+          <span class="vlabel">numbers</span>
+          <span class="vbody">Numbers earn their size. <code>50&ndash;500</code> uses an en-dash. <code>1st-mile</code> uses a hyphen.</span>
+        </div>
+        <div class="voice-rule">
+          <span class="vlabel">acronyms</span>
+          <span class="vbody">Always all-caps: <strong>POD, SLA, ETA, B2B, 4W, 2W</strong>. No periods.</span>
+        </div>
+        <div class="voice-rule">
+          <span class="vlabel">jargon</span>
+          <span class="vbody">Use the operator's word, not the engineer's: <strong>"bag"</strong> not <em>"container."</em> <strong>"hub"</strong> not <em>"facility node."</em></span>
+        </div>
+      </div>
+      <div class="voice-col">
+        <h4>Document-level rules</h4>
+        <div class="voice-rule">
+          <span class="vlabel">eyebrow</span>
+          <span class="vbody">Every section opens with a numbered tag: <code>01 · The problem</code>. Tracking 0.22em, weight 600.</span>
+        </div>
+        <div class="voice-rule">
+          <span class="vlabel">labels</span>
+          <span class="vbody">All UI labels in <strong>UPPERCASE</strong> with tracking <code>0.18&ndash;0.22em</code>. Reads as a system, not a sentence.</span>
+        </div>
+        <div class="voice-rule">
+          <span class="vlabel">footers</span>
+          <span class="vbody">Footer takes a single useful sentence (source, principle, one-liner) plus the page count. Never empty.</span>
+        </div>
+        <div class="voice-rule">
+          <span class="vlabel">quotes</span>
+          <span class="vbody">Use <strong>typographic curls</strong> (\201C \201D), never straight quotes. Single quotes inside doubles.</span>
+        </div>
+        <div class="voice-rule">
+          <span class="vlabel">em-dash</span>
+          <span class="vbody">No spaces around an em-dash in headlines &mdash; like this. Spaces around it in body copy &mdash; like this.</span>
+        </div>
+        <div class="voice-rule">
+          <span class="vlabel">code voice</span>
+          <span class="vbody">Inline code is always literal: <code>items.create</code>, <code>Job.destination_type</code>. No paraphrasing inside the box.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>Operator's word, engineer's precision</span>
+    <span>10 / 12</span>
+  </footer>
+</section>
+
+<!-- =================== 11 · DO / DON'T =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Logistic GSM</span></div>
+    <div class="right">Do / Don't</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">10</span>Do / Don't</span>
+    <h2 class="medium">The fastest way to stay on-brand.<br>Read both columns, then ship.</h2>
+
+    <div class="dodont">
+      <div class="dodont-cell do">
+        <span class="marker">Do</span>
+        <h4>Keep Primary as an accent.</h4>
+        <p>Logo, eyebrow numerals, live dot, do-marker, selection. Ink, white, four greys carry the rest.</p>
+      </div>
+      <div class="dodont-cell dont">
+        <span class="marker">Don't</span>
+        <h4>Wash surfaces in Primary.</h4>
+        <p>No purple page backgrounds, no purple body text, no purple buttons. The accent loses its job the moment it spreads.</p>
+      </div>
+
+      <div class="dodont-cell do">
+        <span class="marker">Do</span>
+        <h4>Align everything to the rule.</h4>
+        <p>Every block sits on a 1px hairline at 10% black. Rows, cards, columns. The grid does the talking.</p>
+      </div>
+      <div class="dodont-cell dont">
+        <span class="marker">Don't</span>
+        <h4>Float content centered in space.</h4>
+        <p>No orphan paragraphs in the middle of a slide. If it isn't on the grid, it isn't on the slide.</p>
+      </div>
+
+      <div class="dodont-cell do">
+        <span class="marker">Do</span>
+        <h4>Use tabular numerals on every figure.</h4>
+        <p>Stats, dates, page counts, IDs. <code style="font-family: var(--mono); font-size: 11px;">font-variant-numeric: tabular-nums</code>.</p>
+      </div>
+      <div class="dodont-cell dont">
+        <span class="marker">Don't</span>
+        <h4>Mix proportional and tabular figures.</h4>
+        <p>Numerals jiggle when set proportional in a column. They must align vertically on every row.</p>
+      </div>
+
+      <div class="dodont-cell do">
+        <span class="marker">Do</span>
+        <h4>Invert backgrounds for terminal states.</h4>
+        <p>Black surface = the end of a flow. Used for the final step in the 8-step lifecycle. One per slide, max.</p>
+      </div>
+      <div class="dodont-cell dont">
+        <span class="marker">Don't</span>
+        <h4>Use black surfaces as a styling flourish.</h4>
+        <p>If everything is "premium," nothing is. Inversion has a job — keep it loud by keeping it rare.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>Restraint compounds</span>
+    <span>11 / 12</span>
+  </footer>
+</section>
+
+<!-- =================== 12 · COLOPHON =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Logistic GSM</span></div>
+    <div class="right">Colophon</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">11</span>Colophon</span>
+    <h2 class="large">v1.0 · May 2026.<br>Internal · living document.</h2>
+
+    <div class="colophon">
+      <div class="colophon-col">
+        <div class="colo-block">
+          <dt>Source artifact</dt>
+          <dd><code>presentation-20260429/finalized.html</code><em>Dash Logistic 1st-mile to last-mile pitch deck</em></dd>
+        </div>
+        <div class="colo-block">
+          <dt>Typefaces</dt>
+          <dd>Plus Jakarta Sans · 200&ndash;800<em>Display, body, labels, wordmark</em></dd>
+          <dd style="margin-top: 10px;">JetBrains Mono · 400&ndash;600<em>Inline code, identifiers, evidence</em></dd>
+        </div>
+        <div class="colo-block">
+          <dt>Color anchors</dt>
+          <dd><code>#171717</code> · <code>#FFFFFF</code> · <code>#5C5C5C</code><em>Plus four black-alpha greys for rules and tints</em></dd>
+        </div>
+      </div>
+      <div class="colophon-col">
+        <div class="colo-block">
+          <dt>Maintainer</dt>
+          <dd>Dash Design<em>aldiiskandar2210@gmail.com</em></dd>
+        </div>
+        <div class="colo-block">
+          <dt>Version</dt>
+          <dd>v1.0 · 4 May 2026<em>Initial extraction from the deck</em></dd>
+        </div>
+        <div class="colo-block">
+          <dt>Next review</dt>
+          <dd>Q3 2026<em>After Phase 2 (multi-stop milk-run) ships and the system meets the field</em></dd>
+        </div>
+        <div class="colo-block">
+          <dt>How to amend</dt>
+          <dd>Edit the deck first. Re-extract.<em>The deck is the source. This document is the index.</em></dd>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>Logistic · Dash · GSM v1.0 — End</span>
+    <span>12 / 12</span>
+  </footer>
+</section>
+
+<div class="nav-help">
+  <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+  <span><kbd>P</kbd> Print to PDF</span>
+</div>
+
+<script>
+const slides = Array.from(document.querySelectorAll('.slide'));
+let current = 0;
+
+function getCurrentIndex() {
+  const scrollY = window.scrollY;
+  const winH = window.innerHeight;
+  return Math.round(scrollY / winH);
+}
+
+function goToSlide(idx) {
+  if (idx < 0 || idx >= slides.length) return;
+  slides[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  current = idx;
+}
+
+document.addEventListener('keydown', (e) => {
+  current = getCurrentIndex();
+  if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    goToSlide(current + 1);
+  } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft') {
+    e.preventDefault();
+    goToSlide(current - 1);
+  } else if (e.key === 'Home') {
+    e.preventDefault();
+    goToSlide(0);
+  } else if (e.key === 'End') {
+    e.preventDefault();
+    goToSlide(slides.length - 1);
+  } else if (e.key === 'p' || e.key === 'P') {
+    window.print();
+  }
+});
+
+const isMobile = () => window.matchMedia('(max-width: 720px)').matches;
+
+document.querySelectorAll('.slide').forEach((slide, idx) => {
+  slide.addEventListener('click', (e) => {
+    if (isMobile()) return;
+    if (e.target.closest('a, button, kbd')) return;
+    if (window.getSelection().toString()) return;
+    goToSlide(idx + 1);
+  });
+});
+
+let helpHidden = false;
+function hideHelp() {
+  if (helpHidden) return;
+  const help = document.querySelector('.nav-help');
+  if (help) {
+    help.style.transition = 'opacity 0.6s';
+    help.style.opacity = '0';
+    setTimeout(() => help.remove(), 600);
+  }
+  helpHidden = true;
+}
+document.addEventListener('keydown', hideHelp, { once: true });
+document.addEventListener('scroll', () => {
+  if (window.scrollY > window.innerHeight * 0.5) hideHelp();
+});
+</script>
+
+</body>
+</html>
