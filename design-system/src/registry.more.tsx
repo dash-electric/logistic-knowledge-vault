@@ -34,7 +34,7 @@ import {
   DatePicker,
   Accordion, AccordionItem, AccordionTrigger, AccordionContent,
   Collapsible, CollapsibleTrigger, CollapsibleContent,
-  Tabs, TabsList, TabsTrigger, TabsContent,
+  Tabs, TabsList, TabsTrigger, TabsContent, TabsCount,
   Divider,
   AspectRatio,
   ScrollArea,
@@ -612,9 +612,15 @@ export const MORE_CATEGORIES: Category[] = [
         render: () => (
           <Tabs defaultValue="active" className="max-w-md">
             <TabsList>
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="done">Delivered</TabsTrigger>
-              <TabsTrigger value="exc">Exceptions</TabsTrigger>
+              <TabsTrigger value="active">
+                Active<TabsCount>128</TabsCount>
+              </TabsTrigger>
+              <TabsTrigger value="done">
+                Delivered<TabsCount>1,204</TabsCount>
+              </TabsTrigger>
+              <TabsTrigger value="exc">
+                Exceptions<TabsCount>3</TabsCount>
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="active" className="pt-3 text-sm text-text-sub-600">94 bags in transit.</TabsContent>
             <TabsContent value="done" className="pt-3 text-sm text-text-sub-600">218 delivered today.</TabsContent>

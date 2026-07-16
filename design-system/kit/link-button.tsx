@@ -17,7 +17,7 @@ import { cn } from "./lib/utils"
  * Tone map (Figma → API):
  *   Gray    → muted    text-text-sub-600 (rgb 92,92,92)
  *   Black   → neutral  text-text-strong-950 (rgb 22,22,22)
- *   Primary → primary  text-primary (dash-purple-500)
+ *   Primary → primary  text-accent (dash-purple-500)
  *   Error   → destructive text-error-base (dash-red-600)
  *
  * Size: Medium = text-sm/lh-20px (text-sm), Small = text-xs/lh-16px (text-xs).
@@ -30,14 +30,14 @@ import { cn } from "./lib/utils"
 const linkButtonVariants = cva(
   cn(
     "inline-flex items-center gap-1 font-medium underline-offset-4 transition-colors",
-    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--primary-alpha-10) focus-visible:ring-offset-2 focus-visible:ring-offset-bg-white-0 rounded-sm",
+    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--theme-accent-alpha-10) focus-visible:ring-offset-2 focus-visible:ring-offset-bg-white-0 rounded-sm",
     "cursor-pointer disabled:cursor-not-allowed disabled:pointer-events-none disabled:text-text-disabled-300",
     "hover:underline",
   ),
   {
     variants: {
       tone: {
-        primary: "text-primary active:text-(--dash-purple-700)",
+        primary: "text-accent active:text-(--dash-purple-700)",
         neutral: "text-text-strong-950 active:text-text-strong-950/80",
         muted: "text-text-sub-600 hover:text-text-strong-950 active:text-text-strong-950/80",
         destructive: "text-error-base active:text-(--dash-red-700) focus-visible:ring-(--dash-red-alpha-10)",

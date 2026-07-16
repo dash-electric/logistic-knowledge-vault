@@ -87,7 +87,7 @@ const ColorDot = React.forwardRef<HTMLButtonElement, ColorDotProps>(
         "relative inline-flex size-6 items-center justify-center rounded-full",
         "transition-transform duration-(--duration-fast) ease-(--ease-out)",
         "hover:scale-110",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-10) focus-visible:ring-offset-2",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-10) focus-visible:ring-offset-2",
         "disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed",
         className,
       )}
@@ -178,7 +178,7 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
           prefixed={false}
           className={cn(
             "flex-1 h-8 rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-2 text-sm uppercase text-text-strong-950",
-            "focus-visible:outline-none focus-visible:border-stroke-strong-950 focus-visible:ring-4 focus-visible:ring-(--primary-alpha-10)",
+            "focus-visible:outline-none focus-visible:border-stroke-strong-950 focus-visible:ring-4 focus-visible:ring-(--theme-accent-alpha-10)",
           )}
         />
       </div>
@@ -222,7 +222,7 @@ const ColorPickerPresets = ({
           aria-pressed={isActive}
           className={cn(
             "relative size-6 rounded-md border border-stroke-soft-200 transition-transform",
-            "hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-10) focus-visible:ring-offset-2",
+            "hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-10) focus-visible:ring-offset-2",
           )}
           style={{ background: preset }}
         >
@@ -265,7 +265,7 @@ const ColorSwatch = React.forwardRef<HTMLButtonElement, ColorSwatchProps>(
         "inline-flex items-center border border-stroke-soft-200 bg-bg-white-0 text-text-strong-950",
         "transition-colors duration-(--duration-fast) ease-(--ease-out)",
         "hover:bg-bg-weak-50 hover:border-transparent",
-        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--primary-alpha-10)",
+        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--theme-accent-alpha-10)",
         swatchSize[size],
         className,
       )}

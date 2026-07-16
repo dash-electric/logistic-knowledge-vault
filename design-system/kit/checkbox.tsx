@@ -21,8 +21,8 @@ const checkboxVariants = cva(
     "border-stroke-soft-200 hover:border-stroke-sub-300",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
     "disabled:cursor-not-allowed disabled:opacity-50",
-    "data-[state=checked]:bg-primary data-[state=checked]:border-primary",
-    "data-[state=indeterminate]:bg-primary data-[state=indeterminate]:border-primary",
+    "data-[state=checked]:bg-accent data-[state=checked]:border-accent",
+    "data-[state=indeterminate]:bg-accent data-[state=indeterminate]:border-accent",
   ),
   {
     variants: {
@@ -154,7 +154,7 @@ const CheckboxCard = React.forwardRef<React.ElementRef<typeof CheckboxPrimitive.
         containerClassName={cn(
           "rounded-xl border bg-bg-white-0 p-4 transition-colors cursor-pointer",
           isSelected
-            ? "border-primary"
+            ? "border-accent"
             : "border-stroke-soft-200 hover:bg-bg-weak-50",
           containerClassName,
         )}

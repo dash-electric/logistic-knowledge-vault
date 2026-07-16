@@ -38,7 +38,7 @@ const Slider = React.forwardRef<
       >
         <SliderPrimitive.Range
           data-slot="slider-range"
-          className="absolute h-full bg-primary"
+          className="absolute h-full bg-accent"
         />
       </SliderPrimitive.Track>
       {values.map((_, i) => (
@@ -49,7 +49,7 @@ const Slider = React.forwardRef<
             // Figma: 16px white disc, NO border, inner 6px primary dot via ::after
             "relative block size-4 rounded-full bg-bg-white-0 shadow-switch-thumb",
             "after:content-[''] after:absolute after:inset-0 after:m-auto",
-            "after:size-1.5 after:rounded-full after:bg-primary",
+            "after:size-1.5 after:rounded-full after:bg-accent",
             "ring-offset-background transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             "disabled:pointer-events-none disabled:opacity-50",

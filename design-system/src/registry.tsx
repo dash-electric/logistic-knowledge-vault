@@ -56,6 +56,8 @@ import {
   PaginationButton,
   PaginationPrevious,
   PaginationNext,
+  Paginator,
+  SearchSelect,
   PasswordInput,
   PriceWithDiscount,
   ProgressCircle,
@@ -243,7 +245,7 @@ const BASE_CATEGORIES: Category[] = [
         description: "Trust / verified-partner emblem for KYC and tier badges.",
         render: () => (
           <Row>
-            <ShieldCrown className="size-10 text-primary" />
+            <ShieldCrown className="size-10 text-accent" />
           </Row>
         ),
       },
@@ -439,7 +441,7 @@ const BASE_CATEGORIES: Category[] = [
             <FileUploadDropzone>
               <div className="flex flex-col items-center gap-1 text-sm text-text-sub-600">
                 <RiDownloadLine className="size-6" />
-                <span>Drop POD photos or <span className="text-primary">browse</span></span>
+                <span>Drop POD photos or <span className="text-accent">browse</span></span>
               </div>
             </FileUploadDropzone>
           </div>
@@ -688,6 +690,48 @@ const BASE_CATEGORIES: Category[] = [
             </PaginationList>
           </Pagination>
         ),
+      },
+      {
+        name: "Paginator",
+        description: "Complete table paginator: window + page-size select + callbacks.",
+        render: () => {
+          const [page, setPage] = React.useState(3)
+          const [size, setSize] = React.useState(20)
+          return (
+            <Paginator
+              currentPage={page}
+              totalItems={248}
+              itemsPerPage={size}
+              onPageChange={setPage}
+              onPageSizeChange={(s) => {
+                setSize(s)
+                setPage(1)
+              }}
+            />
+          )
+        },
+      },
+      {
+        name: "SearchSelect",
+        description: "Async searchable select — server search, load-more, clear, label fallback.",
+        render: () => {
+          const [value, setValue] = React.useState<string>("")
+          return (
+            <div className="w-72">
+              <SearchSelect
+                options={[
+                  { value: "1", label: "DASH-JKT-UTARA" },
+                  { value: "2", label: "DASH-JKT-SELATAN" },
+                  { value: "3", label: "DASH-BANDUNG" },
+                ]}
+                value={value}
+                onChange={setValue}
+                placeholder="Search or pick a hub…"
+                allowClear
+              />
+            </div>
+          )
+        },
       },
       {
         name: "Breadcrumb",

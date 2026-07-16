@@ -23,7 +23,7 @@ export function BatchVisibilityToggle({ visible, onToggle, className }: BatchVis
         onToggle()
       }}
       className={cn(
-        "grid size-7 shrink-0 place-items-center rounded-sm text-icon-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-icon-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-24) [&_svg]:size-4",
+        "grid size-7 shrink-0 place-items-center rounded-sm text-icon-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-icon-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-24) [&_svg]:size-4",
         className,
       )}
     >

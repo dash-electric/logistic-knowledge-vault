@@ -84,7 +84,7 @@ const BreadcrumbLink = React.forwardRef<HTMLAnchorElement, BreadcrumbLinkProps>(
           "inline-flex h-5 items-center gap-0.5 rounded-sm transition-colors",
           "text-text-sub-600 [&_svg]:text-icon-sub-600",
           "hover:text-text-strong-950 hover:[&_svg]:text-icon-strong-950",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-base",
           className,
         )}
         {...props}

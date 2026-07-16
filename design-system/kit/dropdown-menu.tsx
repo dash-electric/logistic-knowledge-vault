@@ -21,7 +21,7 @@ import { cn } from "./lib/utils"
  *
  * Drift fixed (2026-05-17): replaced shadcn-legacy tokens (bg-popover,
  * text-popover-foreground, border-border, bg-accent, text-accent-foreground,
- * text-muted-foreground, bg-border, text-primary, text-destructive,
+ * text-muted-foreground, bg-border, text-accent, text-destructive,
  * var(--shadow-card-md)) with Dash semantic tokens + Figma tokenized shadow.
  */
 
@@ -116,7 +116,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   >
     <span className="absolute left-2 inline-flex size-4 items-center justify-center">
       <DropdownPrimitive.ItemIndicator>
-        <Check strokeWidth={3} className="size-3 text-primary-base" />
+        <Check strokeWidth={3} className="size-3 text-accent-base" />
       </DropdownPrimitive.ItemIndicator>
     </span>
     {children}
@@ -136,7 +136,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   >
     <span className="absolute left-2 inline-flex size-4 items-center justify-center">
       <DropdownPrimitive.ItemIndicator>
-        <Circle className="size-2 fill-primary-base text-primary-base" />
+        <Circle className="size-2 fill-accent-base text-accent-base" />
       </DropdownPrimitive.ItemIndicator>
     </span>
     {children}

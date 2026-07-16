@@ -125,7 +125,7 @@ const MenubarCheckboxItem = React.forwardRef<
   >
     <span className="absolute left-2 flex size-4 items-center justify-center">
       <MenubarPrimitive.ItemIndicator>
-        <Check strokeWidth={3} className="size-3.5 text-primary-base" />
+        <Check strokeWidth={3} className="size-3.5 text-accent-base" />
       </MenubarPrimitive.ItemIndicator>
     </span>
     {children}
@@ -140,7 +140,7 @@ const MenubarRadioItem = React.forwardRef<
   <MenubarPrimitive.RadioItem ref={ref} className={cn(itemBase, "pl-8", className)} {...props}>
     <span className="absolute left-2 flex size-4 items-center justify-center">
       <MenubarPrimitive.ItemIndicator>
-        <Circle className="size-2 fill-primary-base text-primary-base" />
+        <Circle className="size-2 fill-accent-base text-accent-base" />
       </MenubarPrimitive.ItemIndicator>
     </span>
     {children}

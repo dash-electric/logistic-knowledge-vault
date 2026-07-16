@@ -30,7 +30,7 @@ const iconButtonVariants = cva(
   cn(
     "inline-flex items-center justify-center border border-transparent",
     "transition-[background-color,color,border-color,box-shadow] duration-(--duration-fast) ease-(--ease-out)",
-    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--primary-alpha-10) focus-visible:ring-offset-2 focus-visible:ring-offset-bg-white-0",
+    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--theme-accent-alpha-10) focus-visible:ring-offset-2 focus-visible:ring-offset-bg-white-0",
     "cursor-pointer disabled:cursor-not-allowed disabled:pointer-events-none disabled:bg-bg-weak-50 disabled:text-text-disabled-300 disabled:border-transparent disabled:shadow-none",
   ),
   {
@@ -60,9 +60,9 @@ const iconButtonVariants = cva(
       // PRIMARY filled = ink (GSM: purple is punctuation, never a fill). Purple
       // stays on stroke / lighter / ghost. Inverse-surface pair = dark-safe.
       { tone: "primary", style: "filled", className: "bg-bg-strong-950 text-text-white-0 hover:bg-bg-strong-950/90 active:bg-bg-strong-950/80" },
-      { tone: "primary", style: "stroke", className: "bg-bg-white-0 border-primary text-primary hover:bg-(--primary-alpha-10) active:bg-(--primary-alpha-16)" },
-      { tone: "primary", style: "lighter", className: "bg-(--primary-alpha-10) text-primary hover:bg-(--primary-alpha-16) active:bg-(--primary-alpha-24)" },
-      { tone: "primary", style: "ghost", className: "text-primary hover:bg-(--primary-alpha-10) active:bg-(--primary-alpha-16)" },
+      { tone: "primary", style: "stroke", className: "bg-bg-white-0 border-accent text-accent hover:bg-(--theme-accent-alpha-10) active:bg-(--theme-accent-alpha-16)" },
+      { tone: "primary", style: "lighter", className: "bg-(--theme-accent-alpha-10) text-accent hover:bg-(--theme-accent-alpha-16) active:bg-(--theme-accent-alpha-24)" },
+      { tone: "primary", style: "ghost", className: "text-accent hover:bg-(--theme-accent-alpha-10) active:bg-(--theme-accent-alpha-16)" },
       { tone: "neutral", style: "filled", className: "bg-bg-surface-800 text-text-white-0 hover:bg-bg-strong-950" },
       { tone: "neutral", style: "stroke", className: "bg-bg-white-0 border-stroke-soft-200 text-text-sub-600 shadow-regular-xs hover:bg-bg-weak-50 hover:text-text-strong-950" },
       { tone: "neutral", style: "lighter", className: "bg-bg-weak-50 text-text-sub-600 hover:bg-bg-soft-200 hover:text-text-strong-950 active:bg-bg-soft-200" },

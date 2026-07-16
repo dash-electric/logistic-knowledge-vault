@@ -28,7 +28,7 @@ export const ClusterMarker = React.forwardRef<HTMLButtonElement, ClusterMarkerPr
       className={cn(
         "grid place-items-center rounded-full bg-bg-strong-950 font-semibold tabular-nums text-text-white-0",
         "ring-2 ring-white shadow-[0_1px_4px_rgba(23,23,23,0.35)] cursor-pointer",
-        "transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--primary-alpha-24)",
+        "transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--theme-accent-alpha-24)",
         SIZE[size],
         className,
       )}

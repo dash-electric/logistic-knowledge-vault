@@ -260,7 +260,7 @@ const ActivityFeedComment = React.forwardRef<HTMLDivElement, ActivityFeedComment
           type="button"
           onClick={onReply}
           className={cn(
-            "ml-1 text-sm leading-5 font-medium text-primary hover:underline shrink-0",
+            "ml-1 text-sm leading-5 font-medium text-accent hover:underline shrink-0",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--dash-purple-300) rounded-sm",
           )}
         >
@@ -368,7 +368,7 @@ const ActivityFeedFilter = React.forwardRef<HTMLButtonElement, ActivityFeedFilte
         // Default state: white bg, soft border, sub-600 text + icon
         // Active state: light primary tint bg (alpha-16) + primary text + icon (Figma 165967:3881)
         selected
-          ? "border-transparent bg-(--primary-alpha-16) text-primary [&_svg]:text-primary"
+          ? "border-transparent bg-(--theme-accent-alpha-16) text-accent [&_svg]:text-accent"
           : "border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 [&_svg]:text-icon-soft-400 hover:text-text-strong-950 hover:bg-bg-weak-50",
         className,
       )}

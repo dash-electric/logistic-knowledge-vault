@@ -42,7 +42,7 @@ export function WidgetShell({
     <div
       className={cn(
         "group/widget relative flex h-full flex-col rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-6 shadow-regular-xs",
-        "transition-all duration-150 hover:border-stroke-strong-950 hover:shadow-card-sm hover:ring-1 hover:ring-(--primary-alpha-16)",
+        "transition-all duration-150 hover:border-stroke-strong-950 hover:shadow-card-sm hover:ring-1 hover:ring-(--theme-accent-alpha-16)",
         className,
       )}
     >
@@ -66,7 +66,7 @@ export function WidgetShell({
       {seeAll && (
         <div className="mt-3 flex justify-end">
           <a
-            className="text-[11px] text-text-soft-400 hover:text-(--primary-base) transition-colors inline-flex items-center gap-0.5 group/seeall"
+            className="text-[11px] text-text-soft-400 hover:text-(--theme-accent-base) transition-colors inline-flex items-center gap-0.5 group/seeall"
             href="#"
           >
             {typeof seeAll === "string" ? seeAll : "See All"}

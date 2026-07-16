@@ -85,8 +85,8 @@ const NotificationOnboarding = React.forwardRef<
 
         {!seen && ready && !show && (
           <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex size-3">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60" />
-            <span className="relative inline-flex size-3 rounded-full bg-primary" />
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent opacity-60" />
+            <span className="relative inline-flex size-3 rounded-full bg-accent" />
           </span>
         )}
 
@@ -102,8 +102,8 @@ const NotificationOnboarding = React.forwardRef<
               </div>
               <div className="overflow-hidden rounded-2xl bg-bg-white-0 shadow-lg ring-1 ring-stroke-soft-200">
                 <div className="flex items-start gap-3 p-4">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-(--primary-alpha-10)">
-                    <Bell className="size-4 text-primary" />
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-(--theme-accent-alpha-10)">
+                    <Bell className="size-4 text-accent" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="text-sm font-medium text-text-strong-950">{title}</h3>

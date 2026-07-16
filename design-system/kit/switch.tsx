@@ -25,7 +25,7 @@ const switchVariants = cva(
     // Off: stroke-soft-200 (Figma uses stroke-soft-200 token #ebebeb)
     "data-[state=unchecked]:bg-stroke-soft-200 hover:data-[state=unchecked]:bg-stroke-sub-300",
     // On: primary purple, darken on hover (Figma hover = primary-darker)
-    "data-[state=checked]:bg-primary hover:data-[state=checked]:bg-primary-darker",
+    "data-[state=checked]:bg-accent hover:data-[state=checked]:bg-accent-darker",
   ),
   {
     variants: {

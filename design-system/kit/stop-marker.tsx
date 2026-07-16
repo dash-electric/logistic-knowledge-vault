@@ -52,7 +52,7 @@ export const StopMarker = React.forwardRef<HTMLButtonElement, StopMarkerProps>(
           "relative inline-flex items-center justify-center rounded-full font-semibold text-white",
           "shadow-[0_1px_3px_rgba(23,23,23,0.35)] ring-2 ring-white",
           "cursor-pointer transition-transform duration-(--duration-fast) ease-(--ease-out)",
-          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--primary-alpha-24)",
+          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--theme-accent-alpha-24)",
           SIZES[size],
           state === "active" && "animate-pulse",
           selected && "scale-125 ring-[3px] ring-white",

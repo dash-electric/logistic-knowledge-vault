@@ -25,7 +25,7 @@ import { cn } from "./lib/utils"
  *   Green   → --dash-green-500  (#1fc16b)
  *
  * Dash deviations:
- *   - `tone="primary"` retained → renders Dash brand purple (--primary-base).
+ *   - `tone="primary"` retained → renders Dash brand purple (--theme-accent-base).
  *     Use `tone="information"` to match the Figma DEFAULT blue.
  */
 
@@ -46,7 +46,7 @@ const progressVariants = cva(
 const indicatorVariants = cva("h-full w-full flex-1 transition-transform duration-300 ease-out rounded-full", {
   variants: {
     tone: {
-      primary: "bg-primary",
+      primary: "bg-accent",
       information: "bg-(--state-information-base)",
       success: "bg-(--state-success-base)",
       warning: "bg-(--state-warning-base)",

@@ -114,7 +114,7 @@ const buttonGroupItemVariants = cva(
   [
     "inline-flex items-center justify-center font-medium",
     "transition-colors duration-(--duration-fast) ease-(--ease-out)",
-    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--primary-alpha-10)",
+    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--theme-accent-alpha-10)",
     "bg-bg-white-0 text-text-sub-600",
     "hover:bg-bg-weak-50",
     "data-[active=true]:bg-bg-weak-50 data-[active=true]:text-text-strong-950",

@@ -52,7 +52,7 @@ const Filter = ({
               "text-text-sub-600 hover:bg-bg-weak-50 hover:text-text-strong-950 hover:border-stroke-soft-200",
               "data-[state=open]:bg-bg-weak-50 data-[state=open]:text-text-strong-950 data-[state=open]:border-solid",
               "transition-colors duration-(--duration-fast) ease-(--ease-out)",
-              "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--primary-alpha-10)",
+              "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--theme-accent-alpha-10)",
             )}
           >
             <Plus strokeWidth={1.75} className="size-3.5" />
@@ -81,7 +81,7 @@ const Filter = ({
                         className={cn(
                           "inline-flex size-4 items-center justify-center rounded border mr-2",
                           isSelected
-                            ? "bg-(--primary-base) border-(--primary-base) text-static-white"
+                            ? "bg-(--theme-accent-base) border-(--theme-accent-base) text-static-white"
                             : "border-stroke-soft-200",
                         )}
                       >

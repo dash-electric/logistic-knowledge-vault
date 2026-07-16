@@ -25,7 +25,7 @@ export type ShieldCrownProps = React.HTMLAttributes<HTMLSpanElement> & {
 
 const toneClass: Record<ShieldCrownTone, string> = {
   away: "text-(--state-warning-base)",
-  primary: "text-primary",
+  primary: "text-accent",
   warning: "text-(--state-warning-base)",
   feature: "text-(--state-feature-base)",
   success: "text-(--state-success-base)",

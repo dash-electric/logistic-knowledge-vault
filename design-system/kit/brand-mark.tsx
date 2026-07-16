@@ -36,7 +36,7 @@ const brandMarkVariants = cva(
         "2xl": "size-24 [&_svg]:size-10",
       },
       tone: {
-        primary: "bg-primary text-static-white",
+        primary: "bg-accent text-static-white",
         neutral:
           "bg-bg-white-0 text-icon-sub-600 border border-stroke-soft-200",
         soft:

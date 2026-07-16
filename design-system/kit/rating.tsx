@@ -38,7 +38,7 @@ const sizeMap: Record<NonNullable<RatingProps["size"]>, string> = {
 const toneClass: Record<RatingTone, { fill: string; text: string }> = {
   yellow:  { fill: "fill-[var(--dash-yellow-500)]",   text: "text-[var(--dash-yellow-500)]" },
   error:   { fill: "fill-[var(--state-error-base)]", text: "text-[var(--state-error-base)]" },
-  primary: { fill: "fill-primary",                    text: "text-primary" },
+  primary: { fill: "fill-accent",                    text: "text-accent" },
   success: { fill: "fill-[var(--state-success-base)]", text: "text-[var(--state-success-base)]" },
   current: { fill: "fill-current",                    text: "text-current" },
 }

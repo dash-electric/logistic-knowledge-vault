@@ -163,7 +163,7 @@ const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAtt
         className={cn(
           "absolute inline-flex items-center justify-center size-8 rounded-full border border-stroke-soft-200 bg-bg-white-0 shadow-custom-xs",
           "hover:bg-bg-weak-50 disabled:opacity-40 disabled:pointer-events-none",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-24)",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-24)",
           orientation === "horizontal"
             ? "left-2 top-1/2 -translate-y-1/2"
             : "left-1/2 top-2 -translate-x-1/2 rotate-90",
@@ -192,7 +192,7 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttribu
         className={cn(
           "absolute inline-flex items-center justify-center size-8 rounded-full border border-stroke-soft-200 bg-bg-white-0 shadow-custom-xs",
           "hover:bg-bg-weak-50 disabled:opacity-40 disabled:pointer-events-none",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-24)",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-24)",
           orientation === "horizontal"
             ? "right-2 top-1/2 -translate-y-1/2"
             : "left-1/2 bottom-2 -translate-x-1/2 rotate-90",

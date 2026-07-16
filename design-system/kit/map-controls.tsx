@@ -33,7 +33,7 @@ export function MapControls({ position = "top-right", onRecenter, className }: M
     map.setZoom((map.getZoom() ?? 11) + delta)
   }
   const btn =
-    "flex size-11 items-center justify-center bg-bg-white-0 text-icon-strong-950 transition-colors hover:bg-bg-weak-50 active:bg-bg-soft-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-24) [&_svg]:size-5"
+    "flex size-11 items-center justify-center bg-bg-white-0 text-icon-strong-950 transition-colors hover:bg-bg-weak-50 active:bg-bg-soft-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-24) [&_svg]:size-5"
 
   return (
     <div className={cn("absolute z-10 flex flex-col gap-2", POS[position], className)}>

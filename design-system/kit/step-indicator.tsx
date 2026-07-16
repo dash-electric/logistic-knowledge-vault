@@ -92,7 +92,7 @@ const Step = React.forwardRef<HTMLLIElement, StepProps>(
         className={cn(
           "inline-flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-colors",
           status === "completed" && "bg-(--state-success-base) text-static-white",
-          status === "current" && "bg-(--primary-base) text-static-white",
+          status === "current" && "bg-(--theme-accent-base) text-static-white",
           status === "upcoming" &&
             "bg-bg-white-0 text-text-sub-600 border border-stroke-soft-200",
         )}

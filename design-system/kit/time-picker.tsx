@@ -113,7 +113,7 @@ const TimePickerSlot = React.forwardRef<HTMLButtonElement, TimePickerSlotProps>(
         "hover:bg-bg-weak-50",
         "data-[state=active]:bg-bg-weak-50",
         "disabled:cursor-not-allowed disabled:text-text-disabled-300",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-10)",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-10)",
         className,
       )}
       {...props}
@@ -125,7 +125,7 @@ const TimePickerSlot = React.forwardRef<HTMLButtonElement, TimePickerSlotProps>(
       {end ? (
         <>
           {selected ? (
-            <Check strokeWidth={3} className="size-3.5 text-(--primary-base) shrink-0" />
+            <Check strokeWidth={3} className="size-3.5 text-(--theme-accent-base) shrink-0" />
           ) : (
             <span aria-hidden className="text-text-soft-400">
               —
@@ -137,7 +137,7 @@ const TimePickerSlot = React.forwardRef<HTMLButtonElement, TimePickerSlotProps>(
           </span>
         </>
       ) : selected ? (
-        <Check strokeWidth={3} className="size-3.5 text-(--primary-base) shrink-0" />
+        <Check strokeWidth={3} className="size-3.5 text-(--theme-accent-base) shrink-0" />
       ) : null}
     </button>
   ),

@@ -6,25 +6,25 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "./lib/utils"
 
 /**
- * Sidebar — Figma 1:1 parity (Sidebar [Navigation] node 3802:11759 inside
- * Navigation page 3789:4743, paste verified 2026-05-17).
+ * Sidebar — editorial/print dialect (GSM), restyled 2026-07-14 from the
+ * original Figma soft-SaaS treatment (Sidebar [Navigation] node 3802:11759,
+ * item set 3741:45019). Structure and API are unchanged; the visual language
+ * now follows the Graphic Standard Manual instead of the Figma chip idiom:
  *
- * Figma Sidebar item (3741:45019 set, 3 states × collapsed off/on):
- *  - Item: 232×36 (expanded), rounded-lg, 8px padding implied by inner layout.
- *      Layout: 20px icon + label + optional badges + optional shortcut chip +
- *              optional trailing chevron.
+ *  - Items are full-bleed rows (edge to edge, square corners), not inset
+ *    rounded chips. 36px tall, 20px horizontal padding.
  *  - State map:
- *      Default → bg-white-0,  icon text-sub-600,    text-sub-600
- *      Hover   → bg-weak-50,  icon text-sub-600,    text-sub-600
- *      Active  → bg-weak-50,  icon (--primary-base),text-strong-950,
- *                + 4×20 primary fill bar on the leading edge (Figma's
- *                "active rail" affordance).
- *
- * Group label (Figma "Section Title" pattern): 12px uppercase tracking-wider
- * text-soft-400, weight 500.
- *
- * Sidebar shell width: 264px expanded, 64px collapsed (per Figma sidebar
- * column). Header/footer 64px tall with stroke-soft-200 divider.
+ *      Default → bg-white-0, text/icon sub-600
+ *      Hover   → bg-weak-50, text/icon strong-950
+ *      Active  → NO wash; semibold ink text/icon + a full-height 3px accent
+ *                rail welded to the sidebar's leading edge (accent as
+ *                punctuation — icons stay ink, never accent-tinted).
+ *    The rail is drawn with ::before so `asChild` (Slot) keeps a single child.
+ *  - Groups are separated by full-width hairline rules (stroke-soft-200),
+ *    not margins; group labels use the GSM eyebrow recipe (10px bold
+ *    uppercase, 0.22em tracking, sub-600).
+ *  - Shell width: 240px expanded, 64px collapsed. Header/footer 64px tall
+ *    with stroke-soft-200 divider.
  */
 
 type SidebarState = "expanded" | "collapsed"
@@ -98,20 +98,23 @@ const sidebarVariants = cva(
 
 type SidebarProps = React.HTMLAttributes<HTMLElement> &
   VariantProps<typeof sidebarVariants> & {
-    /** Expanded width — Figma defaults to 264px (16.5rem). */
+    /** Expanded width — GSM editorial column defaults to 240px (15rem). */
     width?: string
   }
 
 const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(
-  ({ className, side, collapsedWidth, width = "16.5rem", style, ...props }, ref) => {
+  ({ className, side, collapsedWidth, width = "15rem", style, ...props }, ref) => {
     const ctx = React.useContext(SidebarContext)
+    // Usable without a SidebarProvider (state falls back to "expanded"),
+    // so the width prop must apply in that case too.
+    const state = ctx?.state ?? "expanded"
     return (
       <aside
         ref={ref}
         data-slot="sidebar"
-        data-state={ctx?.state ?? "expanded"}
+        data-state={state}
         data-side={side ?? "left"}
-        style={{ ...(style as React.CSSProperties), width: ctx?.state === "expanded" ? width : undefined }}
+        style={{ ...(style as React.CSSProperties), width: state === "expanded" ? width : undefined }}
         className={cn(sidebarVariants({ side, collapsedWidth }), className)}
         {...props}
       />
@@ -125,9 +128,9 @@ const SidebarHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
     <div
       ref={ref}
       data-slot="sidebar-header"
-      // Figma Sidebar Header (3789:3886): 64px tall with bottom border.
+      // 64px tall with bottom hairline; 20px pad aligns with full-bleed rows.
       className={cn(
-        "flex h-16 items-center gap-2 border-b border-stroke-soft-200 px-4",
+        "flex h-16 items-center gap-2 border-b border-stroke-soft-200 px-5",
         className,
       )}
       {...props}
@@ -141,8 +144,11 @@ const SidebarContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTM
     <div
       ref={ref}
       data-slot="sidebar-content"
-      // Figma scroll area: 16px vertical pad, 12px horizontal pad
-      className={cn("flex-1 overflow-y-auto px-3 py-4", className)}
+      // Full-bleed scroll area; groups separated by hairline rules, not margins.
+      className={cn(
+        "flex-1 overflow-y-auto divide-y divide-stroke-soft-200",
+        className,
+      )}
       {...props}
     />
   ),
@@ -170,7 +176,7 @@ const SidebarGroup = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLD
     <div
       ref={ref}
       data-slot="sidebar-group"
-      className={cn("mb-4 flex flex-col gap-0.5", className)}
+      className={cn("flex flex-col gap-0.5 py-3", className)}
       {...props}
     />
   ),
@@ -182,9 +188,9 @@ const SidebarGroupLabel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<
     <div
       ref={ref}
       data-slot="sidebar-group-label"
-      // Figma section header: 12px/16 medium uppercase, text-soft-400
+      // GSM eyebrow: 10px bold uppercase, wide tracking, sub-600
       className={cn(
-        "px-2 py-1.5 text-xs font-medium uppercase tracking-wide text-text-soft-400",
+        "px-5 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-text-sub-600",
         className,
       )}
       {...props}
@@ -208,31 +214,24 @@ const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>(
         data-slot="sidebar-item"
         data-active={active ? "true" : undefined}
         className={cn(
-          // Figma item: 36px tall, rounded-lg, 8px horizontal pad, 8px gap
-          "relative flex h-9 w-full items-center gap-2 rounded-lg px-2 text-sm font-medium",
+          // Editorial row: full-bleed, square corners, 36px tall, 20px pad
+          "relative flex h-9 w-full items-center gap-3 px-5 text-sm font-medium tracking-tight",
           "text-text-sub-600 transition-colors",
-          // Hover: bg-weak-50 (text stays sub-600 per Figma hover variant)
-          "hover:bg-bg-weak-50",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-base)",
-          // Active: bg-weak-50, text-strong-950, icon primary
-          "data-[active=true]:bg-bg-weak-50 data-[active=true]:text-text-strong-950",
-          // Icon defaults to sub-600; active swaps to primary-base
-          "[&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-icon-sub-600",
-          "data-[active=true]:[&_svg]:text-(--primary-base)",
+          // Hover: bare tint, text darkens to ink
+          "hover:bg-bg-weak-50 hover:text-text-strong-950",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--theme-accent-base)",
+          // Active: NO wash — semibold ink text; icons ride currentColor
+          "data-[active=true]:font-semibold data-[active=true]:text-text-strong-950",
+          "[&_svg]:size-[17px] [&_svg]:shrink-0 [&_svg]:text-current",
+          // Active rail: full-height 3px accent bar welded to the leading
+          // edge, drawn with ::before so asChild (Slot) keeps a single child.
+          "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:w-[3px]",
+          "data-[active=true]:before:bg-(--theme-accent-base)",
           className,
         )}
         {...props}
       >
         {children}
-        {/* Figma "active rail" — 4×20 primary bar pinned to the leading edge.
-            Rendered only on active state via the data attribute. */}
-        {active ? (
-          <span
-            aria-hidden
-            data-slot="sidebar-item-rail"
-            className="pointer-events-none absolute -left-3 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-md bg-(--primary-base)"
-          />
-        ) : null}
       </Comp>
     )
   },
@@ -254,7 +253,7 @@ const SidebarTrigger = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttri
         }}
         className={cn(
           "inline-flex size-8 items-center justify-center rounded-md text-icon-sub-600 hover:bg-bg-weak-50 hover:text-text-strong-950",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-base)",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-base)",
           className,
         )}
         {...props}

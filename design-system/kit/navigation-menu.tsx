@@ -68,7 +68,7 @@ const navigationMenuTriggerStyle = cva(
     // Active / Open: bg-weak-50, text-strong-950, icon primary-base
     "data-[state=open]:bg-bg-weak-50 data-[active]:bg-bg-weak-50",
     "data-[state=open]:text-text-strong-950 data-[active]:text-text-strong-950",
-    "data-[state=open]:[&_svg]:text-(--primary-base) data-[active]:[&_svg]:text-(--primary-base)",
+    "data-[state=open]:[&_svg]:text-(--theme-accent-base) data-[active]:[&_svg]:text-(--theme-accent-base)",
   ),
 )
 

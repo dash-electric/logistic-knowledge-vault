@@ -35,7 +35,7 @@ const buttonVariants = cva(
   [
     "inline-flex items-center justify-center font-medium",
     "transition-[background-color,color,border-color,box-shadow] duration-(--duration-fast) ease-(--ease-out)",
-    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--primary-alpha-10) focus-visible:ring-offset-2 focus-visible:ring-offset-bg-white-0",
+    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--theme-accent-alpha-10) focus-visible:ring-offset-2 focus-visible:ring-offset-bg-white-0",
     "cursor-pointer disabled:cursor-not-allowed disabled:pointer-events-none disabled:bg-bg-weak-50 disabled:text-text-disabled-300 disabled:border-transparent disabled:shadow-none",
     "select-none",
     "[&_svg]:shrink-0",
@@ -82,10 +82,10 @@ const buttonVariants = cva(
       // correctly in dark mode (ink→white bg, white→ink text). Purple stays on
       // the stroke / lighter / ghost / link styles below.
       { tone: "primary", style: "filled", className: "bg-bg-strong-950 text-text-white-0 hover:bg-bg-strong-950/90 active:bg-bg-strong-950/80" },
-      { tone: "primary", style: "stroke", className: "bg-bg-white-0 border-primary text-primary hover:bg-(--primary-alpha-10) active:bg-(--primary-alpha-16)" },
-      { tone: "primary", style: "lighter", className: "bg-(--primary-alpha-10) text-primary hover:bg-(--primary-alpha-16) active:bg-(--primary-alpha-24)" },
-      { tone: "primary", style: "ghost", className: "text-primary hover:bg-(--primary-alpha-10) active:bg-(--primary-alpha-16)" },
-      { tone: "primary", style: "link", className: "text-primary hover:underline underline-offset-4" },
+      { tone: "primary", style: "stroke", className: "bg-bg-white-0 border-accent text-accent hover:bg-(--theme-accent-alpha-10) active:bg-(--theme-accent-alpha-16)" },
+      { tone: "primary", style: "lighter", className: "bg-(--theme-accent-alpha-10) text-accent hover:bg-(--theme-accent-alpha-16) active:bg-(--theme-accent-alpha-24)" },
+      { tone: "primary", style: "ghost", className: "text-accent hover:bg-(--theme-accent-alpha-10) active:bg-(--theme-accent-alpha-16)" },
+      { tone: "primary", style: "link", className: "text-accent hover:underline underline-offset-4" },
 
       // NEUTRAL — source Figma mapping (sub-600 text, surface-800 fill, stroke-soft-200 border + shadow-regular-xs on stroke)
       { tone: "neutral", style: "filled", className: "bg-bg-surface-800 text-text-white-0 hover:bg-bg-strong-950 active:bg-bg-strong-950/90" },

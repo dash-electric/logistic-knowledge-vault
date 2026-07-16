@@ -59,7 +59,7 @@ const DotStepper = React.forwardRef<HTMLOListElement, DotStepperProps>(
               "rounded-full transition-colors",
               sz.dot,
               i === current
-                ? "bg-(--primary-base)"
+                ? "bg-(--theme-accent-base)"
                 : "bg-stroke-soft-200",
             )}
           />

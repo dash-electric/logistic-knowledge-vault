@@ -37,7 +37,7 @@ export function RichEditor({
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-(--primary-base) underline underline-offset-4" } }),
+      Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-(--theme-accent-base) underline underline-offset-4" } }),
       Placeholder.configure({ placeholder }),
     ],
     content: content ?? defaultContent ?? "",
@@ -49,7 +49,7 @@ export function RichEditor({
         class: cn(
           "min-h-32 px-4 py-3 text-sm text-text-strong-950 outline-none prose prose-sm max-w-none",
           "prose-headings:font-semibold prose-headings:tracking-tight",
-          "prose-a:text-(--primary-base) prose-strong:text-text-strong-950",
+          "prose-a:text-(--theme-accent-base) prose-strong:text-text-strong-950",
           "[&_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]",
           "[&_p.is-editor-empty:first-child]:before:text-text-soft-400",
           "[&_p.is-editor-empty:first-child]:before:float-left",
@@ -115,7 +115,7 @@ const ToolbarBtn = ({ onClick, active, disabled, label, children }: ToolbarBtnPr
       "inline-flex size-7 items-center justify-center rounded-md text-icon-sub-600",
       "transition-colors duration-(--duration-fast) ease-(--ease-out)",
       "hover:bg-bg-weak-50 hover:text-text-strong-950",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-10)",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-10)",
       "disabled:opacity-40 disabled:pointer-events-none",
       "aria-pressed:bg-bg-weak-50 aria-pressed:text-text-strong-950",
     )}

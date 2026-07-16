@@ -96,7 +96,7 @@ const dropzoneVariants = cva(
   cn(
     "relative flex flex-col items-center justify-center gap-6 rounded-xl border border-dashed bg-bg-white-0 text-center",
     "transition-colors duration-(--duration-fast) ease-(--ease-out)",
-    "focus-within:ring-4 focus-within:ring-(--primary-alpha-10)",
+    "focus-within:ring-4 focus-within:ring-(--theme-accent-alpha-10)",
   ),
   {
     variants: {
@@ -107,7 +107,7 @@ const dropzoneVariants = cva(
       },
       state: {
         idle: "border-stroke-sub-300 hover:bg-bg-weak-50",
-        active: "border-(--primary-base) bg-(--primary-alpha-10)",
+        active: "border-(--theme-accent-base) bg-(--theme-accent-alpha-10)",
         error: "border-(--state-error-base) bg-(--state-error-lighter)",
         disabled: "border-stroke-sub-300 opacity-50 pointer-events-none",
       },
@@ -328,7 +328,7 @@ const FileUploadItem = React.forwardRef<HTMLDivElement, FileUploadItemProps>(
               className={cn(
                 "shrink-0 size-6 inline-flex items-center justify-center rounded-md",
                 status === "error" ? "text-(--state-error-base)" : "text-icon-sub-600",
-                "hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-10)",
+                "hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-10)",
               )}
             >
               <X strokeWidth={1.75} className="size-5" />
@@ -443,7 +443,7 @@ const ImageUpload = React.forwardRef<HTMLDivElement, ImageUploadProps>(
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium border border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 hover:bg-bg-weak-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-10)"
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium border border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 hover:bg-bg-weak-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-10)"
             >
               <Pencil strokeWidth={1.75} className="size-3.5" />
               Change

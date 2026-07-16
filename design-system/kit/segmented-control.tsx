@@ -47,7 +47,7 @@ const segmentedItemVariants = cva(
     "text-text-soft-400",
     // Hover bumps to text-sub-600 (Figma Hover state)
     "hover:text-text-sub-600",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-base",
     // Active = bg-white-0 fill + text-strong-950 (Figma Active state)
     "data-[state=on]:bg-bg-white-0 data-[state=on]:text-text-strong-950 data-[state=on]:shadow-regular-xs",
     // Disabled

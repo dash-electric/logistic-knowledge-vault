@@ -38,7 +38,7 @@ const barVariants = cva(
     variants: {
       tone: {
         neutral: "border-stroke-soft-200",
-        primary: "border-(--primary-alpha-24)",
+        primary: "border-(--theme-accent-alpha-24)",
         destructive: "border-(--state-error-base)/30",
       },
       size: {

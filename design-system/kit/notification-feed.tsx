@@ -134,7 +134,7 @@ const NotificationItem = React.forwardRef<HTMLDivElement, NotificationItemProps>
       {unread ? (
         <span
           aria-hidden
-          className="absolute left-1 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-primary"
+          className="absolute left-1 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-accent"
         />
       ) : null}
       {avatar

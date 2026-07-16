@@ -17,8 +17,8 @@
  *   04 Grid-anchored — consistent rhythm.
  *
  * GSM palette:
- *   Primary · Dash Purple  #5E2AAC   accent / punctuation only
- *   Ink                    #171717   body text, wordmark, high-emphasis, inverse surfaces
+ *   Accent · Dash Purple   #5E2AAC   punctuation only (token name: accent)
+ *   Ink · Primary          #171717   body text, wordmark, high-emphasis, inverse surfaces
  *   White                  #FFFFFF   page + card surface
  *   Neutral                #5C5C5C   secondary text, labels, captions
  *   Rule / Rule strong     10% / 22% black hairlines
@@ -145,7 +145,7 @@
   --dash-purple-200: #b59dd9;
   --dash-purple-300: #9370c7;
   --dash-purple-400: #7e55bd;
-  --dash-purple-500: #5e2aac; /* Primary · Dash Purple */
+  --dash-purple-500: #5e2aac; /* Accent · Dash Purple */
   --dash-purple-600: #56269d;
   --dash-purple-700: #431e7a;
   --dash-purple-800: #34175f;
@@ -155,13 +155,17 @@
   --dash-purple-alpha-16: #5e2aac29;
   --dash-purple-alpha-24: #5e2aac3d;
 
-  /* ------ Primary brand alias (Dash Purple — punctuation accent) ------ */
-  --primary-base:     var(--dash-purple-500);
-  --primary-dark:     var(--dash-purple-700);
-  --primary-darker:   var(--dash-purple-800);
-  --primary-alpha-10: var(--dash-purple-alpha-10);
-  --primary-alpha-16: var(--dash-purple-alpha-16);
-  --primary-alpha-24: var(--dash-purple-alpha-24);
+  /* ------ Primary alias — INK ------
+   * Vocabulary (2026-07): PRIMARY = Ink #171717 (the workhorse — filled
+   * buttons, emphasis, default surfaces). ACCENT = Dash Purple (punctuation
+   * only). Purple must be referenced through the accent tokens below —
+   * never through these. */
+  --primary-base:     var(--dash-gray-950);
+  --primary-dark:     var(--dash-gray-800);
+  --primary-darker:   var(--dash-gray-700);
+  --primary-alpha-10: var(--dash-black-alpha-10);
+  --primary-alpha-16: var(--dash-black-alpha-16);
+  --primary-alpha-24: var(--dash-black-alpha-24);
 
   /* ------ State semantic — LIGHT (operational data) ------ */
   --state-error-dark: var(--dash-red-950); --state-error-base: var(--dash-red-500); --state-error-light: var(--dash-red-200); --state-error-lighter: var(--dash-red-50);
@@ -345,7 +349,7 @@
   --color-static-black:    var(--static-black);
   --color-static-white:    var(--static-white);
 
-  /* Bare semantic aliases */
+  /* Bare semantic aliases — primary = INK (see the primary alias block) */
   --color-primary:         var(--primary-base);
   --color-primary-base:    var(--primary-base);
   --color-primary-dark:    var(--primary-dark);

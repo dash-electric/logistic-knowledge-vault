@@ -35,7 +35,7 @@ const compactButtonVariants = cva(
   cn(
     "inline-flex items-center justify-center shrink-0",
     "transition-[background-color,color,border-color,box-shadow] duration-(--duration-fast) ease-(--ease-out)",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-24) focus-visible:ring-offset-1 focus-visible:ring-offset-bg-white-0",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-24) focus-visible:ring-offset-1 focus-visible:ring-offset-bg-white-0",
     "cursor-pointer disabled:cursor-not-allowed disabled:pointer-events-none disabled:bg-transparent disabled:text-text-disabled-300 disabled:border-transparent disabled:shadow-none",
     "[&_svg]:shrink-0",
   ),

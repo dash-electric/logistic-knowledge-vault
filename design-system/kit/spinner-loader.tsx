@@ -38,7 +38,7 @@ const SpinnerLoader = React.forwardRef<HTMLDivElement, SpinnerLoaderProps>(
             return (
               <span
                 key={i}
-                className="absolute size-3 rounded-full bg-primary dash-spinner-dot"
+                className="absolute size-3 rounded-full bg-accent dash-spinner-dot"
                 style={{
                   top: "50%",
                   left: "50%",

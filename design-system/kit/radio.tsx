@@ -10,8 +10,8 @@ import { cn } from "./lib/utils"
  *
  * Figma: 16px circle · radius full ·
  *  - Off  : bg-stroke-soft-200 (#ebebeb) with 13px inner white box
- *  - On   : bg-primary-base (purple) with 8px inner WHITE dot
- *  - Hover: bg-stroke-sub-300 (Off) / bg-primary-darker (On)
+ *  - On   : bg-accent-base (purple) with 8px inner WHITE dot
+ *  - Hover: bg-stroke-sub-300 (Off) / bg-accent-darker (On)
  * Dash extension: `sm` (14) + `lg` (20) sizes added — Figma ships only 16px.
  */
 const RadioGroup = React.forwardRef<
@@ -40,7 +40,7 @@ const radioItemVariants = cva(
     "data-[state=unchecked]:before:rounded-full data-[state=unchecked]:before:bg-bg-white-0",
     "data-[state=unchecked]:before:inset-[1.5px]",
     // On state: filled with primary, hover = darker
-    "data-[state=checked]:bg-primary hover:data-[state=checked]:bg-primary-darker",
+    "data-[state=checked]:bg-accent hover:data-[state=checked]:bg-accent-darker",
   ),
   {
     variants: {

@@ -87,7 +87,7 @@ function SortableRow({ stop, index, disabled }: { stop: SequenceStop; index: num
           <button
             type="button"
             aria-label={`Reorder ${typeof stop.address === "string" ? stop.address : "stop"}`}
-            className="grid size-7 shrink-0 cursor-grab touch-none place-items-center rounded-sm text-icon-soft-400 hover:bg-bg-weak-50 hover:text-icon-sub-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-24) active:cursor-grabbing [&_svg]:size-4"
+            className="grid size-7 shrink-0 cursor-grab touch-none place-items-center rounded-sm text-icon-soft-400 hover:bg-bg-weak-50 hover:text-icon-sub-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-24) active:cursor-grabbing [&_svg]:size-4"
             {...attributes}
             {...listeners}
           >

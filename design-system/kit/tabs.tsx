@@ -33,6 +33,9 @@ import { cn } from "./lib/utils"
  *
  * Dash exposes `variant="line"` (Figma horizontal) and `variant="pill"`
  * (Figma vertical / list-style — a row of 36px pills).
+ *
+ * Dash divergence from Figma: the active underline + icon use ink
+ * (strong-950), not accent purple — accent is punctuation, tabs are chrome.
  */
 
 const Tabs = TabsPrimitive.Root
@@ -40,10 +43,10 @@ const Tabs = TabsPrimitive.Root
 const tabsListVariants = cva("inline-flex items-center", {
   variants: {
     variant: {
-      // Figma horizontal: 24px gap, no border below the LIST (the underline
-      // is per-trigger). We keep a hairline border on the list for visual
-      // separation from page content.
-      line: "h-10 gap-6 border-b border-stroke-soft-200 w-full",
+      // Line tabs: padded triggers sitting on a shared hairline. (Figma drew
+      // 24px gaps with text-hugging px-1 items — in real toolbars that reads
+      // sparse and gives tiny click targets, so triggers carry the padding.)
+      line: "h-10 gap-1 border-b border-stroke-soft-200 w-full",
       // Figma vertical list-style: 6px gap between pill items, no chrome
       pill: "h-9 gap-1.5",
     },
@@ -53,9 +56,9 @@ const tabsListVariants = cva("inline-flex items-center", {
 
 const tabsTriggerVariants = cva(
   cn(
-    "inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-sm font-medium",
+    "group inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-sm font-medium",
     "transition-colors disabled:pointer-events-none disabled:opacity-50",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-base",
     // Icon color follows state (see variants for primary swap on active)
     "[&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-icon-sub-600",
   ),
@@ -63,20 +66,19 @@ const tabsTriggerVariants = cva(
     variants: {
       variant: {
         line: cn(
-          // Figma horizontal item: 20px label row + 14px pad top/bot ≈ 48px,
-          // but our list is h-10 so use -mb-px to align the 2px underline
-          // bar with the list border-bottom.
-          "h-10 -mb-px border-b-2 border-transparent px-1 text-text-sub-600",
+          // -mb-px drops the 2px underline onto the list's hairline. px-3
+          // gives the underline body and a real hover/click target.
+          "h-10 -mb-px border-b-2 border-transparent px-3 text-text-sub-600",
           "hover:text-text-strong-950",
-          "data-[state=active]:border-primary-base data-[state=active]:text-text-strong-950",
-          "data-[state=active]:[&_svg]:text-primary-base",
+          "data-[state=active]:border-stroke-strong-950 data-[state=active]:text-text-strong-950",
+          "data-[state=active]:[&_svg]:text-icon-strong-950",
         ),
         pill: cn(
           // Figma vertical list item: 36px tall, rounded-lg, 8px pad
           "h-9 rounded-lg px-2 text-text-sub-600",
           "hover:bg-bg-weak-50 hover:text-text-strong-950",
           "data-[state=active]:bg-bg-weak-50 data-[state=active]:text-text-strong-950",
-          "data-[state=active]:[&_svg]:text-primary-base",
+          "data-[state=active]:[&_svg]:text-icon-strong-950",
         ),
       },
     },
@@ -116,6 +118,27 @@ const TabsTrigger = React.forwardRef<
 ))
 TabsTrigger.displayName = "TabsTrigger"
 
+/**
+ * TabsCount — small tabular count chip inside a TabsTrigger.
+ * Neutral tint by default; flips to an ink pill on the active tab.
+ */
+const TabsCount = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
+  ({ className, ...props }, ref) => (
+    <span
+      ref={ref}
+      data-slot="tabs-count"
+      className={cn(
+        "rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums",
+        "bg-bg-weak-50 text-text-sub-600",
+        "group-data-[state=active]:bg-bg-strong-950 group-data-[state=active]:text-text-white-0",
+        className,
+      )}
+      {...props}
+    />
+  ),
+)
+TabsCount.displayName = "TabsCount"
+
 const TabsContent = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
@@ -124,7 +147,7 @@ const TabsContent = React.forwardRef<
     ref={ref}
     data-slot="tabs-content"
     className={cn(
-      "mt-4 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+      "mt-4 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-base",
       className,
     )}
     {...props}
@@ -132,4 +155,4 @@ const TabsContent = React.forwardRef<
 ))
 TabsContent.displayName = "TabsContent"
 
-export { Tabs, TabsList, TabsTrigger, TabsContent }
+export { Tabs, TabsList, TabsTrigger, TabsContent, TabsCount }

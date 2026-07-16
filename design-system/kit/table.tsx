@@ -102,13 +102,14 @@ const TableHead = React.forwardRef<
   React.ThHTMLAttributes<HTMLTableCellElement>
 >(({ className, ...props }, ref) => (
   // Figma 587:5793 Header Cell: 36px tall, padding 8t/12r/8b/12l, text 12/16 weight 500
-  // ls 0.48 (~tracking-wider). Uppercase by convention (AlignUI samples: "EMAIL", "BUY FROM").
+  // Sentence case (2026-07, user decision): all-caps headers read loud and
+  // oversized next to 12px body rows — labels stay 12px medium, soft-400.
   // Color = text-soft-400 (#a3a3a3) per Figma fill var 262:1714.
   <th
     ref={ref}
     data-slot="table-head"
     className={cn(
-      "h-9 px-3 py-2 text-left align-middle text-xs font-medium uppercase tracking-wider text-text-soft-400",
+      "h-9 px-3 py-2 text-left align-middle text-xs font-medium text-text-soft-400",
       "[&:has([role=checkbox])]:pr-0",
       className,
     )}
@@ -226,7 +227,9 @@ const TableHeadSortable = React.forwardRef<HTMLTableCellElement, TableHeadSortab
         data-slot="table-head-sortable"
         data-sort={direction ?? undefined}
         className={cn(
-          "h-9 px-3 py-2 text-left align-middle text-xs font-medium tracking-tight text-text-soft-400",
+          // Same type treatment as TableHead — a header row that mixes
+          // sortable and plain cells must read as one line.
+          "h-9 px-3 py-2 text-left align-middle text-xs font-medium text-text-soft-400",
           className,
         )}
         {...props}
@@ -238,10 +241,12 @@ const TableHeadSortable = React.forwardRef<HTMLTableCellElement, TableHeadSortab
             onClick={sortable ? onSort : undefined}
             disabled={!sortable}
             className={cn(
-              "inline-flex items-center gap-1 select-none",
-              "text-xs font-medium tracking-tight",
+              // Font size / tracking inherit from the th (preflight: font +
+              // letter-spacing inherit on buttons) so size overrides land in
+              // one place.
+              "inline-flex items-center gap-1 select-none font-medium",
               sortable
-                ? "hover:text-text-strong-950 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-24) rounded-sm"
+                ? "hover:text-text-strong-950 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-24) rounded-sm"
                 : "cursor-default",
               direction ? "text-text-strong-950" : "text-text-soft-400",
             )}

@@ -23,7 +23,7 @@ import { cn } from "./lib/utils"
 const trackStrokeVariants = cva("", {
   variants: {
     tone: {
-      primary: "stroke-primary",
+      primary: "stroke-accent",
       information: "stroke-(--state-information-base)",
       success: "stroke-(--state-success-base)",
       warning: "stroke-(--state-warning-base)",

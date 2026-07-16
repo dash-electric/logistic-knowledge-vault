@@ -114,6 +114,13 @@ const STATUS_TONES: Record<string, BadgeStatus> = {
 
 const SIZE_TEXT = { sm: "text-xs", md: "text-[14px]", lg: "text-base" } as const
 const SIZE_PAD = { sm: "px-3 py-2", md: "px-6 py-4", lg: "px-8 py-6" } as const
+/* Header type steps down with the table size so it never outweighs the body.
+ * (TableHeadSortable's inner button inherits the th typography.) */
+const SIZE_HEAD = {
+  sm: "text-[11px]",
+  md: "text-xs",
+  lg: "text-xs",
+} as const
 
 const TableData = <T extends Record<string, any>>({
   data,
@@ -321,6 +328,7 @@ const TableData = <T extends Record<string, any>>({
                   onSort={() => handleSort(column.key)}
                   className={cn(
                     SIZE_PAD[size],
+                    SIZE_HEAD[size],
                     "whitespace-nowrap",
                     alignClass(column.align),
                     headStickyClass(column),
@@ -332,6 +340,7 @@ const TableData = <T extends Record<string, any>>({
                   key={column.key}
                   className={cn(
                     SIZE_PAD[size],
+                    SIZE_HEAD[size],
                     "whitespace-nowrap",
                     alignClass(column.align),
                     headStickyClass(column),

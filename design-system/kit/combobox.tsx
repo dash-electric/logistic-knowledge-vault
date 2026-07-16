@@ -79,7 +79,7 @@ const Combobox = ({
             "transition-colors duration-(--duration-fast) ease-(--ease-out)",
             "hover:bg-bg-weak-50 hover:border-transparent hover:text-text-sub-600",
             "data-[state=open]:bg-bg-white-0 data-[state=open]:border-stroke-strong-950 data-[state=open]:text-text-strong-950",
-            "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--primary-alpha-10)",
+            "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-(--theme-accent-alpha-10)",
             "aria-[invalid=true]:border-(--state-error-base)",
             "disabled:cursor-not-allowed disabled:bg-bg-weak-50 disabled:border-transparent disabled:text-text-disabled-300",
             sizeMap[size],
@@ -112,7 +112,7 @@ const Combobox = ({
                   <Check
                     strokeWidth={3}
                     className={cn(
-                      "size-3.5 text-(--primary-base) mr-2",
+                      "size-3.5 text-(--theme-accent-base) mr-2",
                       value === o.value ? "opacity-100" : "opacity-0",
                     )}
                   />

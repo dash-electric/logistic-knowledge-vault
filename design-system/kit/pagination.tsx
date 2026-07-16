@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { RiArrowLeftSLine as ChevronLeft, RiArrowRightSLine as ChevronRight, RiArrowLeftDoubleLine as ChevronsLeft, RiArrowRightDoubleLine as ChevronsRight, RiMoreLine as MoreHorizontal } from "@remixicon/react"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./select"
 import { cn } from "./lib/utils"
 
 /**
@@ -79,7 +80,7 @@ const PaginationButton = React.forwardRef<HTMLButtonElement, PaginationButtonPro
         "cursor-pointer border border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 transition-colors",
         // Hover cell: bg-weak-50 + drop stroke (Figma hover variant has no stroke)
         "hover:border-transparent hover:bg-bg-weak-50 hover:text-text-strong-950",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-base",
         // Disabled: keep stroke, text fades to disabled-300
         "disabled:pointer-events-none disabled:border-stroke-soft-200 disabled:bg-bg-white-0 disabled:text-text-disabled-300",
         // Selected: white bg + stroke-soft + strong text (Figma uses neutral
@@ -171,6 +172,145 @@ const PaginationEllipsis = ({ className, ...props }: React.HTMLAttributes<HTMLSp
   </span>
 )
 
+/* -------------------------------------------------------------------------- */
+/* Paginator — complete widget (window + page-size select + callbacks)         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * High-level table paginator composed from the primitives above. Renders a
+ * "showing X–Y of N" label, a windowed page list (max 5 cells), first/prev/
+ * next/last controls, and an optional compact page-size select. Returns null
+ * when there are no items. Page numbers are 1-based.
+ */
+export type PaginatorProps = {
+  currentPage: number
+  totalItems: number
+  itemsPerPage: number
+  onPageChange: (page: number) => void
+  /** Omit to hide the page-size select entirely. */
+  onPageSizeChange?: (pageSize: number) => void
+  pageSizeOptions?: number[]
+  className?: string
+}
+
+const Paginator = ({
+  currentPage,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = [10, 20, 30, 40, 50],
+  className,
+}: PaginatorProps) => {
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+
+  if (totalItems === 0) {
+    return null
+  }
+
+  // Max 5 visible pages, windowed around the current page.
+  const maxVisiblePages = 5
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
+  const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+
+  if (endPage - startPage < maxVisiblePages - 1) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1)
+  }
+
+  const pages: number[] = []
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i)
+  }
+
+  return (
+    <Pagination className={cn("mt-4", className)}>
+      <div className="text-sm tabular-nums text-text-sub-600">
+        Showing{" "}
+        <span className="font-medium text-text-strong-950">
+          {(currentPage - 1) * itemsPerPage + 1}
+        </span>
+        {" – "}
+        <span className="font-medium text-text-strong-950">
+          {Math.min(currentPage * itemsPerPage, totalItems)}
+        </span>{" "}
+        of <span className="font-medium text-text-strong-950">{totalItems}</span>
+      </div>
+
+      <PaginationList>
+        <PaginationItem>
+          <PaginationFirst
+            disabled={currentPage === 1}
+            onClick={() => {
+              if (currentPage > 1) onPageChange(1)
+            }}
+          />
+        </PaginationItem>
+        <PaginationItem>
+          <PaginationPrevious
+            disabled={currentPage === 1}
+            onClick={() => {
+              if (currentPage > 1) onPageChange(currentPage - 1)
+            }}
+          />
+        </PaginationItem>
+
+        {pages.map((page) => (
+          <PaginationItem key={page}>
+            <PaginationButton
+              isActive={currentPage === page}
+              onClick={() => onPageChange(page)}
+            >
+              {page}
+            </PaginationButton>
+          </PaginationItem>
+        ))}
+
+        <PaginationItem>
+          <PaginationNext
+            disabled={currentPage === totalPages}
+            onClick={() => {
+              if (currentPage < totalPages) onPageChange(currentPage + 1)
+            }}
+          />
+        </PaginationItem>
+        <PaginationItem>
+          <PaginationLast
+            disabled={currentPage === totalPages}
+            onClick={() => {
+              if (currentPage < totalPages) onPageChange(totalPages)
+            }}
+          />
+        </PaginationItem>
+      </PaginationList>
+
+      <div className="flex items-center gap-2">
+        {onPageSizeChange && (
+          <>
+            <span className="text-sm text-text-sub-600">Show:</span>
+            <Select
+              value={String(itemsPerPage)}
+              onValueChange={(v) => onPageSizeChange(Number(v))}
+            >
+              <SelectTrigger className="h-8 w-fit tabular-nums">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map((option) => (
+                  <SelectItem key={option} value={String(option)}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-text-sub-600">/ page</span>
+          </>
+        )}
+      </div>
+    </Pagination>
+  )
+}
+Paginator.displayName = "Paginator"
+
 export {
   Pagination,
   PaginationList,
@@ -181,4 +321,5 @@ export {
   PaginationFirst,
   PaginationLast,
   PaginationEllipsis,
+  Paginator,
 }

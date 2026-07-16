@@ -30,7 +30,7 @@ export type FormModalTone =
   | "neutral"
 
 const ICON_TONE: Record<FormModalTone, string> = {
-  primary: "bg-(--primary-alpha-10) text-primary",
+  primary: "bg-(--theme-accent-alpha-10) text-accent",
   success: "bg-(--state-success-lighter) text-(--state-success-dark)",
   warning: "bg-(--state-warning-lighter) text-(--state-warning-dark)",
   danger: "bg-(--state-error-lighter) text-(--state-error-dark)",

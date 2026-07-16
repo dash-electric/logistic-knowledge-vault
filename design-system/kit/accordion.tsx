@@ -127,7 +127,7 @@ const AccordionTrigger = React.forwardRef<
             "group flex flex-1 items-center gap-2.5 text-left text-sm font-medium text-text-strong-950",
             variant === "default" ? "p-3.5" : "py-3.5 px-1",
             "transition-colors hover:text-text-strong-950/80",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-alpha-24) rounded-[inherit]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--theme-accent-alpha-24) rounded-[inherit]",
             "[&[data-state=open]_[data-toggle-icon]]:text-icon-strong-950",
             className,
           )}
