@@ -1,6 +1,6 @@
 # Dash Electric Logistic — ERD
 
-Source of truth: [`nest-logistic-service/src/database/schema/table/*.ts`](../../../../nest-logistic-service/src/database/schema/table). Field names below match the actual Postgres columns. External masters (`clients`, `users`, `riders`, `hubs`, `providers`, `outlets`) live in `nodejs-core-service` and are referenced by id without a DB foreign key — they appear as snapshot JSONB columns, not as entities here.
+Source of truth: [`nest-logistic-service/src/database/schema/table/*.ts`](../../../../nest-logistic-service/src/database/schema/table). Field names below match the actual Postgres columns. External masters (`clients`, `users`, `riders`, `hubs`, `providers`, `outlets`) live in `nodejs-core-service` / `nest-driver-service` and are referenced by id without a DB foreign key — they appear as snapshot JSONB columns, not as entities here.
 
 The canonical mermaid file is [`erd.mermaid`](erd.mermaid). This markdown wraps the same diagram for inline rendering.
 
@@ -8,10 +8,12 @@ The canonical mermaid file is [`erd.mermaid`](erd.mermaid). This markdown wraps 
 
 | Module | Entities |
 |---|---|
-| Intake & inbound | `upload_shipments`, `shipments`, `items`, `item_status_history`, `scan_events` |
-| Dispatch | `dispatches`, `batches`, `batch_stops`, `batch_items` |
+| Intake & inbound | `upload_shipments`, `addresses`, `shipments`, `shipment_status_history`, `items`, `item_status_history`, `scan_events`, `item_media` |
+| Dispatch | `dispatches`, `batches`, `batch_stops`, `batch_items`, `barriers`, `barrier_cells` |
 | Invoice / proof-of-delivery | `invoices`, `invoice_status_history`, `ai_checker_logs` |
 | Zoning | `zones`, `zone_cells` |
+| Reasons (reference data) | `reasons` (+ deprecated `retur_reasons`, `outlet_exception_reasons`) |
+| Scheduled Instant | `schedule_plans`, `schedule_plan_changes`, `schedule_plan_riders`, `schedule_rider_day_offs`, `schedule_slots`, `schedule_slot_riders`, `schedule_slot_activity`, `schedule_wa_messages` |
 | Docking dashboard | `dashboard_hub_daily_snapshots` |
 | Analytics dashboard (meta) | `snapshot`, `kpi_definition`, `kpi_value`, `deployment`, `verdict`, `action_item` |
 
@@ -19,11 +21,13 @@ The canonical mermaid file is [`erd.mermaid`](erd.mermaid). This markdown wraps 
 
 ```mermaid
 erDiagram
-    %% ── Intake & inbound (Stage 2: CSV upload → shipments → items → hub scan) ──
+    %% ── Intake & inbound (CSV upload / H2H create → shipments → items → hub scan) ──
     UPLOAD_SHIPMENTS ||--o{ SHIPMENTS : "imports (soft fk)"
     SHIPMENTS ||--o{ ITEMS : contains
+    SHIPMENTS ||--o{ SHIPMENT_STATUS_HISTORY : "audits transitions"
     ITEMS ||--o{ ITEM_STATUS_HISTORY : "audits transitions"
     ITEMS ||--o{ SCAN_EVENTS : "scanned via"
+    ITEMS ||--o{ ITEM_MEDIA : "POD photos"
 
     %% ── Dispatch (plan → batches → stops → item assignment) ──
     DISPATCHES ||--o{ BATCHES : plans
@@ -31,13 +35,28 @@ erDiagram
     BATCHES ||--o{ BATCH_ITEMS : carries
     BATCH_STOPS ||--o{ BATCH_ITEMS : "drops at"
     ITEMS ||--o{ BATCH_ITEMS : "assigned to batch"
+    BARRIERS ||--o{ BARRIER_CELLS : "traced by H3 cells"
 
     %% ── Invoice (proof-of-delivery + AI checker) ──
     INVOICES ||--o{ INVOICE_STATUS_HISTORY : "audits transitions"
     INVOICES ||--o{ AI_CHECKER_LOGS : "checked by"
 
-    %% ── Zoning (hub coverage by H3 cells; disjoint cell invariant) ──
+    %% ── Zoning (hub coverage by H3 cells; per-hub disjoint-cell invariant) ──
     ZONES ||--o{ ZONE_CELLS : "covers H3 cells"
+
+    %% ── Reasons (unified driver-facing reason taxonomy) ──
+    REASONS |o..o{ ITEMS : "retur_reason_code (soft)"
+
+    %% ── Scheduled Instant (Master Jadwal → dated slots → per-rider confirmation) ──
+    SCHEDULE_PLANS ||--o{ SCHEDULE_PLAN_CHANGES : "audits changes"
+    SCHEDULE_PLANS ||--o{ SCHEDULE_PLAN_RIDERS : "default roster"
+    SCHEDULE_PLANS |o--o{ SCHEDULE_SLOTS : "generates (NULL = ad-hoc)"
+    SCHEDULE_SLOTS ||--o{ SCHEDULE_SLOT_RIDERS : assigns
+    SCHEDULE_SLOTS ||--o{ SCHEDULE_SLOT_ACTIVITY : "audits actions"
+    SCHEDULE_SLOT_RIDERS |o--o{ SCHEDULE_SLOT_ACTIVITY : "rider-scoped rows"
+    SCHEDULE_SLOT_RIDERS |o--o{ SCHEDULE_WA_MESSAGES : "per-rider WA sends and replies"
+    SCHEDULE_SLOTS |o--o{ SCHEDULE_WA_MESSAGES : "slot-scoped WA sends"
+    SCHEDULE_SLOT_RIDERS |o--o| SCHEDULE_SLOT_RIDERS : replaced_by
 
     UPLOAD_SHIPMENTS {
         uuid id PK
@@ -56,10 +75,31 @@ erDiagram
         timestamptz updated_at
     }
 
+    ADDRESSES {
+        uuid id PK
+        text name_key "unique — normalized origin+destination cache key"
+        integer client_id "external core-service.clients.id, nullable"
+        jsonb client "ShipmentClientSnapshot {id,name}"
+        text state "DRAFT|CONFIRMED, default CONFIRMED"
+        text origin_name
+        text origin_address
+        numeric origin_lat
+        numeric origin_long
+        text origin_h3_index
+        text destination_name
+        text destination_address
+        numeric destination_lat
+        numeric destination_long
+        text destination_h3_index
+        integer distance "lane road distance in metres"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
     SHIPMENTS {
         uuid id PK
         text waybill "unique"
-        uuid upload_shipment_id FK "soft → upload_shipments.id"
+        uuid upload_shipment_id FK "soft → upload_shipments.id; NULL for H2H"
         integer client_id "external core-service.clients.id"
         jsonb client "ShipmentClientSnapshot {id,name}"
         text booking_id
@@ -70,7 +110,7 @@ erDiagram
         text sender_phone
         text receiver_name
         text receiver_phone
-        text origin_address
+        text origin_address "nullable — H2H sets it at inbound scan"
         numeric origin_lat
         numeric origin_long
         text origin_h3_index
@@ -82,11 +122,13 @@ erDiagram
         text destination_phone
         numeric total_weight
         numeric total_volume
+        integer distance "origin→destination road metres, snapshot from addresses lane"
         text status "default CREATED"
+        boolean has_return "Retur H0 — any item returned on the spot"
         timestamptz dispatched_at
-        uuid dispatched_by
+        text dispatched_by
         timestamptz cancelled_at
-        uuid cancelled_by
+        text cancelled_by
         text cancellation_reason
         integer external_provider_id
         integer external_shift_id
@@ -106,10 +148,11 @@ erDiagram
         text invoice "PO/SP number"
         text description
         integer quantity ">0"
+        integer koli ">0 — physical parcels, from CSV Koli column"
         numeric weight
         numeric volume
         numeric price
-        text origin_address
+        text origin_address "nullable — H2H sets it at inbound scan"
         numeric origin_lat
         numeric origin_long
         text origin_h3_index
@@ -120,19 +163,33 @@ erDiagram
         timestamptz scanned_at "hub-inbound scan"
         uuid scanned_by
         timestamptz handed_over_at "rider pickup at hub"
+        text scan_method "BARCODE|MANUAL, set with handed_over_at"
         text assigned_rider_code
         bigint assigned_rider_id
         timestamptz assigned_at
         text assigned_by
-        text external_delivery_uid
+        text external_delivery_uid "current DS delivery; repointed to DE-2 on retur"
         timestamptz bridged_at
         text exception_note
+        text retur_reason_code "soft → reasons.code (type=RETUR)"
+        text retur_reason_note "required for R99"
+        numeric retur_weight "rider-weighed returned goods"
         text status "default CREATED"
         timestamptz cancelled_at
-        uuid cancelled_by
+        text cancelled_by
         text cancellation_reason
         timestamptz created_at
         timestamptz updated_at
+    }
+
+    SHIPMENT_STATUS_HISTORY {
+        uuid id PK
+        uuid shipment_id FK "→ shipments.id CASCADE"
+        text from_status "nullable"
+        text to_status
+        text changed_by "email, identifier, or system"
+        text note
+        timestamptz changed_at
     }
 
     ITEM_STATUS_HISTORY {
@@ -153,11 +210,30 @@ erDiagram
         uuid scanned_by
     }
 
+    ITEM_MEDIA {
+        uuid id PK
+        uuid item_id FK "→ items.id CASCADE"
+        text external_delivery_uid "DS delivery the media came from"
+        text external_media_id "unique — idempotent ingestion dedup key"
+        text media_type
+        text url "public GCS URL"
+        text bucket
+        text file_path
+        text latitude
+        text longitude
+        timestamptz captured_at "rider upload time from source event"
+        jsonb metadata "full source event payload"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
     DISPATCHES {
         uuid id PK
         text code "unique"
         bigint hub_id "external core-service pitstop id"
+        text mode "STANDARD|PRE_DISPATCH, default STANDARD"
         jsonb riders_snapshot
+        jsonb clients_snapshot "chosen client scope; NULL = all clients"
         numeric max_weight_kg
         numeric max_volume_m3
         numeric max_stop_radius_km
@@ -193,6 +269,7 @@ erDiagram
         numeric total_volume_m3
         integer estimated_time_minutes
         text status "default PLANNED"
+        text defer_reason "planner auto-defer cause, e.g. NO_RIDER_CAPACITY"
         text route_polyline "Mapbox snapshot"
         integer route_distance_m
         integer route_duration_sec
@@ -230,13 +307,30 @@ erDiagram
         numeric weight_kg
         numeric volume_m3
         boolean deferred "default false"
+        text defer_reason "ops-supplied; cleared on un-defer"
         timestamptz created_at
+    }
+
+    BARRIERS {
+        uuid id PK
+        text code "unique"
+        text name
+        text status "active|inactive — per-barrier kill-switch"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    BARRIER_CELLS {
+        uuid id PK
+        uuid barrier_id FK "→ barriers.id"
+        text h3_index "res-10; unique per barrier, barriers may overlap"
     }
 
     INVOICES {
         uuid id PK
         text invoice_number "unique — PT-INV-…"
         text airwaybill
+        text booking_id "Delivery Note No AWB = DS provider_order_id"
         text batch_id
         jsonb rider "InvoiceRiderSnapshot {id,name}"
         jsonb client "InvoiceClientSnapshot {id,name}"
@@ -271,13 +365,15 @@ erDiagram
     AI_CHECKER_LOGS {
         uuid id PK
         uuid invoice_id FK "→ invoices.id"
-        text sp_type "AI-detected"
-        text order_id "AI-extracted PO/invoice no."
+        text sp_type "AI-detected; DELIVERY_NOTE for delivery-note checks"
+        text order_id "AI-extracted No AWB / PO"
         boolean passed
+        integer response_time_ms "server-side processing time"
+        text error_detail "raw upstream failure; null on success"
         boolean is_strict_mode "ENABLE_STRICT_AI_CHECKER flag at check time"
         jsonb items "AiCheckerLogItemSnapshot[]"
         jsonb errors "string[]"
-        jsonb raw_results "{currentPoNumber,results[]}"
+        jsonb raw_results "{bookingID,results[]}"
         jsonb invoice_images
         jsonb token_usage "{promptTokenCount,candidatesTokenCount,totalTokenCount}"
         jsonb checked_by "{id,name,role}"
@@ -298,7 +394,151 @@ erDiagram
     ZONE_CELLS {
         uuid id PK
         uuid zone_id FK "→ zones.id"
-        varchar h3_index "globally unique (disjoint-cells invariant)"
+        bigint hub_id "denormalized from owning zone"
+        varchar h3_index "unique per hub (per-hub disjoint-cells invariant)"
+    }
+
+    REASONS {
+        text code PK
+        text type "RETUR|OUTLET_EXCEPTION discriminator"
+        text label_id "rider-facing Indonesian label"
+        integer sort_order
+        boolean active
+        text group_code "retur-only — 2-level picker group"
+        text group_label_id "retur-only"
+        text domain "retur-only — backend-only liability rollup, never sent to rider"
+        boolean direct "retur-only — direct-select group"
+        boolean requires_note "retur-only — true only for R99"
+    }
+
+    RETUR_REASONS {
+        text code PK "DEPRECATED — superseded by reasons (type=RETUR)"
+        text label_id
+        text group_code
+        text group_label_id
+        text domain
+        boolean direct
+        boolean requires_note
+        integer sort_order
+        boolean active
+    }
+
+    OUTLET_EXCEPTION_REASONS {
+        text code PK "DEPRECATED — superseded by reasons (type=OUTLET_EXCEPTION)"
+        text label_id
+        integer sort_order
+        boolean active
+    }
+
+    SCHEDULE_PLANS {
+        uuid id PK
+        bigint provider_id "external core provider (BU = Scheduled Instant)"
+        text client_name "display snapshot"
+        text window_start_time "HH:MM — T-12/T-2 anchor"
+        text window_end_time
+        jsonb recurring_weekdays "ISO weekdays, default [1..7]"
+        text batch_label
+        text tolerance_tier "fixed ZERO"
+        boolean is_active "deactivate, never delete"
+        date deactivated_effective_date
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    SCHEDULE_PLAN_CHANGES {
+        uuid id PK
+        uuid schedule_id FK "→ schedule_plans.id CASCADE"
+        text change_type "CREATE|EDIT|DEACTIVATE|REACTIVATE"
+        text reason
+        date effective_date
+        text actor
+        jsonb payload "before/after audit payload"
+        timestamptz created_at
+    }
+
+    SCHEDULE_PLAN_RIDERS {
+        uuid id PK
+        uuid schedule_id FK "→ schedule_plans.id CASCADE"
+        text rider_code "snapshot from nest-driver-service"
+        text rider_name
+        text rider_phone
+        text role "UTAMA|CADANGAN (unique per schedule+rider+role)"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    SCHEDULE_RIDER_DAY_OFFS {
+        uuid id PK
+        text rider_code "unique"
+        text rider_name "snapshot; nullable for legacy rows"
+        jsonb recurring_weekdays "ISO weekdays off"
+        jsonb specific_dates "YYYY-MM-DD[]"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    SCHEDULE_SLOTS {
+        uuid id PK
+        uuid schedule_id FK "→ schedule_plans.id; NULL = ad-hoc slot"
+        bigint provider_id "external core provider"
+        text client_name
+        date schedule_date
+        text window_start_time "unique(schedule_id,date,start,batch) — idempotent generation"
+        text window_end_time
+        text batch_label
+        text notes
+        timestamptz edited_at "manual single-slot edit — Diedit badge"
+        timestamptz t1_group_sent_at "Phase 2 — T-1h group reminder gate"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    SCHEDULE_SLOT_RIDERS {
+        uuid id PK
+        uuid slot_id FK "→ schedule_slots.id CASCADE"
+        text rider_code "snapshot from nest-driver-service"
+        text rider_name
+        text rider_phone
+        text role "UTAMA|CADANGAN"
+        text confirmation_status "default PENDING"
+        uuid replaced_by_id FK "self → schedule_slot_riders.id"
+        timestamptz t12_sent_at "Phase 2 WA anchors — nullable"
+        timestamptz t12_escalated_at
+        timestamptz t2_sent_at
+        timestamptz t2_escalated_at
+        timestamptz responded_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    SCHEDULE_SLOT_ACTIVITY {
+        uuid id PK
+        uuid slot_id FK "→ schedule_slots.id CASCADE"
+        uuid slot_rider_id FK "→ schedule_slot_riders.id CASCADE, nullable"
+        text action "STATUS_CHANGE|ASSIGN|REPLACE|CREATE|EDIT|DEACTIVATE …"
+        text from_status
+        text to_status
+        text reason "required for backward/unusual transitions (D17)"
+        text actor "ops user or system"
+        jsonb metadata
+        timestamptz created_at
+    }
+
+    SCHEDULE_WA_MESSAGES {
+        uuid id PK
+        uuid slot_rider_id FK "→ schedule_slot_riders.id SET NULL; null = unmatched inbound"
+        uuid slot_id FK "→ schedule_slots.id SET NULL; slot-scoped sends only"
+        text direction "IN|OUT"
+        text phase "T12|T2|T1_GROUP …"
+        text provider_message_id "unique — inbound idempotency under redelivery"
+        text from_phone
+        text to_phone
+        text button_payload "YA|TIDAK — inbound button taps"
+        text template "approved template name (OUT only)"
+        jsonb raw "raw provider payload"
+        text status "default PENDING"
+        integer attempt_count "D12 — >=3 failed sends → FAILED_TO_SEND"
+        timestamptz created_at
     }
 
     DASHBOARD_HUB_DAILY_SNAPSHOTS {
@@ -310,7 +550,7 @@ erDiagram
         jsonb batches "batches; each nests stops, each stop nests its items"
         jsonb dispatches "dispatches"
         jsonb external_data "cross-service captures (delivery-service later)"
-        jsonb row_counts "{items,batches,stops,dispatches} for canary alerts"
+        jsonb row_counts "{items,batches,batch_stops,batch_items,dispatches} for canary alerts"
         text etl_status "OK | EMPTY | PARTIAL | FAILED"
         timestamptz etl_started_at
         timestamptz etl_completed_at
@@ -322,11 +562,16 @@ erDiagram
 
 ## Notes
 
-- **Cascades.** `items` cascade-delete from `shipments`; `item_status_history` and `scan_events` cascade from `items`; `batches`, `batch_stops`, `batch_items` all cascade under their parents in the dispatch tree. `invoice_status_history` and `ai_checker_logs` do **not** cascade — invoice audit trail survives manual cleanup.
+- **Cascades.** `items` and `shipment_status_history` cascade-delete from `shipments`; `item_status_history` and `item_media` cascade from `items` (`scan_events` does **not** cascade — plain FK); `batches`, `batch_stops`, `batch_items` all cascade under their parents in the dispatch tree. In Scheduled Instant, `schedule_plan_changes` / `schedule_plan_riders` cascade from `schedule_plans`, and `schedule_slot_riders` / `schedule_slot_activity` cascade from `schedule_slots`; `schedule_wa_messages` uses `ON DELETE SET NULL` so the WA audit log survives slot/rider cleanup. `invoice_status_history` and `ai_checker_logs` do **not** cascade — invoice audit trail survives manual cleanup.
 - **One batch per item.** `batch_items` has `(item_id, batch_id)` unique; the planner's COLLECT step excludes items already in `batch_items` to enforce single-active-batch.
-- **H3 disjointness.** `zone_cells.h3_index` is globally unique — the same H3 cell cannot belong to two zones at the database layer.
-- **External references (no FK).** `client_id`, `hub_id`, `assigned_rider_id`, `external_provider_id`, `dispatched_by`, `scanned_by`, `cancelled_by`, `uploaded_by` all point at `nodejs-core-service` masters. Names/addresses are captured into the `*_snapshot` / `*` JSONB columns at intake so later master edits don't rewrite history.
-- **Status enums.** Operational status fields (`shipments.status`, `items.status`, `batches.status`, `dispatches.status`, `invoices.status`, `upload_shipments.status`, `zones.status`) are stored as `text` with values defined in `src/database/schema/enum/*.enum.ts`; the DB does not enforce the enum — the service layer does.
+- **H3 disjointness is per hub, not global.** `zone_cells` has `unique(hub_id, h3_index)` — the same physical cell may belong to one zone of hub A and a different zone of hub B, but never to two zones of the same hub. `hub_id` is denormalized from the owning zone so the DB enforces it without a join. `barrier_cells` deliberately has **no** cross-barrier uniqueness — two barriers may overlap (a river under a toll road); a cell is only unique within its own barrier.
+- **`addresses` is a geocode/lane cache, not FK-linked.** One row per normalized origin+destination pair (`name_key` unique) with a precomputed road `distance` in metres. Shipment intake looks the lane up before falling back to Mapbox geocoding, then copies origin/destination/`distance` onto the shipment as a frozen snapshot — there is no id pointer between `shipments` and `addresses`. `state` distinguishes DRAFT (auto-created at upload dry-run) from CONFIRMED rows.
+- **External references (no FK).** `client_id`, `hub_id`, `provider_id`, `assigned_rider_id`, `external_provider_id`, `dispatched_by`, `scanned_by`, `cancelled_by`, `uploaded_by`, `rider_code` all point at `nodejs-core-service` / `nest-driver-service` masters. Names/phones/addresses are captured into `*_snapshot` / JSONB / `rider_*` columns at intake or assignment so later master edits don't rewrite history.
+- **Status enums.** Operational status fields (`shipments.status`, `items.status`, `batches.status`, `dispatches.status`, `invoices.status`, `upload_shipments.status`, `zones.status`, `addresses.state`) are stored as `text` with values defined in `src/database/schema/enum/*.enum.ts`; the DB does not enforce these — the service layer does. Exceptions with real `CHECK` constraints: `barriers.status`, `items.scan_method`, `schedule_plan_changes.change_type`, `schedule_slot_riders.role` / `confirmation_status`, and `schedule_wa_messages.direction` / `phase` / `status`.
+- **Retur H0.** An on-the-spot return sets `items.status → IN_RETURN` with `retur_reason_code` (soft reference to `reasons.code`, `type='RETUR'`), an optional `retur_reason_note` (required for `R99`), and the rider-weighed `retur_weight`. `items.external_delivery_uid` is repointed from the forward (DE-1) delivery to the reverse-leg (DE-2) delivery when it spawns — the item always points at whichever delivery holds it now. `shipments.has_return` persists through COMPLETED so a "completed but had a return" shipment stays distinguishable. `shipment_status_history` audits the IN_DISPUTE capture and the COMPLETED/CANCELLED rollup.
+- **Reasons taxonomy.** `reasons` is the unified BE-owned reference table, discriminated by `type` (`RETUR` grouped 2-level picker; `OUTLET_EXCEPTION` flat list). `domain` is a backend-only liability rollup and must never be returned to the rider. The superseded `retur_reasons` and `outlet_exception_reasons` tables are kept unreferenced until the T6 drop migration so the rollout stays reversible.
+- **Idempotency keys.** `scan_events.scan_uid` (inbound scans), `item_media.external_media_id` (POD media ingestion), `schedule_wa_messages.provider_message_id` (inbound WA webhook), `schedule_slots` `unique(schedule_id, schedule_date, window_start_time, batch_label)` (daily generate-slots job), and the partial-unique `shipments(client_id, booking_id) WHERE upload_shipment_id IS NULL` (H2H create under concurrent retries).
+- **Scheduled Instant.** `schedule_plans` (Master Jadwal) generates dated `schedule_slots` via the daily generate-slots job; ad-hoc slots have `schedule_id = NULL`. `schedule_plan_riders` is the default roster seeded into each new slot's `schedule_slot_riders` (as PENDING); each slot rider carries its own `confirmation_status`, and the slot-level status is aggregated on read, never stored. `replaced_by_id` self-references the standby row that replaced a rider. The `t12_*`/`t2_*`/`t1_group_sent_at` columns are Phase-2 WhatsApp anchors, shipped nullable ahead of time.
 - **`dashboard_hub_daily_snapshots`** is the only entity owned by the docking-dashboard module. It has no FK relationships to other entities — the source row data lives inside the JSONB columns (`items`, `batches`, `dispatches`), captured verbatim by a daily ETL at 00:00 WIB. `hub_id` is an external `nodejs-core-service` reference, same as everywhere else. Touched-on-day membership: an item appears in every day's snapshot where any of its lifecycle timestamps falls. `batches` is nested two levels deep — each batch carries its `stops` (from `batch_stops`), and each stop carries its `items` (with `item_id` referencing the top-level `items` array, plus a denormalized `handed_over_at` so zone-level scan-time computation needs no joins).
 
 ## Analytics dashboard meta-layer
