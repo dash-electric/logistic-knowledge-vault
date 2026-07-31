@@ -1,0 +1,354 @@
+<!--
+title: Shipment Multi Drop — Product Presentation
+module: shipment-multi-drop
+doctype: product-presentation
+version: 1
+status: draft            # draft | in-review | approved | shipped | superseded
+owner:
+created: 2026-07-31
+links:
+  prd-trd: ./multidrop-prd-trd-v1.md
+
+This template IS the skeleton from docs/brand/html-slide-deck-guide.md.
+Read that guide before building: layout recipes (§6), component library (§7),
+per-slide checklist (§11). Compose, don't invent.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shipment Multi Drop · Dash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ===== 1. Tokens ===== */
+:root {
+  --primary: #5E2AAC;                    /* Dash Purple — the only chromatic color */
+  --primary-soft: rgba(94, 42, 172, 0.08);
+  --primary-medium: rgba(94, 42, 172, 0.16);
+  --primary-strong: rgba(94, 42, 172, 0.28);
+  --black: #171717;                      /* Ink — body text, wordmark, inverse surfaces */
+  --white: #FFFFFF;
+  --neutral: #5C5C5C;                    /* secondary text, labels, footers */
+  --rule: rgba(23,23,23,0.10);           /* hairlines between rows/cards */
+  --rule-strong: rgba(23,23,23,0.22);    /* section breaks, outer borders */
+  --tint: rgba(23,23,23,0.04);           /* inline-code bg, field fills */
+  --tint-strong: rgba(23,23,23,0.07);    /* hover/pressed states */
+  --mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+}
+
+/* ===== 2. Base ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: var(--black);
+  background: var(--white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11", "cv02";
+  scroll-snap-type: y mandatory;
+  overflow-y: scroll;
+  height: 100vh;
+}
+
+::selection { background: var(--primary); color: var(--white); }
+
+/* ===== 3. Slide shell ===== */
+.slide {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  height: 100vh;
+  width: 100vw;
+  padding: clamp(24px, 3.5vh, 44px) clamp(40px, 7vw, 96px);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.slide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+  flex-shrink: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+.slide-header .left { display: flex; gap: 24px; align-items: baseline; }
+.slide-header .right { color: var(--black); font-weight: 700; }
+
+.slide-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(8px, 1.6vh, 18px) 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.slide-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--neutral);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+
+/* ===== 4. Brand mark ===== */
+.logo-mark {
+  display: inline-block;
+  width: 1em; height: 1em;
+  vertical-align: -0.14em;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.logo-mark svg { display: block; width: 100%; height: 100%; }
+.brand-mark {
+  display: inline-flex; align-items: center; gap: 0.42em;
+  font-weight: 800; letter-spacing: -0.01em; color: var(--black);
+}
+
+/* ===== 5. Typography primitives ===== */
+.section-tag {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neutral);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.section-tag .num { color: var(--primary); font-weight: 700; margin-right: 12px; }
+
+h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.025em; line-height: 1.05; }
+
+.huge   { font-size: clamp(56px, 11vw, 168px); font-weight: 800; letter-spacing: -0.045em; line-height: 0.95; }
+.large  { font-size: clamp(28px, 3.8vw, 48px); font-weight: 700; letter-spacing: -0.035em; line-height: 1.02; }
+.medium { font-size: clamp(20px, 2.4vw, 32px); font-weight: 600; letter-spacing: -0.025em; line-height: 1.1; }
+.lede   {
+  font-size: clamp(13px, 1.05vw, 16px); font-weight: 400; letter-spacing: -0.005em;
+  line-height: 1.4; color: var(--neutral); max-width: 64ch;
+}
+.lede.dark { color: var(--black); }
+.label  {
+  font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600;
+}
+code, .mono { font-family: var(--mono); }
+
+code {
+  font-size: 11px;
+  background: var(--tint); padding: 1px 5px;
+  border: 1px solid var(--rule); color: var(--black);
+}
+
+/* ===== Cover (slide 1) ===== */
+.cover-eyebrow {
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600; margin-bottom: 24px;
+}
+.cover-title h1 {
+  font-size: clamp(48px, 9vw, 130px);
+  font-weight: 800; letter-spacing: -0.045em; line-height: 0.97;
+}
+.cover-title .slash { color: var(--primary); font-weight: 200; }
+.cover-meta {
+  margin-top: 40px;
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 40px;
+  border-top: 1px solid var(--rule-strong);
+  padding-top: 18px;
+}
+.cover-meta p {
+  font-size: clamp(13px, 1.05vw, 16px); color: var(--neutral);
+  line-height: 1.4; max-width: 52ch;
+}
+.meta-block {
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600; text-align: right;
+  font-variant-numeric: tabular-nums; flex-shrink: 0;
+}
+.meta-block strong { display: block; color: var(--black); margin-bottom: 4px; }
+
+/* ===== 6. Nav help overlay ===== */
+.nav-help {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 16px;
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--neutral); font-weight: 600;
+  pointer-events: none; opacity: 0.7; z-index: 10;
+  background: rgba(255,255,255,0.9);
+  padding: 8px 16px; border: 1px solid var(--rule);
+  backdrop-filter: blur(8px);
+}
+.nav-help kbd {
+  display: inline-block; padding: 2px 6px;
+  border: 1px solid var(--rule-strong); border-radius: 2px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 10px; font-weight: 700;
+  background: var(--white); margin: 0 4px; color: var(--black);
+}
+
+/* ===== 7. Responsive ===== */
+@media (max-width: 720px) {
+  html { scroll-behavior: auto; }
+  body { scroll-snap-type: none; overflow-y: auto; height: auto; }
+  .slide {
+    scroll-snap-align: none; height: auto; min-height: auto; width: 100%;
+    padding: 28px 20px 32px; overflow: visible;
+    border-bottom: 1px solid var(--rule);
+  }
+  .slide-content { justify-content: flex-start; padding: 20px 0; }
+  .slide-header, .slide-footer { font-size: 9px; letter-spacing: 0.16em; }
+  .slide-header .left { gap: 14px; flex-wrap: wrap; }
+  .cover-meta { flex-direction: column; align-items: flex-start; }
+  .meta-block { text-align: left; }
+  .nav-help { display: none; }
+}
+
+@media print {
+  body { scroll-snap-type: none; height: auto; }
+  .slide { page-break-after: always; min-height: 100vh; height: 100vh; }
+  .nav-help { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Logo sprite: defined once, hidden, reused everywhere via <use>. Never redraw or recolor. -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <symbol id="dash-logo" viewBox="0 0 44 43">
+    <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M11.2196 5.93653C11.1018 6.17664 11.0055 6.42114 11.0055 6.47999C11.0055 6.53876 10.958 6.65766 10.8999 6.74411C10.8418 6.83063 10.7463 7.02704 10.6876 7.18055C10.6288 7.33406 10.5093 7.62114 10.4218 7.81851C10.3342 8.01588 10.1634 8.41062 10.0419 8.69571C9.92058 8.9808 9.69691 9.50114 9.54489 9.85202C9.39278 10.2029 9.02627 11.0641 8.73038 11.7659C8.4344 12.4677 8.16024 13.076 8.12101 13.1176C8.08179 13.1593 8.04975 13.2415 8.04975 13.3004C8.04975 13.3592 7.94566 13.6301 7.81841 13.9024C7.69115 14.1747 7.38088 14.8819 7.12876 15.4741C6.87672 16.0662 6.54592 16.8377 6.39366 17.1886C6.24139 17.5395 6.05231 17.988 5.97346 18.1854C5.83718 18.5265 5.25306 19.8792 5.09536 20.2189C5.05462 20.3066 4.96755 20.513 4.90196 20.6774L4.78261 20.9765H8.12389H11.4652L11.6284 20.5977C11.7821 20.2414 12.0609 19.6451 12.9613 17.7468C13.1693 17.3082 13.7452 16.0881 14.2409 15.0355C14.7368 13.9828 15.3302 12.7268 15.5597 12.2444C16.2469 10.7996 16.6773 9.87865 16.6773 9.85297C16.6773 9.83152 17.3934 8.32593 18.1571 6.74195C18.3051 6.43493 18.4632 6.08509 18.5084 5.96444C18.5536 5.84386 18.6275 5.74514 18.6725 5.74514C18.7274 5.74514 18.7597 7.39626 18.7706 10.7492C18.7794 13.5014 18.7943 15.8608 18.8037 15.9924C18.8129 16.124 18.8235 17.2992 18.8274 18.6041L18.8342 20.9765H22.5841C25.3165 20.9765 26.3494 21.0013 26.3906 21.0679C26.4217 21.1181 26.3716 21.3065 26.2791 21.4865C26.0908 21.8532 25.4223 23.2644 25.0173 24.1505C24.8708 24.4708 24.5894 25.0629 24.3919 25.4663C24.1944 25.8697 23.8656 26.5586 23.6612 26.9972C23.4568 27.4358 23.1091 28.1715 22.8885 28.632C22.6679 29.0925 22.2729 29.9179 22.0108 30.4662C21.7487 31.0144 21.3356 31.8757 21.0929 32.38C20.8501 32.8844 20.4426 33.7516 20.1872 34.3071C19.9318 34.8626 19.6864 35.3829 19.6418 35.4634C19.4959 35.727 18.9782 36.8015 18.9025 36.998L18.8285 37.1902L20.2893 37.1321C21.0927 37.1001 21.8938 37.0605 22.0696 37.0441C23.1606 36.9421 23.5058 36.8951 24.1866 36.7558C24.604 36.6705 25.0713 36.5823 25.2251 36.5598C25.867 36.4661 28.0722 35.7112 29.1394 35.2196C32.02 33.893 34.4145 31.7796 36.332 28.8713C36.559 28.5269 37.1237 27.4764 37.3827 26.9165C37.9035 25.7907 38.0866 25.374 38.0866 25.3141C38.0866 25.2818 38.1732 25.0373 38.279 24.7706C38.6817 23.7564 39.2762 21.4304 39.4831 20.0594C39.6359 19.0472 39.6396 17.0707 39.4904 16.2245C39.1959 14.554 38.7424 13.3161 37.9009 11.8855C37.4905 11.1877 37.2285 10.8681 36.3295 9.96797C35.6811 9.31876 35.0115 8.73295 34.6515 8.49978C33.924 8.02856 32.6273 7.32337 31.9754 7.04435C31.0309 6.6402 29.2403 6.05423 28.1808 5.80263L27.1024 5.54657L19.268 5.52329L11.4338 5.5L11.2196 5.93653ZM11.3363 21.6344C11.2052 21.9085 10.9675 22.4378 10.8079 22.8106C10.6485 23.1834 10.4854 23.5484 10.4455 23.6216C10.4056 23.6949 10.1702 24.2153 9.92242 24.7779C9.67462 25.3407 9.37042 26.0164 9.24643 26.2795C9.12245 26.5427 8.89079 27.063 8.73165 27.4358C8.57252 27.8087 8.37409 28.2572 8.29077 28.4327C8.10432 28.8252 7.59345 29.9638 6.89525 31.5427C6.60439 32.2006 6.29795 32.8824 6.21431 33.0579C6.13067 33.2333 5.90132 33.7357 5.70465 34.1743C5.50789 34.6129 5.14361 35.4203 4.89517 35.9686C4.64665 36.5168 4.42409 37.0103 4.4006 37.0651C4.36665 37.1444 5.82008 37.1648 11.5162 37.1648H18.6745V29.1504V21.136H15.1246H11.5747L11.3363 21.6344Z"/>
+  </symbol>
+</svg>
+
+<!-- =================== 01 · COVER =================== -->
+<section class="slide slide-cover">
+  <header class="slide-header">
+    <div class="left">
+      <span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span>
+      <span>Deck context</span>
+    </div>
+    <div class="right">LOGISTIC · v1.0</div>
+  </header>
+
+  <div class="slide-content">
+    <div class="cover-eyebrow">Eyebrow line · Month YYYY</div>
+    <div class="cover-title">
+      <h1>Deck<br><span class="slash">/</span> Title<br><strong>Here.</strong></h1>
+    </div>
+    <div class="cover-meta">
+      <p>One-paragraph summary of what this deck covers and who it is for.</p>
+      <div class="meta-block">
+        <strong>Logistic · Dash</strong>
+        v1.0 · Month YYYY
+      </div>
+    </div>
+  </div>
+
+  <footer class="slide-footer">
+    <span>Confidential · Internal use</span>
+    <span>01 / 02</span>
+  </footer>
+</section>
+
+<!-- =================== 02 · CONTENT =================== -->
+<section class="slide">
+  <header class="slide-header">
+    <div class="left"><span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span><span>Deck context</span></div>
+    <div class="right">Section name</div>
+  </header>
+
+  <div class="slide-content">
+    <span class="section-tag"><span class="num">01</span>Section name</span>
+    <h2 class="large">Headline in sentence case.<br>Two lines max.</h2>
+    <p class="lede" style="margin-top: 12px;">Supporting lede, max 64ch, in Neutral.</p>
+    <!-- Slide body: one of the layout recipes from html-slide-deck-guide.md §6,
+         composed from the component library in §7. Add slide-specific CSS in the
+         <style> block under a /* ===== Name (slide N) ===== */ comment. -->
+  </div>
+
+  <footer class="slide-footer">
+    <span>One useful sentence — never empty</span>
+    <span>02 / 02</span>
+  </footer>
+</section>
+
+<div class="nav-help">
+  <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+  <span><kbd>P</kbd> Print to PDF</span>
+</div>
+
+<script>
+const slides = Array.from(document.querySelectorAll('.slide'));
+let current = 0;
+
+function getCurrentIndex() {
+  return Math.round(window.scrollY / window.innerHeight);
+}
+
+function goToSlide(idx) {
+  if (idx < 0 || idx >= slides.length) return;
+  slides[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  current = idx;
+}
+
+document.addEventListener('keydown', (e) => {
+  current = getCurrentIndex();
+  if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ' || e.key === 'ArrowRight') {
+    e.preventDefault(); goToSlide(current + 1);
+  } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft') {
+    e.preventDefault(); goToSlide(current - 1);
+  } else if (e.key === 'Home') {
+    e.preventDefault(); goToSlide(0);
+  } else if (e.key === 'End') {
+    e.preventDefault(); goToSlide(slides.length - 1);
+  } else if (e.key === 'p' || e.key === 'P') {
+    window.print();
+  }
+});
+
+const isMobile = () => window.matchMedia('(max-width: 720px)').matches;
+
+document.querySelectorAll('.slide').forEach((slide, idx) => {
+  slide.addEventListener('click', (e) => {
+    if (isMobile()) return;
+    if (e.target.closest('a, button, kbd')) return;
+    if (window.getSelection().toString()) return;
+    goToSlide(idx + 1);
+  });
+});
+
+let helpHidden = false;
+function hideHelp() {
+  if (helpHidden) return;
+  const help = document.querySelector('.nav-help');
+  if (help) {
+    help.style.transition = 'opacity 0.6s';
+    help.style.opacity = '0';
+    setTimeout(() => help.remove(), 600);
+  }
+  helpHidden = true;
+}
+document.addEventListener('keydown', hideHelp, { once: true });
+document.addEventListener('scroll', () => {
+  if (window.scrollY > window.innerHeight * 0.5) hideHelp();
+});
+</script>
+</body>
+</html>
