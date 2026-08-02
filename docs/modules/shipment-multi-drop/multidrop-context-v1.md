@@ -54,7 +54,9 @@ Today the shipment model in `nest-logistic-service` supports none of this: a shi
 - Every stop carries a **custom stepper** the executor walks through to complete the stop.
 - The proof captured by the stepper is saved according to the stop type: `pickup` → **proof of pickup (POP)**, `dropoff` → **proof of delivery (POD)**.
 - When a stop contains **multiple deliveries**, the captured proof is stored against **all** of them — one stepper completion fans out the POP/POD to every `delivery_id` on the stop (the executor does not repeat the form per delivery).
-- The stepper contains a **dynamic form**: an ordered set of fields defined as `key` + value `type`, where type is one of `image`, `text`, `number`. Image fields carry a nullable `max_images` cap (1 = single photo) — there is no separate multi-image type. The form definition is configuration ("custom" per stepper), not hardcoded — different stops/flows can require different fields.
+- **Each stepper submission writes a tracking milestone.** A stepper carries a client-facing `name` (e.g. *Gate In*) and a `tracking_status` it emits (e.g. `PICKING_UP`); when the stepper is done, a `shipment_milestone_history` row is inserted snapshotting both. The shipment's tracking timeline is therefore **defined by its steppers**, not by a fixed status list — configure different steppers, get a different timeline. Custody statuses (Status Model v2) remain a separate, guarded history.
+- The stepper contains a **dynamic form**: an ordered set of fields defined as `key` (stable machine identifier, e.g. `KEY_PASS`) + `label` (human name, e.g. "Gate Pass") + value `type`, where type is one of `image`, `text`, `number`. Image fields carry a nullable `max_images` cap (1 = single photo) — there is no separate multi-image type. The form definition is configuration ("custom" per stepper), not hardcoded — different stops/flows can require different fields.
+- **Proof images travel with the milestone**, grouped per form field as `{key, label, images: [{url, capturedAt, lat?, long?}]}` — the tracking timeline and the outgoing webhook share this payload format, so a client sees "Gate Pass photo, taken 10:02 at the client site", never an undifferentiated pile of POD images. Capture time is per image (offline flows submit later than they shoot); coordinates are nullable (GPS can be denied).
 
 ```mermaid
 flowchart LR
@@ -117,7 +119,8 @@ Reads from other modules: `addresses` (lane/geocode cache) for authored location
 | Route (`t_route`) | The authored, ordered plan of stops created with the shipment |
 | Stop | One point on the route, typed `pickup` or `dropoff`; holds 1..n deliveries |
 | Delivery | Delivery-service-owned execution row; stops store only `delivery_id` |
-| Stepper | The custom step-by-step flow the executor completes at a stop; produces the stop's proof |
+| Stepper | The custom step-by-step flow the executor completes at a stop; produces the stop's proof and emits its `tracking_status` as a timeline milestone |
+| Milestone / `tracking_status` | Client-facing timeline entry emitted by a stepper submission (e.g. *Gate In* → `PICKING_UP`); picked from the curated `tracking_statuses` template, never free text; distinct from custody statuses |
 | Dynamic form | The stepper's configurable fields: `key` + value type (`image` \| `text` \| `number`); image fields take an optional `max_images` cap |
 | POP | Proof of pickup — stepper output of a `pickup` stop |
 | POD | Proof of delivery — stepper output of a `dropoff` stop; stored to **all** deliveries on the stop |
@@ -148,3 +151,6 @@ Reads from other modules: `addresses` (lane/geocode cache) for authored location
 - 2026-07-31 — eng review decided the data model (everything relational; origins/destinations JSONB snapshot; scalar mirror; `return_to_origin`; default `DOCKING`) — scoped ERD drafted in [multidrop-erd-v1.md](./multidrop-erd-v1.md).
 - 2026-07-31 — eng review: proof submissions promoted to `stop_proofs` (row per attempt); `route_stops.proof` column dropped from the draft; fan-out gains `pushed_proof_id`.
 - 2026-07-31 — dynamic form simplified: `images` type removed; `image` + nullable `max_images` covers single and multi-photo fields.
+- 2026-07-31 — steppers now drive the tracking timeline: each carries a `tracking_status` (e.g. Gate In → `PICKING_UP`) and each accepted submission inserts a `shipment_milestone_history` row, separate from custody status history.
+- 2026-07-31 — form fields gained `label` next to `key`; milestone/webhook payloads carry proof images grouped per field `{key, label, urls[]}`.
+- 2026-07-31 — images upgraded to per-image objects `{url, capturedAt, lat?, long?}`: own capture timestamp, nullable coordinates.
