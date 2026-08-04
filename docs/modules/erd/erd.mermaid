@@ -318,7 +318,8 @@ erDiagram
         uuid id PK
         integer client_id "external core-service client id (no FK)"
         text name
-        text status "ACTIVE|INACTIVE default ACTIVE — one ACTIVE per client (partial unique)"
+        text stop_type "PICKUP|DROP_OFF — the stop type this workflow gates, never both"
+        text status "ACTIVE|INACTIVE default ACTIVE — one ACTIVE per (client_id, stop_type) (partial unique)"
         timestamptz created_at
         timestamptz updated_at
     }
