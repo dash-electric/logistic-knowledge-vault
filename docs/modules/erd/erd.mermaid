@@ -317,6 +317,7 @@ erDiagram
     STOP_WORKFLOWS {
         uuid id PK
         integer client_id "external core-service client id (no FK)"
+        jsonb client "frozen {id,name} snapshot from core-service; nullable (best-effort)"
         text name
         text stop_type "PICKUP|DROP_OFF — the stop type this workflow gates, never both"
         text status "ACTIVE|INACTIVE default ACTIVE — one ACTIVE per (client_id, stop_type) (partial unique)"
