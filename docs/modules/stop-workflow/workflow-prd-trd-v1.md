@@ -116,7 +116,7 @@ Three small normalized tables hold per-client workflow definitions (workflow →
 - **Owner:** `nest-logistic-service`, new `stop-workflow` module (schema + usecases + internal controller), same layering as route/dispatch modules.
 - **Definition side:** normalized CRUD over three tables; atomic create/replace of the full nested definition in one transaction.
 - **Execution side:** the shipment-route module calls workflow resolution during route create/add-stops (one indexed lookup by `client_id` + `status = ACTIVE`, then the nested definition read — cold-path joins). The result is written into `route_stops.workflow` in the same transaction that creates the stops.
-- **Client master** stays in core-service: `client_id` integer, no FK (house pattern).
+- **Client master** stays in core-service: `client_id` integer, no FK (house pattern), plus a frozen `client` JSONB snapshot `{id,name}` so listing workflows never fans out to core-service and a later rename in the master doesn't rewrite history. Mirrors `shipments.client` / `addresses.client`.
 - **Milestone submit** validates against the snapshot (not the live definition), then in one transaction: inserts the append-only `workflow_submissions` row and updates the stop's snapshot state. Either both happen or neither. The route module's resolve usecase checks the snapshot's completion before allowing `COMPLETED`.
 
 ## API contracts
@@ -164,7 +164,7 @@ A milestone's `fields` array is required but may be empty (`[]` = confirmation-o
 
 Errors: `409` client already has an ACTIVE workflow **for that stop type** (deactivate first or send `status: "INACTIVE"`); `422` duplicate keys / empty milestones / invalid config (e.g. `imageCount` and `multiple` together).
 
-**List** — `GET /v1/stop-workflows?clientID=&stopType=&status=` → summaries (with `milestoneCount`/`fieldCount`). **Detail** — `GET .../:workflowID` → full nested definition. **Update** — `PUT .../:workflowID` → full replace of the nested definition (same validation as create); in-flight snapshots unaffected.
+**List** — `GET /v1/stop-workflows?clientID=&stopType=&status=` → summaries (with `client` snapshot, `milestoneCount`/`fieldCount`). All three filters are server-side and combinable; the portal's filter popover writes `clientID` + `stopType` to the URL in one atomic patch. **Detail** — `GET .../:workflowID` → full nested definition. **Update** — `PUT .../:workflowID` → full replace of the nested definition (same validation as create); in-flight snapshots unaffected.
 
 **Submit milestone** — `PATCH /internal/v1/routes/:routeID/stops/:stopID/milestones/:milestoneKey`
 
@@ -196,7 +196,7 @@ erDiagram
     STOP_WORKFLOWS ||--o{ WORKFLOW_SUBMISSIONS : "submitted against"
 ```
 
-- **`stop_workflows`** — id, `client_id` (integer, external core-service client, no FK), `name`, `stop_type` (`PICKUP`|`DROP_OFF` — the stop type this workflow gates), `status` (`ACTIVE`|`INACTIVE`, default `ACTIVE`; partial unique index: one ACTIVE per `(client_id, stop_type)`), timestamps.
+- **`stop_workflows`** — id, `client_id` (integer, external core-service client, no FK) + `client` JSONB snapshot `{id,name}` (frozen at write time via `CoreService.getClientSnapshot`, nullable — a core-service outage must not block authoring; readers fall back to `client_id`), `name`, `stop_type` (`PICKUP`|`DROP_OFF` — the stop type this workflow gates), `status` (`ACTIVE`|`INACTIVE`, default `ACTIVE`; partial unique index: one ACTIVE per `(client_id, stop_type)`), timestamps.
 - **`workflow_milestones`** — id, `workflow_id` FK CASCADE, `sequence` (unique per workflow), `key` (system-generated camelCase of `name`, unique per workflow), `name`, timestamps.
 - **`workflow_fields`** — id, `milestone_id` FK CASCADE, `sequence` (unique per milestone), `key` (system-generated camelCase of `label`, unique per milestone), `label`, `type` (`IMAGE`|`TEXT`|`NUMBER`), `required` (bool, default true), `config` JSONB nullable (`{imageCount}` xor `{multiple}` for images; `{maxLength}`/`{min}`/`{max}` for text/number), timestamps.
 - **`workflow_submissions`** — id, `route_stop_id` FK, `workflow_id` (soft reference — the definition is also frozen in the stop snapshot), `milestone_key`, `milestone_sequence`, `values` JSONB (`{fieldKey: value}` exactly as submitted), `submitted_by`, `submitted_at`. Unique `(route_stop_id, milestone_key)` — the constraint that makes evidence append-only. Insert-only; never updated or deleted. This is the system of record: evidence queries, client disputes, and future analytics read this table, not the stop rows.
@@ -289,6 +289,7 @@ Rollback (Increment 1): the definition tables and endpoints are inert without th
 
 ## Changelog
 
+- 2026-08-05 — added `stop_workflows.client` JSONB snapshot `{id,name}` (house pattern, fetched via `CoreService.getClientSnapshot` at create/update, nullable + best-effort) so the list shows client names without fanning out to core-service; portal list replaced the numeric Client ID column with the client name and gained a shipments-style filter popover (client + stop type, server-side, URL-persisted)
 - 2026-08-05 — fieldless milestones (product decision): a milestone may have **0 fields** — a confirmation-only checkpoint the rider completes with a slide-to-confirm; the submission row (empty `values`) is the timestamp record, `submitted_at` set server-side (Req 1, 7, 8 updated; builder starts new milestones fieldless with a "confirmation only" banner)
 - 2026-08-05 — keys are system-generated (product decision): callers no longer supply milestone/field keys; the service derives them from `name`/`label` as camelCase with spaces/symbols stripped ("Foto Depan Kendaraan" → `fotoDepanKendaraan`); name collisions reject `422`; collection examples updated
 - 2026-08-05 — added `stopType` (`PICKUP` | `DROP_OFF`, required): a workflow gates exactly one stop type, never both; one-ACTIVE-per-client became one-ACTIVE-per-`(client, stop_type)`; resolution (Req 3) matches the stop's type; collection examples updated
