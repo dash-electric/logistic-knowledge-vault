@@ -27,7 +27,7 @@ A close precedent already exists in **trip-service** (the express stack): a trip
 | Actor | Interaction | Auth |
 |---|---|---|
 | Dispatcher / hub ops (portal) | Plans routes, assigns the rider, monitors progress | Portal JWT (`providerTokenPortal`) |
-| Rider | Executes the route stop by stop (pickup scans, drop-off / POD) — via the rider-facing surface (execution surface is an open question) | Rider app JWT (`driverToken` surface) |
+| Rider | Executes the route stop by stop: gets today's list, starts the route, submits the `DIRECT_4W` gates, resolves stops (pickup scans, drop-off / POD, workflow milestones), ends the route — natively against logistic-service | Rider JWT (`driverToken`), accepted by logistic-service from this module on |
 | Internal services / planner | Create routes programmatically (e.g. from dispatch output or single-drop intake) | Internal service token (`secretKey`) |
 | Client | Indirect — sees shipment status changes driven by route events, via the client-integration module (webhooks / `List Changed Shipments`) | Client integration token |
 
@@ -71,8 +71,9 @@ Reads from other modules: `SHIPMENTS` (and possibly `ITEMS` — grain is an open
 
 ## APIs & integrations
 
-- **Exposed today: none.** Proposed contracts live in the PRD/TRD and in the collection at `Logistic Service/Internal/Route/`.
-- **Related existing collections:** `Trip Service/Trip` + `Trip Service/Stop` (the model precedent), `Logistic Service/Integration` (single-drop intake, shipment change feed), `Delivery Service` (current bridge target for point-to-point shipments).
+- **Exposed today: none.** Proposed contracts live in the PRD/TRD and in the collection at `Logistic Service/Internal/Route/`, at `/v1/routes` — one path serving internal services, portal admins and riders, separated by identity type rather than URL prefix (the pattern already shipped by `/v1/stop-workflows`).
+- **Related existing collections:** `Trip Service/Trip` + `Trip Service/Stop` (the model precedent, and the shape the rider endpoints copy — `GET /driver/v1/trips/me?category=ACTIVE`, `POST /driver/v1/trips/:tripID/start`), `Logistic Service/Integration` (single-drop intake, shipment change feed), `Delivery Service` (current bridge target for point-to-point shipments), `Fleet/Handover` (owns vehicle custody today: `GET /v1/handovers/drivers/:driverID` returns a driver's active vehicle with its handover odometer — not called by this module, see the PRD/TRD open questions).
+- **Rider surfaces that exist today:** `/driver/v1/*` on trip-service, delivery-service and the express base. Logistic-service has none — the m-app is already a multi-service client, so this module adds a fifth base URL rather than a new pattern.
 
 ## Known constraints & gotchas
 
@@ -82,6 +83,8 @@ Reads from other modules: `SHIPMENTS` (and possibly `ITEMS` — grain is an open
 - **Client-integration is status-driven.** Shipment status transitions feed the client change feed and webhooks; route events (picked up, delivered, failed) must map onto the shipment status vocabulary without breaking the decided client contract.
 - **Docking-dashboard ETL reads items/batches/dispatches.** Work executed via routes would be invisible to hub metrics until the ETL is extended — acceptable for v1 but must be a conscious call.
 - **External masters stay external.** Riders, hubs, clients live in core-service; the vault pattern is id + JSONB snapshot, never a DB FK.
+- **Vehicle custody lives in Fleet, not here.** Fleet owns vehicles, driver↔vehicle handovers (with an odometer at handover) and a return flow whose reasons include `VEHICLE_SWAP`. The route module's `DIRECT_4W` checks photograph a vehicle and record an odometer without recording *which* vehicle — a deliberate v1 gap, and the reason the odometer-regression rule enforces a continuity nothing stores.
+- **logistic-service becomes rider-critical.** Once riders execute routes here, an outage blocks them mid-journey — they cannot resolve a stop or submit an end check. Previously only trip-service and delivery-service carried that exposure.
 
 ## Glossary
 
@@ -100,7 +103,7 @@ Reads from other modules: `SHIPMENTS` (and possibly `ITEMS` — grain is an open
 
 ## Open questions
 
-- Where do routes execute? Native rider-app support for logistic-service routes, or bridge each route into a trip-service trip (which already has driver endpoints)?
+- ~~Where do routes execute?~~ **Resolved 2026-08-05:** natively in logistic-service at `/v1/routes` with a rider JWT — no trip-service bridge. The bridge would have needed trip-service to know about `route_stops.workflow` and the vehicle checks, or to proxy every rider action; the m-app already talks to four base URLs, so a fifth is cheaper than a sync problem. See [route-prd-trd-v1.md](./route-prd-trd-v1.md) Key decisions.
 - Shipment grain vs item grain for stop assignment (`ROUTE_STOP_SHIPMENTS` vs a `ROUTE_STOP_ITEMS` level below it).
 - Do routes eventually replace batches, or do the two coexist permanently (batches for hub drop-off waves, routes for pickup-bearing journeys)?
 - For hub-origin shipments on a route: is the hub handover scan the pickup, or does the route carry an explicit hub `PICKUP` stop?
@@ -108,5 +111,6 @@ Reads from other modules: `SHIPMENTS` (and possibly `ITEMS` — grain is an open
 
 ## Changelog
 
+- 2026-08-05 — execution-surface question resolved (CEO review): riders execute routes natively in logistic-service at `/v1/routes` with a rider JWT, no trip-service bridge; recorded the existing `/driver/v1/*` surfaces the m-app already consumes, Fleet's ownership of vehicle custody (`GET /v1/handovers/drivers/:driverID`), and logistic-service's new rider-critical exposure
 - 2026-08-04 — created (v1): recorded current routing behavior across docking batches, the single-shipment delivery bridge, and the trip-service precedent; framed the gap the route module fills
 - 2026-08-04 — added `ROUTE_STOP_DELIVERIES` to the owned-data list (legacy delivery-service link table, per prd-trd v1)

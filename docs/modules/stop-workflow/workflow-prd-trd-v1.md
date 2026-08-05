@@ -128,7 +128,7 @@ POST  /v1/stop-workflows
 GET   /v1/stop-workflows
 GET   /v1/stop-workflows/:workflowID
 PUT   /v1/stop-workflows/:workflowID
-PATCH /internal/v1/routes/:routeID/stops/:stopID/milestones/:milestoneKey
+PATCH /v1/routes/:routeID/stops/:stopID/milestones/:milestoneKey
 ```
 
 **Create workflow** — `POST /v1/stop-workflows` (full nested definition, atomic):
@@ -166,23 +166,33 @@ Errors: `409` client already has an ACTIVE workflow **for that stop type** (deac
 
 **List** — `GET /v1/stop-workflows?clientID=&stopType=&status=` → summaries (with `client` snapshot, `milestoneCount`/`fieldCount`). All three filters are server-side and combinable; the portal's filter popover writes `clientID` + `stopType` to the URL in one atomic patch. **Detail** — `GET .../:workflowID` → full nested definition. **Update** — `PUT .../:workflowID` → full replace of the nested definition (same validation as create); in-flight snapshots unaffected.
 
-**Submit milestone** — `PATCH /internal/v1/routes/:routeID/stops/:stopID/milestones/:milestoneKey`
+**Submit milestone** — `PATCH /v1/routes/:routeID/stops/:stopID/milestones/:milestoneKey`
 
 ```jsonc
 {
   "values": {
     "outletFrontPhoto": ["https://media.dash.co/a.jpg", "https://media.dash.co/b.jpg", "https://media.dash.co/c.jpg"],
     "receiverName": "Ibu Sari"
-  },
-  "submittedBy": "svc-rider-bridge"
+  }
 }
 ```
 
+`submittedBy` is not carried in the payload: the actor is the token identity (the route's rider, or the calling service). Auth follows the route module's per-endpoint identity list — INTERNAL and RIDER (owner of the route), never portal admin.
+
 Response `200`: `submissionID` (the durable `workflow_submissions` row) plus the updated workflow snapshot (the same shape the stop detail returns). Errors: `404` stop has no workflow / unknown milestone key; `409` out-of-order (returns `expectedNext`), milestone already completed, stop already resolved; `422` field validation (missing required, wrong type, image count mismatch) with per-field errors.
 
+**Error envelope (changed 2026-08-05).** The route and stop-workflow surfaces, including the four shipped `/v1/stop-workflows` endpoints, emit the structured shape:
+
+```jsonc
+{ "status": 422, "message": "…", "errors": [ { "rule": "WORKFLOW_INCOMPLETE", "pendingMilestones": ["handover"] } ] }
+```
+
+replacing the `{status: "Failed", error: "<prose>"}` those four currently return. The rider app picks its next screen from `rule` — a prose string forces string-matching, which breaks silently when a message is reworded or translated and leaves the rider stuck at a customer's door with an unhelpful toast. Rules emitted here (matching the collection examples): `WORKFLOW_NOT_FOUND`, `MILESTONE_NOT_FOUND`, `SEQUENTIAL_MILESTONES` (with `submittedKey` + `expectedNext`), `MILESTONE_ALREADY_SUBMITTED`, `STOP_RESOLVED`, `VALIDATION_FAILED`, `IMAGE_COUNT_EXACT` (with `expected` + `received`), `WORKFLOW_INCOMPLETE` (with `pendingMilestones`), `DUPLICATE_KEY`, `INVALID_CONFIG`, `ACTIVE_WORKFLOW_EXISTS`. Breaking change; the only consumer of the four shipped endpoints is the react-logistic-web Workflows UI, so the two deploy in one coordinated release. The change stops there: `Logistic Service/Integration/` is the client-facing contract and keeps its current envelope until that gets its own decision — see the route PRD/TRD open questions.
+
 **Changed contracts (shipment-route module):**
-- `GET /internal/v1/routes/:routeID` — stop bodies gain `workflow` (nullable; full snapshot). Collection example updated in the same change.
+- `GET /v1/routes/:routeID` — stop bodies gain `workflow` (nullable; full snapshot). Collection example updated in the same change.
 - `PATCH .../stops/:stopID/resolve` — gains the completion gate: `422 WORKFLOW_INCOMPLETE` when resolving `COMPLETED` with incomplete milestones.
+- All route paths move `/internal/v1/routes` → `/v1/routes`.
 
 ## Data model
 
@@ -247,6 +257,7 @@ Backward compatibility: additive — three new tables, one nullable column. Exis
 - Metrics: stops resolved with vs without workflow (fallback rate — a rising fallback rate for a client that *has* a workflow means resolution is silently failing), submissions by outcome (ok / validation-fail / order-fail), milestone completion latency (`submittedAt` deltas — per-milestone dwell, feeds the route module's analytics style).
 - Logs: every submit (route code, stop id, milestone key, outcome), every resolution decision at route create (client, workflow id or null-reason: `NO_WORKFLOW` | `MIXED_CLIENTS` | `RESOLUTION_ERROR`).
 - Alert candidate: any `RESOLUTION_ERROR` — the fallback masks it from riders, so only the log/metric surfaces it. This is the one silent-failure risk in the design; the null-reason field exists precisely so it is loggable and countable.
+- **Required alert (added 2026-08-05): `workflow: null` on a stop of a `DIRECT_4W` route.** Product expectation is that every 4W route carries a workflow; a null there means the rider completed the eight-item vehicle check at the depot and then completed the door with no evidence gate at all — the expensive check ran and the cheap one silently did not. Same metric, one added condition: on 4W it is an alert, not just a counter.
 
 ## Security & permissions
 
@@ -257,8 +268,10 @@ Backward compatibility: additive — three new tables, one nullable column. Exis
 ## Rollout
 
 1. **Increment 1:** definitions — migration (3 tables) + CRUD endpoints at `/v1/stop-workflows`. Shipped without a feature flag (product decision 2026-08-05); the tables are inert without consumers. **Shipped 2026-08-05** together with the portal authoring UI (react-logistic-web, Master → Workflows), pulled forward from Increment 3.
-2. **Increment 2:** execution — `route_stops.workflow` column + resolution at route create + submit endpoint + resolve gate. The route module's flag gates route creation itself, so this composes with `ENABLE_ROUTE_MODULE`. Resolution matches the stop's type against the client's ACTIVE workflow of that `stopType`.
+2. **Increment 2:** execution — `route_stops.workflow` column + resolution at route create + submit endpoint + resolve gate. The route module's flag gates route creation itself, so this composes with `ENABLE_ROUTE_MODULE`. Resolution matches the stop's type against the client's ACTIVE workflow of that `stopType`. **This ships as one unit with the shipment-route module's Increment 2 (the rider execution surface)** — a rider working stops without the milestone gate collects no door evidence at all, which is the entire point of this module. Neither half is deployable alone.
 3. **Increment 3 (separate version):** portal authoring UI + mockup; m-app rendering ships on the app's own train.
+
+**Envelope migration (Increment 1 of the route module, deployed 2026-08-05 onward):** the four shipped `/v1/stop-workflows` endpoints move to the structured error envelope in the same release as the react-logistic-web Workflows UI that parses them. During the deploy window both shapes may be in flight; either the UI tolerates both or the two ship locked together.
 
 Rollback (Increment 1): the definition tables and endpoints are inert without the execution increment. No backfill anywhere.
 
@@ -289,6 +302,7 @@ Rollback (Increment 1): the definition tables and endpoints are inert without th
 
 ## Changelog
 
+- 2026-08-05 — knock-on from the shipment-route rider-execution review (CEO review, hold scope): milestone submit path `/internal/v1/routes/…` → `/v1/routes/…` with the route module's per-endpoint identity list (INTERNAL + RIDER-owner, never portal admin); `submittedBy` dropped from the payload (the actor is the token identity); **structured error envelope adopted service-wide**, migrating the four shipped `/v1/stop-workflows` endpoints off `{status: "Failed", error}` in one coordinated release with the portal Workflows UI; Increment 2 declared inseparable from the route module's Increment 2; `workflow: null` on a `DIRECT_4W` stop promoted from counter to required alert (product decision: 4W routes are expected to carry a workflow, and null means the door evidence silently did not happen)
 - 2026-08-05 — added `stop_workflows.client` JSONB snapshot `{id,name}` (house pattern, fetched via `CoreService.getClientSnapshot` at create/update, nullable + best-effort) so the list shows client names without fanning out to core-service; portal list replaced the numeric Client ID column with the client name and gained a shipments-style filter popover (client + stop type, server-side, URL-persisted)
 - 2026-08-05 — fieldless milestones (product decision): a milestone may have **0 fields** — a confirmation-only checkpoint the rider completes with a slide-to-confirm; the submission row (empty `values`) is the timestamp record, `submitted_at` set server-side (Req 1, 7, 8 updated; builder starts new milestones fieldless with a "confirmation only" banner)
 - 2026-08-05 — keys are system-generated (product decision): callers no longer supply milestone/field keys; the service derives them from `name`/`label` as camelCase with spaces/symbols stripped ("Foto Depan Kendaraan" → `fotoDepanKendaraan`); name collisions reject `422`; collection examples updated
