@@ -23,6 +23,8 @@ erDiagram
     %% ── Shipment routes (see docs/modules/shipment-route — prd-trd v1 DRAFT) ──
     %% One route = one rider journey; ordered stops typed PICKUP|DROP_OFF; a stop
     %% serves 1+ shipments. Additive to dispatch/batches, which stay unchanged.
+    %% The rider executes the route natively (logistic-service /v1/routes, rider JWT):
+    %% start → DIRECT_4W checklist + 8-item vehicle check → stops → end + end check.
     ROUTES ||--o{ ROUTE_STOPS : "visits in sequence"
     ROUTES ||--o{ ROUTE_STOP_SHIPMENTS : serves
     ROUTE_STOPS ||--o{ ROUTE_STOP_SHIPMENTS : "serves at stop"
@@ -245,6 +247,7 @@ erDiagram
         text code "unique — RTE{yymmdd}{seq5}"
         text idempotency_key "unique, nullable — replay-safe creation"
         text shipment_type "DOCKING|DIRECT_2W|DIRECT_4W default DOCKING"
+        date planned_date "the day the rider works this route — rider list filters on it"
         text rider_id "external core-service rider id"
         jsonb rider "RiderSnapshot {id,code,name,phone_number}"
         integer external_shift_id
@@ -254,8 +257,9 @@ erDiagram
         numeric total_weight_kg
         numeric total_volume_m3
         text status "PLANNED|IN_PROGRESS|COMPLETED|CANCELLED default PLANNED"
-        jsonb start_check "nullable — DIRECT_4W only: {selfie,vehicleFront,vehicleBack,vehicleLeft,vehicleRight,vehicleBox,odometerPhoto,odometerReading,submittedAt,submittedBy}"
-        jsonb end_check "nullable — DIRECT_4W only, same shape; odometerReading >= start_check's"
+        jsonb pre_checklist_agreement "nullable — DIRECT_4W only: {agreed,checklistVersion,agreedAt} set at route start"
+        jsonb start_check "nullable — DIRECT_4W only: {selfie,vehicleFront,vehicleBack,vehicleLeft,vehicleRight,vehicleBox,odometerPhoto,odometerReading,submittedAt}"
+        jsonb end_check "nullable — DIRECT_4W only, same shape, SEPARATE column (never merged with start_check); odometerReading >= start_check's"
         text route_polyline "provider snapshot"
         integer route_distance_m
         integer route_duration_sec
