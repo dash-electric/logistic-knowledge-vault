@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototype V0 · Phase 0 (Ekspor-Impor) — 4W Driver App (Dash Logistic) · v5</title>
+<style>
+  :root{
+    --purple-500:#5e2aac;--purple-600:#56269d;--purple-700:#431e7a;--purple-50:#efeaf7;--purple-a10:#5e2aac1a;
+    --g0:#fff;--g50:#f7f7f7;--g100:#f5f5f5;--g200:#ebebeb;--g300:#d1d1d1;--g400:#a3a3a3;--g500:#7b7b7b;--g600:#5c5c5c;--g700:#333;--g900:#1c1c1c;--g950:#171717;
+    --green-500:#1fc16b;--green-50:#e0faec;--green-600:#1daf61;
+    --orange-500:#fa7319;--orange-50:#fff3eb;--red-500:#fb3748;--red-50:#ffebec;--red-600:#e93544;
+    --blue-500:#335cff;--blue-50:#ebf1ff;--sky-500:#47c2ff;--sky-50:#ebf8ff;--sky-700:#2597d0;
+    --teal-500:#0e9384;--teal-50:#e6f6f4;--teal-700:#0b6f65;
+    --rule:#1717171a;--rule-strong:#17171729;--radius:2px;--shadow-sm:0 1px 2px #17171712;--shadow-sheet:0 -1px 24px #1717171f;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI","Plus Jakarta Sans",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:#e9e6ef;font-family:var(--font);color:var(--g950)}
+  body{display:flex;flex-direction:column;align-items:center;gap:14px;padding:22px 12px 44px}
+  .page-head{text-align:center;max-width:440px}
+  .page-head h1{font-size:16px;font-weight:700;letter-spacing:-.01em}
+  .page-head p{font-size:12px;color:var(--g600);margin-top:3px;line-height:1.5}
+  .gsm{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--g400)}
+  .tnum{font-variant-numeric:tabular-nums}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  .phone{width:390px;max-width:100%;height:812px;background:var(--g0);box-shadow:0 8px 40px #17171726,0 0 0 1px var(--rule);overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .statusbar{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:12px;font-weight:600;flex:0 0 auto;z-index:40}
+  .statusbar .dots{font-size:11px;letter-spacing:1px}
+  .offbanner{display:none;background:#333;color:#fff;font-size:11.5px;font-weight:600;padding:6px 16px;align-items:center;gap:7px;flex:0 0 auto;z-index:39}
+  .offbanner.on{display:flex}
+  .offbanner .pulse{width:7px;height:7px;border-radius:50%;background:#ffd268}
+  .screen{position:absolute;inset:34px 0 0 0;display:none;flex-direction:column;background:var(--g0);overflow:hidden}
+  #s-run{background:transparent;}
+  body.off .screen{inset:57px 0 0 0}
+  .screen.active{display:flex}
+  .scroll{flex:1;overflow-y:auto;overflow-x:hidden}.scroll::-webkit-scrollbar{width:0}
+
+  .appbar{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--rule);flex:0 0 auto;background:var(--g0);z-index:20}
+  .appbar .back{width:34px;height:34px;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--g0);display:grid;place-items:center;font-size:17px;color:var(--g700);cursor:pointer}
+  .appbar h2{font-size:15px;font-weight:700;letter-spacing:-.01em;flex:1;line-height:1.2}
+  .appbar h2 small{display:block;font-size:11px;font-weight:500;color:var(--g500);margin-top:1px}
+
+  .tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:var(--radius);line-height:1.4}
+  .tag.purple{background:var(--purple-a10);color:var(--purple-700)}.tag.green{background:var(--green-50);color:var(--green-600)}
+  .tag.orange{background:var(--orange-50);color:#b75310}.tag.blue{background:var(--blue-50);color:#2547d0}
+  .tag.sky{background:var(--sky-50);color:var(--sky-700)}.tag.gray{background:var(--g100);color:var(--g600)}
+  .tag.dk{background:var(--g600);color:#fff}
+  .modal{position:absolute;inset:0;background:#00000077;z-index:70;display:none;align-items:center;justify-content:center;padding:26px}
+  .modal.on{display:flex}
+  .modal .box{background:#fff;border-radius:6px;padding:22px 20px;max-width:300px;text-align:center;box-shadow:0 8px 30px #0004}
+  .modal .box .ic{font-size:32px}.modal .box h4{font-size:15px;font-weight:700;margin:8px 0 6px;letter-spacing:-.01em}
+  .modal .box p{font-size:12.5px;color:var(--g600);line-height:1.55}
+  .kebab{width:34px;height:34px;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--g0);display:grid;place-items:center;font-size:18px;color:var(--g600);cursor:pointer;flex:0 0 auto}
+  .menu-sheet{position:absolute;left:0;right:0;bottom:0;background:var(--g0);border-radius:14px 14px 0 0;box-shadow:var(--shadow-sheet);z-index:65;padding:8px 16px 18px;display:none}
+  .menu-sheet.on{display:block}
+  .menu-sheet .mi{display:flex;gap:11px;align-items:center;padding:13px 6px;border-bottom:1px solid var(--rule);font-size:14px;cursor:pointer}
+  .menu-sheet .mi:last-child{border-bottom:none}.menu-sheet .mi.soon{color:var(--g400);cursor:default}
+  .menu-sheet .mi .t2{font-size:11px;color:var(--g400)}
+  .tag.teal{background:var(--teal-50);color:var(--teal-700)}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;border:none;border-radius:var(--radius);background:var(--purple-500);color:#fff;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;letter-spacing:-.01em}
+  .btn:active{background:var(--purple-600)}.btn:disabled{background:var(--g200);color:var(--g400);cursor:not-allowed}
+  .btn.sec{background:var(--g0);color:var(--g700);border:1px solid var(--rule-strong)}.btn.sec:active{background:var(--g50)}
+  .linkbtn{background:none;border:none;font-family:inherit;color:var(--purple-600);font-size:13px;font-weight:600;cursor:pointer;padding:8px;width:100%}
+  .card{border:1px solid var(--rule);border-radius:var(--radius);background:var(--g0)}.divider{height:1px;background:var(--rule)}
+
+  .map{position:absolute;inset:0;background:linear-gradient(0deg,#e8eaed 1px,transparent 1px) 0 0/100% 34px,linear-gradient(90deg,#e8eaed 1px,transparent 1px) 0 0/34px 100%,#eef0f2;overflow:hidden}
+  .map .river{position:absolute;width:150%;height:70px;background:#d8e6ef;transform:rotate(-18deg);top:130px;left:-40px;opacity:.9}
+  .map .park{position:absolute;width:110px;height:90px;background:#dcecdd;border-radius:8px;top:230px;left:30px}
+  .pin{position:absolute;transform:translate(-50%,-100%);z-index:5}
+  .pin .bub{width:24px;height:24px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);display:grid;place-items:center;box-shadow:0 2px 6px #17171733;border:2px solid #fff}
+  .pin .bub span{transform:rotate(-45deg);color:#fff;font-size:11px;font-weight:700}
+  .pin.me .bub{border-radius:50%;background:var(--blue-500);width:16px;height:16px;transform:none;box-shadow:0 0 0 6px #335cff2e}
+  .greeting{position:absolute;top:14px;left:16px;z-index:8;background:var(--g0);border:1px solid var(--rule);border-radius:var(--radius);padding:8px 12px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:9px}
+  .greeting .av{width:30px;height:30px;border-radius:50%;background:var(--purple-500);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px}
+  .greeting b{font-size:13px;display:block;line-height:1.2}.greeting small{font-size:11px;color:var(--g500)}
+  .mapbtns{position:absolute;right:14px;top:14px;display:flex;flex-direction:column;gap:8px;z-index:8}
+  .mapbtns .mb{width:36px;height:36px;background:var(--g0);border:1px solid var(--rule);border-radius:var(--radius);display:grid;place-items:center;font-size:15px;color:var(--g600);box-shadow:var(--shadow-sm)}
+
+  .sheet{position:absolute;left:0;right:0;bottom:54px;background:var(--g0);border-radius:14px 14px 0 0;box-shadow:var(--shadow-sheet);z-index:12;padding:8px 16px 16px;max-height:74%;display:flex;flex-direction:column}
+  .grab{width:36px;height:4px;background:var(--g300);border-radius:99px;margin:2px auto 12px}
+  .seclabel{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+
+  .shipmini{border:1px solid var(--rule-strong);border-radius:var(--radius);padding:12px 13px;margin-bottom:10px;cursor:pointer}
+  .shipmini:active{background:var(--g50)}
+  .shipmini.exim{border-color:var(--purple-500);border-width:1.5px;background:linear-gradient(180deg,#faf7ff,#fff)}
+  .shipmini .r1{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .shipmini .code{font-size:13px;font-weight:600}
+  .shipmini .route{display:flex;align-items:center;gap:7px;font-size:13.5px;color:var(--g700)}
+  .shipmini .route .ar{color:var(--g400)}
+  .shipmini .meta{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;align-items:center}
+  .demoflag{margin-top:9px;padding-top:8px;border-top:1px dashed var(--g200);font-size:10.5px;color:var(--g400);display:flex;align-items:center;gap:5px}
+  .demoflag .d{width:5px;height:5px;border-radius:50%;background:var(--g300)}
+  .v1entry{border:1px solid var(--rule-strong);border-radius:var(--radius);border-style:dashed;padding:12px 13px;margin-top:4px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+  .v1entry:active{background:var(--g50)}
+  .v1entry b{font-size:13px}.v1entry small{font-size:11px;color:var(--g500);display:block;margin-top:2px}
+  .pilotbanner{background:var(--purple-50);border:1px solid #ddd0ef;border-radius:var(--radius);padding:9px 11px;margin-bottom:11px;font-size:11px;color:var(--purple-700);line-height:1.45}
+  .pilotbanner b{color:var(--purple-700)}
+
+  .sec{padding:16px}.sec.gapt{border-top:8px solid var(--g50)}
+  .addrrow{display:flex;gap:10px;align-items:flex-start;padding:4px 0}
+  .addrrow .rail{display:flex;flex-direction:column;align-items:center;padding-top:3px}
+  .addrrow .rail i{width:9px;height:9px;border-radius:50%;border:2px solid var(--g400)}
+  .addrrow.to .rail i{background:var(--purple-500);border-color:var(--purple-500)}
+  .addrrow .rail .line{width:2px;flex:1;background:var(--g200);min-height:14px;margin:2px 0}
+  .addrrow .txt b{font-size:14px;font-weight:600;display:block;line-height:1.25}.addrrow .txt small{font-size:11.5px;color:var(--g500)}
+  .kv{display:flex;gap:16px;flex-wrap:wrap}.kv>div{flex:1 1 92px;min-width:92px}
+  .kv .v{font-size:14px;font-weight:600;margin-top:2px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+  .containercard{border:1px solid var(--teal-500);border-radius:var(--radius);background:var(--teal-50);padding:12px 13px;margin-top:12px}
+  .containercard .h{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+  .containercard .h b{font-size:13px;color:var(--teal-700)}
+  .containercard .grid{display:flex;gap:14px;flex-wrap:wrap}
+  .containercard .grid>div{flex:1 1 80px}
+  .containercard .grid .v{font-size:13.5px;font-weight:700;margin-top:1px;font-family:ui-monospace,monospace}
+
+  .stopitem{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--rule);cursor:pointer;align-items:flex-start}
+  .stopitem:last-child{border-bottom:none}
+  .stopitem .seq{width:28px;height:28px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff}
+  .stopitem .body{flex:1;min-width:0}.stopitem .body .t{font-size:14px;font-weight:600;line-height:1.3}.stopitem .body .s{font-size:12px;color:var(--g500);margin-top:2px}
+  .stopitem .chev{color:var(--g400);font-size:18px;align-self:center}
+  .type-pill{font-size:10px;font-weight:700;letter-spacing:.04em;padding:1px 6px;border-radius:var(--radius);text-transform:uppercase}
+
+  .runhero{padding:15px 16px;background:var(--purple-500);color:#fff;border-top:1px solid rgba(255,255,255,.15)}
+  .runhero.exim{background:var(--teal-700)}
+  .runhero .top{display:flex;justify-content:space-between;align-items:center;font-size:11px;opacity:.85;margin-bottom:9px;letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+  .runhero .addr{display:flex;gap:11px;align-items:flex-start}
+  .runhero .seq{width:34px;height:34px;flex:0 0 auto;border-radius:50%;background:#fff;color:var(--purple-700);display:grid;place-items:center;font-weight:700;font-size:15px}
+  .runhero.exim .seq{color:var(--teal-700)}
+  .runhero .addr b{font-size:17px;font-weight:700;line-height:1.25;display:block}.runhero .addr small{font-size:12.5px;opacity:.85}
+  .runhero .chips{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+  .runhero .chip{background:#ffffff26;border-radius:var(--radius);padding:3px 8px;font-size:11.5px;font-weight:600}
+  .navcall{display:flex;gap:8px;margin-top:12px}
+  .navcall button{flex:1;background:#ffffff1f;border:1px solid #ffffff40;color:#fff;border-radius:var(--radius);padding:9px;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .navcall button:active{background:#ffffff33}
+
+  .geobanner{margin:12px 16px 0;background:var(--blue-50);border:1px solid #c0d5ff;border-radius:var(--radius);padding:10px 12px;display:flex;gap:9px;align-items:flex-start}
+  .geobanner .i{color:var(--blue-500);font-size:15px}.geobanner .tx{font-size:12px;color:#1f3bad;line-height:1.45}.geobanner .tx b{color:#182f8b}
+  .waitbanner{margin:12px 16px 0;border:1px solid #ffd9c0;background:var(--orange-50);border-radius:var(--radius);padding:12px 13px}
+  .waitbanner .r1{display:flex;justify-content:space-between;align-items:center}
+  .waitbanner .lbl{font-size:11.5px;font-weight:600;color:#8a4a10;display:flex;align-items:center;gap:6px}
+  .waitbanner .lbl .live{width:7px;height:7px;border-radius:50%;background:var(--orange-500);animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.35}}
+  .waitbanner .t{font-size:26px;font-weight:700;color:#b75310;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:3px}
+  .waitbanner .cap{font-size:10.5px;color:#a35c22;margin-top:3px;line-height:1.4}
+  .waitbanner.done{border-color:#c0d5ff;background:var(--blue-50)}.waitbanner.done .lbl{color:#1f3bad}.waitbanner.done .t{color:#2547d0}.waitbanner.done .cap{color:#3049a8}
+
+  .timeline{padding:4px 4px 0}.tl{display:flex;gap:13px;align-items:flex-start}
+  .tl .mk{display:flex;flex-direction:column;align-items:center;flex:0 0 auto}
+  .tl .mk i{width:22px;height:22px;border-radius:50%;border:2px solid var(--g300);background:var(--g0);display:grid;place-items:center;font-size:12px;color:var(--g400);z-index:2}
+  .tl .mk .ln{width:2px;flex:1;min-height:24px;background:var(--g200);margin:1px 0}
+  .tl:last-child .mk .ln{display:none}
+  .tl .ct{flex:1;padding-bottom:15px;min-width:0}.tl .ct .nm{font-size:14px;font-weight:600;color:var(--g400);line-height:1.3}.tl .ct .tm{font-size:12px;color:var(--g400);margin-top:1px}
+  .tl.done .mk i{background:var(--green-500);border-color:var(--green-500);color:#fff}.tl.done .mk .ln{background:var(--green-500)}
+  .tl.done .ct .nm{color:var(--g950)}.tl.done .ct .tm{color:var(--green-600);font-weight:600}
+  .tl.next .mk i{border-color:var(--purple-500);color:var(--purple-500)}.tl.next .ct .nm{color:var(--g950)}
+  .tl .ct .dur{font-size:11px;color:var(--teal-700);font-weight:600;margin-top:2px}
+
+  .note{background:var(--orange-50);border:1px solid #ffd9c0;border-radius:var(--radius);padding:10px 12px;display:flex;gap:9px}
+  .note .i{color:var(--orange-500);font-size:15px}.note .tx{font-size:12.5px;color:#8a4a10;line-height:1.45}.note .tx b{color:#71330a}
+  .note.blue{background:var(--blue-50);border-color:#c0d5ff}.note.blue .i{color:var(--blue-500)}.note.blue .tx{color:#1f3bad}.note.blue .tx b{color:#182f8b}
+  .note.teal{background:var(--teal-50);border-color:#b6e3dd}.note.teal .i{color:var(--teal-500)}.note.teal .tx{color:#0b6f65}.note.teal .tx b{color:#084b44}
+
+  .podmeter{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .podmeter .bar{flex:1;height:7px;background:var(--g200);border-radius:99px;overflow:hidden}
+  .podmeter .bar i{display:block;height:100%;background:var(--green-500);width:0;transition:width .3s}
+  .podslot{border:1px dashed var(--rule-strong);border-radius:var(--radius);padding:12px;margin-bottom:10px;cursor:pointer;background:var(--g0);display:flex;gap:12px;align-items:flex-start}
+  .podslot:active{background:var(--g50)}
+  .podslot .ico{font-size:20px;color:var(--g500);width:40px;height:40px;border-radius:var(--radius);background:var(--g50);display:grid;place-items:center;flex:0 0 auto;overflow:hidden}
+  .podslot .lbl{font-size:13px;font-weight:600;line-height:1.3}.podslot .hint{font-size:11.5px;color:var(--g500);margin-top:3px;line-height:1.4}
+  .podslot .req{font-size:10px;font-weight:600;margin-top:5px;display:inline-block}.podslot .req.w{color:var(--red-600)}.podslot .req.o{color:var(--g400)}
+  .podslot .cta{font-size:11.5px;color:var(--purple-600);font-weight:600;margin-top:6px}
+  .podslot.filled{border-style:solid;border-color:var(--green-500);background:var(--green-50)}.podslot.filled .ico{background:transparent;color:var(--green-600)}
+  .podslot.inputslot{cursor:default;display:block}
+  .podslot.inputslot input{width:100%;border:1px solid var(--rule-strong);border-radius:var(--radius);padding:9px 10px;font-family:ui-monospace,monospace;font-size:13px;margin-top:8px}
+  .podslot.inputslot input:focus{outline:none;border-color:var(--purple-500)}
+  .podthumbs{display:flex;gap:4px;margin-top:7px;flex-wrap:wrap}
+  .miniph{width:34px;height:26px;border-radius:2px;overflow:hidden;flex:0 0 auto;position:relative}.miniph .podphoto{border-radius:2px}
+  .syncbadge{position:absolute;top:1px;right:1px;background:#333;color:#ffd268;font-size:8px;width:13px;height:13px;border-radius:50%;display:grid;place-items:center;z-index:3}
+
+  .locstate{display:flex;border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;margin-top:4px}
+  .locstate .st{flex:1;text-align:center;padding:8px 4px;font-size:11px;font-weight:600;color:var(--g400)}
+  .locstate .st.on{background:var(--purple-50);color:var(--purple-700)}.locstate .st.passed{color:var(--green-600)}.locstate .st + .st{border-left:1px solid var(--rule)}
+
+  .instr{background:var(--purple-50);border:1px solid #ddd0ef;border-radius:var(--radius);padding:13px 14px;display:flex;gap:11px}
+  .instr .n{width:26px;height:26px;flex:0 0 auto;border-radius:50%;background:var(--purple-500);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700}
+  .instr .tx b{font-size:13.5px;color:var(--purple-700);display:block;margin-bottom:2px}.instr .tx p{font-size:12.5px;color:var(--g700);line-height:1.5}
+  .viewfinder{margin:14px 0;aspect-ratio:4/3;background:#1c1c1c;border-radius:4px;position:relative;display:grid;place-items:center;overflow:hidden}
+  .viewfinder .frame{position:absolute;inset:16px;border-radius:3px}
+  .viewfinder .frame span{position:absolute;width:22px;height:22px;border:2px solid #ffffffcc}
+  .viewfinder .frame .tl2{top:0;left:0;border-right:none;border-bottom:none}.viewfinder .frame .tr2{top:0;right:0;border-left:none;border-bottom:none}
+  .viewfinder .frame .bl2{bottom:0;left:0;border-right:none;border-top:none}.viewfinder .frame .br2{bottom:0;right:0;border-left:none;border-top:none}
+  .viewfinder .vf-hint{color:#ffffffcc;font-size:12px;text-align:center;padding:0 30px;line-height:1.5}
+
+  .podphoto{position:relative;background:#eceae6;border-radius:3px;overflow:hidden;aspect-ratio:4/3;border:1px solid var(--rule-strong)}
+  .podphoto .doc{position:absolute;inset:10px;background:#fdfdfb;border:1px solid #e3e0d8;padding:9px}
+  .podphoto .doctop{font-size:9px;font-weight:700;letter-spacing:.06em;color:#555;display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding-bottom:4px;margin-bottom:6px}
+  .podphoto .dln{height:5px;background:#ecebe6;border-radius:2px;margin-bottom:5px}.podphoto .dln.short{width:55%}
+  .podphoto .drow{display:flex;justify-content:space-between;align-items:flex-end;margin-top:10px}
+  .podphoto .dstamp{width:44px;height:44px;border:2px solid #b7c4d8;color:#8598b5;border-radius:50%;display:grid;place-items:center;font-size:7px;font-weight:700;text-align:center;transform:rotate(-12deg)}
+  .podphoto .dsign{font-family:'Segoe Script','Brush Script MT',cursive;font-size:15px;color:#33528f;transform:rotate(-4deg)}
+  .podphoto.barang{background:#e7e4de}.podphoto .boxes{position:absolute;inset:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .podphoto .boxes span{background:#cdb89a;border:1px solid #b49b78;border-radius:2px}
+  .podphoto.container{background:#dfe6e5}
+  .podphoto .cont{position:absolute;inset:20px 16px;background:#2f8f83;border:2px solid #216e64;border-radius:3px;display:flex;flex-direction:column;justify-content:space-between;padding:7px}
+  .podphoto .cont .rib{height:4px;background:#2680755e;border-radius:1px;box-shadow:0 7px 0 #2680755e,0 14px 0 #2680755e,0 21px 0 #2680755e}
+  .podphoto .cont .cno{font-family:ui-monospace,monospace;font-size:8.5px;font-weight:700;color:#eafffb;background:#1c574f;padding:2px 4px;border-radius:2px;align-self:flex-start}
+  .podphoto .seal{position:absolute;bottom:24px;right:22px;background:#f5a623;color:#4a2f00;font-size:7px;font-weight:700;padding:2px 5px;border-radius:2px;transform:rotate(-8deg)}
+  .podphoto.gate{background:#e6e9ef}
+  .podphoto .ticket{position:absolute;inset:16px;background:#fff;border:1px dashed #9aa7c0;border-radius:3px;padding:9px;display:flex;flex-direction:column;justify-content:space-between}
+  .podphoto .ticket .tt{font-size:9px;font-weight:700;letter-spacing:.08em;color:#4a5a80}
+  .podphoto .ticket .bars{display:flex;gap:2px;height:26px}
+  .podphoto .ticket .bars span{flex:1;background:#2a3550}.podphoto .ticket .bars span:nth-child(even){flex:.5;background:#6b7590}
+  .podphoto .wm{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,#000000b0,#0000);color:#fff;font-size:8.5px;line-height:1.35;padding:14px 8px 6px;font-family:ui-monospace,monospace;letter-spacing:.2px}
+  .podphoto .wmtag{position:absolute;top:6px;right:6px;background:#00000055;color:#fff;font-size:8px;font-weight:600;padding:1px 5px;border-radius:2px}
+  .thumbstrip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px}
+  .thumbstrip .tw{position:relative;width:70px;flex:0 0 auto}
+  .thumbstrip .tw .idx{position:absolute;top:3px;left:3px;background:#000000aa;color:#fff;font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;z-index:2}
+  .capcount{font-size:12px;font-weight:600;color:var(--g600)}
+
+  .thumbstrip .tw .shotdel{position:absolute;top:3px;right:3px;width:17px;height:17px;border-radius:50%;background:#000000aa;color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer;z-index:4;display:grid;place-items:center}
+  .apr{background:var(--purple-50);border:1px solid #ddd0ef;border-radius:var(--radius);padding:13px 14px;display:flex;gap:10px;align-items:flex-start}
+  .apr .q{font-size:22px;color:var(--purple-500);line-height:.8}.apr .t{font-size:13px;color:var(--purple-700);line-height:1.5;font-style:italic}
+  .oopt{border:1px solid var(--rule-strong);border-radius:var(--radius);padding:13px 14px;margin-bottom:10px;cursor:pointer;display:flex;gap:11px;align-items:center}
+  .oopt:active{background:var(--g50)}
+  .oopt .od{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:16px;flex:0 0 auto}
+  .oopt .otx b{font-size:14px;font-weight:600;display:block}.oopt .otx small{font-size:11.5px;color:var(--g500)}
+  .oopt.sel{border-color:var(--purple-500);background:var(--purple-50)}
+  .reason{width:100%;border:1px solid var(--rule-strong);border-radius:var(--radius);padding:10px 12px;font-family:inherit;font-size:13px;margin-top:6px;resize:none;min-height:66px}.reason:focus{outline:none;border-color:var(--purple-500)}
+
+  /* checklist */
+  .cklist .grp{margin-bottom:6px}
+  .ckitem{display:flex;gap:11px;align-items:center;padding:12px 13px;border:1px solid var(--rule-strong);border-radius:var(--radius);margin-bottom:8px;cursor:pointer}
+  .ckitem:active{background:var(--g50)}
+  .ckitem .box{width:23px;height:23px;flex:0 0 auto;border:2px solid var(--g300);border-radius:var(--radius);display:grid;place-items:center;font-size:14px;color:#fff;transition:.12s}
+  .ckitem.on .box{background:var(--green-500);border-color:var(--green-500)}
+  .ckitem .lbl{font-size:13.5px;font-weight:600}.ckitem .sub{font-size:11px;color:var(--g500);margin-top:1px}
+  .ckitem.on{border-color:var(--green-500);background:var(--green-50)}
+
+  /* vehicle condition grid */
+  .vgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+  .vtile{border:1px dashed var(--rule-strong);border-radius:var(--radius);padding:10px;cursor:pointer;position:relative;min-height:96px;display:flex;flex-direction:column;justify-content:space-between;background:var(--g0)}
+  .vtile:active{background:var(--g50)}
+  .vtile .ico{font-size:22px}.vtile .lbl{font-size:12px;font-weight:600;line-height:1.3}
+  .vtile .req{font-size:10px;color:var(--g400);margin-top:2px}
+  .vtile.filled{border-style:solid;border-color:var(--green-500);background:#fff;padding:0;overflow:hidden}
+  .vtile.filled .cap{position:absolute;inset:0}.vtile.filled .lab{position:absolute;left:0;right:0;bottom:0;background:#000000a6;color:#fff;font-size:10px;font-weight:600;padding:4px 7px;display:flex;justify-content:space-between;align-items:center}
+  .vtile .kminput{margin-top:6px}
+  .vtile .kminput input{width:100%;border:1px solid var(--rule-strong);border-radius:2px;padding:6px 7px;font-family:ui-monospace,monospace;font-size:12px}
+  .vtile .kminput input:focus{outline:none;border-color:var(--purple-500)}
+  #cap-cnum-wrap .kminput input{width:100%;box-sizing:border-box;border:1px solid var(--rule-strong);border-radius:var(--radius);padding:12px 13px;font-family:ui-monospace,monospace;font-size:14px;letter-spacing:.3px}
+  #cap-cnum-wrap .kminput input:focus{outline:none;border-color:var(--purple-500);box-shadow:0 0 0 3px var(--purple-a10)}
+  #cap-cnum-wrap .kminput input::placeholder{color:var(--g400);font-size:12.5px}
+  #cap-cnum-wrap .kminput input:disabled{background:var(--g50);color:var(--g600)}
+  .cnumlbl{font-size:11.5px;font-weight:600;color:var(--g700);margin-bottom:4px}
+  .cnumsame{display:flex;gap:9px;align-items:flex-start;background:var(--purple-a10);border:1px solid var(--purple-500);border-radius:var(--radius);padding:10px 12px;margin-bottom:11px;font-size:12.5px;color:var(--g800);cursor:pointer}
+  .cnumsame input{margin-top:1px;width:17px;height:17px;accent-color:var(--purple-500)}
+
+  /* swipe-to-confirm (matches existing app convention: slide for deliberate actions, prevents accidental taps) */
+  .slide{position:relative;height:52px;border-radius:var(--radius);background:var(--purple-50);border:1px solid #ddd0ef;overflow:hidden;user-select:none;touch-action:none}
+  .slide.exim{background:var(--teal-50);border-color:#b6e3dd}
+  .slide .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--purple-700);pointer-events:none;padding-left:40px;text-align:center}
+  .slide.exim .lbl{color:var(--teal-700)}
+  .slide .knob{position:absolute;top:3px;left:3px;height:46px;width:46px;border-radius:2px;background:var(--purple-500);color:#fff;display:grid;place-items:center;font-size:19px;cursor:grab;z-index:2;box-shadow:0 1px 3px #17171733}
+  .slide.exim .knob{background:var(--teal-700)}
+  .slide .knob:active{cursor:grabbing}
+  .footer{flex:0 0 auto;padding:10px 16px 14px;border-top:1px solid var(--rule);background:var(--g0)}
+  .bigcheck{width:60px;height:60px;border-radius:50%;color:#fff;display:grid;place-items:center;font-size:30px;margin:18px auto 12px}
+  .sumrow{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--rule);font-size:13.5px}.sumrow:last-child{border-bottom:none}
+  .sumrow .k{color:var(--g600)}.sumrow .v{font-weight:600}
+  .segoutcome{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--rule);font-size:13px}.segoutcome:last-child{border-bottom:none}
+  .evidbox{border:1px solid var(--teal-500);border-radius:var(--radius);background:var(--teal-50);padding:4px 14px;margin-top:4px}
+  .evidbox .sumrow{border-color:#b6e3dd}.evidbox .sumrow .v{color:var(--teal-700)}
+
+  /* V1 preview */
+  .v1card{border:1px solid var(--rule-strong);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+  .v1card .h{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+  .v1card .h b{font-size:14px}.v1card .desc{font-size:12px;color:var(--g600);line-height:1.5;margin-bottom:10px}
+  .statlist{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .statchip{font-size:11px;background:var(--g50);border:1px solid var(--rule);border-radius:var(--radius);padding:3px 8px;color:var(--g700)}
+  .v1meta{font-size:11.5px;color:var(--g600);margin-top:10px;line-height:1.5}
+  .v1meta b{color:var(--g900)}
+
+  .toast{position:absolute;left:16px;right:16px;bottom:88px;background:var(--g950);color:#fff;border-radius:var(--radius);padding:11px 14px;font-size:13px;z-index:60;opacity:0;transform:translateY(8px);transition:.25s;display:flex;gap:9px;align-items:center;pointer-events:none}
+  .toast.show{opacity:1;transform:none}
+
+  .infobox{max-width:860px;width:100%;font-size:12px;color:var(--g600);line-height:1.6;background:#fff;border:1px solid var(--rule);border-radius:6px;padding:18px 22px}
+  .infobox .cols{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
+  @media(max-width:680px){.infobox .cols{grid-template-columns:1fr}}
+  .infobox h3{font-size:12px;color:var(--g900);margin-bottom:4px}
+  .infobox .sub{font-size:10px;color:var(--g400);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin:10px 0 4px}
+  .infobox ul{margin:0 0 0 16px}.infobox li{margin-bottom:3px}
+  .infobox .k{display:inline-block;background:var(--g100);border-radius:3px;padding:0 5px;font-weight:600;color:var(--g700)}
+  .bnav{position:absolute;left:0;right:0;bottom:0;height:54px;background:#fff;border-top:1px solid var(--rule);display:flex;z-index:20}
+  .bnav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--g400);cursor:pointer;font-weight:600}
+  .bnav a .ic{font-size:17px}.bnav a.on{color:var(--purple-600)}
+  .collapse{border:1px solid var(--rule);border-radius:var(--radius);margin-top:12px;overflow:hidden}
+  .collapse summary{list-style:none;cursor:pointer;padding:11px 13px;font-size:12.5px;font-weight:600;color:var(--purple-700);display:flex;justify-content:space-between;align-items:center;background:var(--g50)}
+  .collapse summary::-webkit-details-marker{display:none}
+  .collapse .cbody{padding:12px 13px;font-size:12px;color:var(--g700);line-height:1.65}.collapse .cbody b{color:var(--g950)}
+  .selectwrap{margin-top:2px}
+  .selectwrap select{width:100%;border:1px solid var(--rule-strong);border-radius:var(--radius);padding:10px;font-family:inherit;font-size:13px;background:#fff;color:var(--g950)}
+  .selectwrap select:focus{outline:none;border-color:var(--purple-500)}
+  /* route overview map (detail + runner sheet) */
+  .dmap{position:relative;height:150px;border-radius:12px;overflow:hidden;border:1px solid var(--rule);background:linear-gradient(0deg,#e8eaed 1px,transparent 1px) 0 0/100% 26px,linear-gradient(90deg,#e8eaed 1px,transparent 1px) 0 0/26px 100%,#eef0f2}
+  .dmap svg{position:absolute;inset:0;width:100%;height:100%}
+  .dmap-river{position:absolute;left:-10%;top:20%;width:130%;height:26px;background:#d7e7f0;transform:rotate(-8deg);opacity:.7}
+  .dmap-pin{position:absolute;transform:translate(-50%,-100%)}
+  .dmap-pin .b{width:24px;height:24px;border-radius:50%;color:#fff;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.28)}
+  .dmap-me{position:absolute;transform:translate(-50%,-50%)}
+  .dmap-me span{display:block;width:12px;height:12px;border-radius:50%;background:#2597d0;border:2px solid #fff;box-shadow:0 0 0 4px rgba(37,151,208,.25)}
+  .perhentian{margin-top:10px}
+  .ph-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
+  .ph-row:last-child{border-bottom:none}
+  .ph-row.cur{background:var(--purple-50,#f5f1fc);border-radius:8px;padding:9px;border-bottom:none}
+  .ph-no{width:22px;height:22px;border-radius:50%;color:#fff;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ph-tx{flex:1;min-width:0}.ph-tx b{font-size:12.5px;color:var(--g900)}.ph-tx small{display:block;font-size:10.5px;color:var(--g500)}
+  .ph-here{font-size:9.5px;font-weight:800;color:var(--purple-700);background:var(--purple-50);padding:2px 7px;border-radius:20px}
+  /* runner: map background + draggable bottom sheet (consistent with home) */
+  .run-map{position:absolute;inset:0;background:linear-gradient(0deg,#e8eaed 1px,transparent 1px) 0 0/100% 34px,linear-gradient(90deg,#e8eaed 1px,transparent 1px) 0 0/34px 100%,#eef0f2;overflow:hidden}
+  .run-map .riv{position:absolute;width:150%;height:60px;background:#d8e6ef;transform:rotate(-12deg);top:120px;left:-40px;opacity:.85}
+  .run-map .prk{position:absolute;width:90px;height:70px;background:#dcecdd;border-radius:8px;top:200px;left:40px}
+  /* runner bottom sheet — draggable */
+  .run-sheet{position:absolute;left:0;right:0;bottom:54px;background:var(--g0);border-radius:14px 14px 0 0;box-shadow:var(--shadow-sheet);z-index:12;display:flex;flex-direction:column;will-change:transform;touch-action:none}
+  .run-sheet .grab{width:36px;height:4px;background:var(--g300);border-radius:99px;margin:6px auto 0;cursor:grab;flex:0 0 auto}
+  .run-sheet .grab:active{cursor:grabbing}
+  .run-sheet-inner{overflow-y:auto;flex:1;overflow-x:hidden}
+  .run-sheet-inner::-webkit-scrollbar{width:0}
+  /* run-sheet has two heights: collapsed (peek) and expanded */
+  /* peek = show hero + grab only; expanded = full scroll */
+  .run-curpin{position:absolute;transform:translate(-50%,-100%);z-index:5}
+  .run-curpin .b{width:30px;height:30px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);display:grid;place-items:center;box-shadow:0 2px 8px #17171744;border:3px solid #fff}
+  .run-curpin .b span{transform:rotate(-45deg);color:#fff;font-size:12px;font-weight:800}
+  .run-curpin.done .b{background:var(--green-500) !important}
+  .run-curpin.next .b{animation:pulse-pin 1.8s infinite}
+  @keyframes pulse-pin{0%,100%{box-shadow:0 2px 8px #17171744}50%{box-shadow:0 2px 8px #17171744,0 0 0 6px rgba(94,42,172,.22)}}
+  .run-mapbtns{position:absolute;right:14px;top:14px;display:flex;flex-direction:column;gap:8px;z-index:8}
+  .run-mapbtns .mb{width:36px;height:36px;background:var(--g0);border:1px solid var(--rule);border-radius:var(--radius);display:grid;place-items:center;font-size:15px;color:var(--g600);box-shadow:var(--shadow-sm)}
+  /* route line overview (inside sheet) */
+  .rms-h{font-size:12px;font-weight:700;color:var(--g900);margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;padding:4px 16px 0}
+  .rms-h span{font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.04em}
+  /* vehicle-condition end reference */
+  .veh-ref{background:#f7f8fa;border:1px solid var(--rule);border-radius:10px;padding:11px 12px;margin-bottom:4px}
+  .veh-ref-h{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--g600);margin-bottom:8px}
+  .veh-ref-strip{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+  .veh-ref-th{font-size:10px;background:#fff;border:1px solid var(--rule);border-radius:6px;padding:3px 7px;color:var(--g600)}
+  .veh-ref-note{font-size:10.5px;color:var(--g500);line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>Prototype V0 · <span style="color:var(--purple)">Phase 0 — Ekspor-Impor</span> · 4W Driver App · <span style="color:var(--teal-700)">v5</span></h1>
+  <div style="max-width:660px;margin:6px auto 0;font-size:12px;color:var(--g600);line-height:1.55;background:#e6f6f4;border:1px solid #bfe6e0;border-radius:4px;padding:10px 13px">
+    <b>Scope Phase 0 = HANYA Ekspor-Impor (AGL Patimban), happy-flow.</b> Untuk 4W project General, lapor anomali, fitur gagal, shifting, target lead time, & menu dan fitur yang masih coming-soon <b>dihilangkan</b> di fase ini.
+  </div>
+  <ul style="list-style:none;text-align:left;font-size:12px;color:var(--g600);line-height:1.5;margin-top:10px;display:inline-block;padding:0">
+    <li style="margin-bottom:4px">🎯 <b>AGL Patimban (Import + Export)</b> — klien terbesar (≈46% revenue / 63% margin W30; exim ~Rp 400jt–1M/bln); isu timestamp sudah naik ke management.</li>
+    <li style="margin-bottom:4px">🧱 <b>Spine bersama</b>: checklist pra-trip (K3) + foto kondisi kendaraan (awal & akhir) + integritas jam aktual.</li>
+    <li style="margin-bottom:4px">🧭 Kategori tahap ke driver: <b>Pickup · Delivery · Drop</b>. <b>Gate-in & gate-out = foto real-time</b> (watermark jam+lokasi); <b>gate pass = timestamp saja</b>. Foto: gate-in/out, kontainer/seal, barang, surat jalan, odometer.</li>
+    <li>⏱ <b>Timer tunggu gate pass</b> jalan otomatis = bukti waktu proses (biaya inap/dispute), tanpa menampilkan target.</li>
+  </ul>
+</div>
+
+<div class="phone">
+  <div class="statusbar"><span class="tnum" id="clock">08:12</span><span class="dots" id="netchip" onclick="toggleOffline()" style="cursor:pointer" title="Ketuk untuk simulasi offline">●●● 5G ▮▮▮ 84</span></div>
+  <div class="offbanner" id="offbanner"><span class="pulse"></span>Mode offline — data tersimpan lokal, sync otomatis saat online</div>
+
+  <!-- HOME -->
+  <section class="screen active" id="s-home">
+    <div class="map">
+      <div class="river"></div><div class="park"></div>
+      <div id="home-map-pins"></div>
+      <div class="pin me" style="top:250px;left:110px"><div class="bub"><span></span></div></div>
+      <div class="greeting"><div class="av">A</div><div><b>Halo, Andi</b><small>Driver · 4-Wheel</small></div></div>
+      <div class="mapbtns"><div class="mb">⌖</div><div class="mb">+</div></div>
+    </div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="seclabel"><span class="gsm">Tugas hari ini · 30 Jul 2026</span><span class="tag gray" id="ship-count">2 shipment</span></div>
+      <div class="scroll" id="ship-list"></div>
+    </div>
+    <nav class="bnav"><a class="on"><span class="ic">🗺️</span>Beranda</a><a onclick="toast('Riwayat — reuse dari app existing')"><span class="ic">🧾</span>Riwayat</a><a onclick="toast('Akun — reuse dari app existing')"><span class="ic">👤</span>Akun</a></nav>
+  </section>
+
+  <!-- SHIPMENT DETAIL — map + bottom sheet (consistent with home) -->
+  <section class="screen" id="s-ship">
+    <!-- Floating appbar over map -->
+    <div class="appbar" style="position:absolute;top:0;left:0;right:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)">
+      <div class="back" onclick="goBack()">‹</div>
+      <h2 id="sh-title">—<small id="sh-sub"></small></h2>
+      <span id="sh-prio"></span>
+    </div>
+    <!-- Map layer (reuse same classes as home map) -->
+    <div class="map" id="sh-map-bg" style="position:absolute;inset:0;">
+      <div class="river"></div><div class="park"></div>
+      <div id="sh-map-pins"></div>
+      <div class="mapbtns" style="top:52px;">
+        <div class="mb" onclick="toast('Membuka Google Maps…')" title="Navigasi">📍</div>
+        <div class="mb" onclick="toast('Tampilkan semua titik')">⌖</div>
+      </div>
+    </div>
+    <!-- Bottom sheet — draggable, two snap points (peek ~46%, expanded ~80%) -->
+    <div class="sheet" id="sh-sheet" style="bottom:74px;display:flex;flex-direction:column;will-change:transform;touch-action:none;max-height:none;">
+      <div class="grab" id="sh-grab" style="cursor:grab;flex:0 0 auto"></div>
+      <div class="scroll" id="sh-body" style="flex:1;overflow-y:auto;overflow-x:hidden"></div>
+    </div>
+    <div class="footer" style="position:absolute;bottom:0;left:0;right:0;z-index:13;">
+      <button class="btn" id="sh-start">Mulai pengiriman</button>
+    </div>
+  </section>
+
+  <!-- PRA-TRIP CHECKLIST (shared spine) -->
+  <section class="screen" id="s-checklist">
+    <div class="appbar"><div class="back" onclick="goBack()">‹</div><h2>Checklist pra-trip<small id="ck-sub"></small></h2></div>
+    <div class="scroll"><div class="sec">
+      <div style="text-align:center;margin-bottom:12px"><div style="font-size:16px;font-weight:700;color:var(--g900)">Lengkapi checklist sebelum jalan 🚚</div></div>
+      <div class="note"><span class="i">🔒</span><div class="tx">Selesaikan seluruh checklist wajib dulu — keselamatan & dokumen harus lengkap. Tombol <b>Mulai</b> aktif setelah semua tercentang.</div></div>
+      <div class="note blue" style="margin-top:10px"><span class="i">🎥</span><div class="tx">Kabin dilengkapi <b>CCTV</b> & dipantau tim Dash (client juga dapat memantau). Patuhi prosedur <b>K3</b> (Keselamatan & Kesehatan Kerja) selama perjalanan — pelanggaran dapat dikenakan sanksi.</div></div>
+      <div class="seclabel" style="margin-top:16px"><span class="gsm">Dokumen kendaraan</span></div>
+      <div class="cklist" id="ck-docs"></div>
+      <div class="seclabel" style="margin-top:8px"><span class="gsm">Tools & part keselamatan</span></div>
+      <div class="cklist" id="ck-tools"></div>
+      <div class="seclabel" style="margin-top:8px"><span class="gsm">SOP Keselamatan Kerja (K3)</span></div>
+      <div style="border:1px solid var(--rule);border-radius:var(--radius);padding:12px 13px;margin-bottom:8px;font-size:12px;line-height:1.6;color:var(--g700)">
+        <div style="color:var(--green-600);font-weight:600;margin-bottom:2px">✓ Wajib</div>
+        Pakai sabuk pengaman, patuhi batas kecepatan & rambu, jaga jarak aman, istirahat bila mengantuk/lelah.
+        <div style="color:var(--red-600);font-weight:600;margin:8px 0 2px">✕ Dilarang</div>
+        Main HP saat menyetir, nongkrong/berhenti tidak pada tempatnya saat bertugas, merokok saat berkendara selama bertugas, menggunakan alkohol/obat terlarang, mengebut, muatan melebihi kapasitas.
+      </div>
+      <div class="cklist" id="ck-hse"></div>
+    </div></div>
+    <div class="footer"><button class="btn" id="ck-btn" disabled onclick="checklistDone()">Lengkapi checklist dulu</button></div>
+  </section>
+
+  <!-- VEHICLE CONDITION (shared spine — start & end bookends) -->
+  <section class="screen" id="s-vehcond">
+    <div class="appbar"><div class="back" onclick="vehcondBack()">‹</div><h2 id="vc-title">Kondisi kendaraan<small id="vc-sub"></small></h2></div>
+    <div class="scroll"><div class="sec">
+      <div class="instr"><div class="n">📷</div><div class="tx"><b id="vc-ihead">Foto kondisi awal kendaraan</b><p id="vc-instr"></p></div></div>
+      <div class="vgrid" id="vc-grid" style="margin-top:14px"></div>
+    </div></div>
+    <div class="footer"><button class="btn" id="vc-btn" disabled onclick="vehcondDone()">Lengkapi foto dulu</button></div>
+  </section>
+
+  <!-- RUNNER — map background + draggable bottom sheet (consistent with home) -->
+  <section class="screen" id="s-run">
+    <div class="appbar" style="position:absolute;top:0;left:0;right:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)">
+      <div class="back" onclick="goBack()">‹</div>
+      <h2 id="run-title">—<small id="run-sub"></small></h2>
+      <span id="run-progress-badge" style="font-size:11px;font-weight:700;background:var(--purple-a10);color:var(--purple-700);padding:3px 9px;border-radius:var(--radius);white-space:nowrap;flex:0 0 auto"></span>
+      <button onclick="openCsDash()" style="background:none;border:1px solid var(--rule-strong);border-radius:var(--radius);width:34px;height:34px;font-size:15px;cursor:pointer;color:var(--g600);flex:0 0 auto">📞</button>
+    </div>
+    <!-- map layer -->
+    <div class="run-map" id="run-map-bg">
+      <div class="riv"></div><div class="prk"></div>
+      <div id="run-map-pins"></div>
+      <div class="run-mapbtns">
+        <div class="mb" onclick="toast('Membuka Google Maps…')" title="Navigasi">📍</div>
+        <div class="mb" onclick="zoomRunMap()" title="Tampilkan semua titik">⌖</div>
+      </div>
+    </div>
+    <!-- draggable bottom sheet -->
+    <div class="run-sheet" id="run-sheet">
+      <div class="grab" id="run-grab"></div>
+      <div class="run-sheet-inner">
+        <div class="runhero" id="run-hero" style="margin:0"></div>
+        <div id="run-banners"></div>
+        <div class="sec gapt">
+          <div class="seclabel"><span class="gsm">Status lapangan · geser saat kejadian</span><span class="tag purple" id="status-count">0/0</span></div>
+          <div style="font-size:11px;color:var(--g500);line-height:1.5;margin:-4px 0 12px">⏱ Geser <b>tepat saat kejadian</b> — nilai performamu dievaluasi juga oleh client Dash. Jangan ditunda / sekaligus di akhir.</div>
+          <div class="timeline" id="timeline"></div>
+        </div>
+        <div style="height:16px"></div>
+      </div>
+    </div>
+    <div class="footer" style="position:absolute;bottom:0;left:0;right:0;z-index:13">
+      <div class="slide" id="run-slide"><div class="knob" id="run-knob">›</div><div class="lbl" id="run-slide-lbl">—</div></div>
+    </div>
+  </section>
+
+  <!-- POD -->
+  <section class="screen" id="s-pod">
+    <div class="appbar"><div class="back" onclick="goBack()">‹</div><h2 id="pod-title">Bukti pengiriman<small id="pod-sub"></small></h2></div>
+    <div class="scroll">
+      <div class="sec">
+        <div class="seclabel"><span class="gsm">Kelengkapan</span><span class="tnum gsm" id="pod-n">0/0 wajib</span></div>
+        <div class="podmeter"><div class="bar"><i id="pod-bar"></i></div><span class="tnum" style="font-size:12px;font-weight:600;color:var(--g600)" id="pod-pct">0%</span></div>
+        <div id="podgrid"></div>
+      </div>
+      <div class="sec gapt" id="pod-loc-wrap">
+        <div class="seclabel"><span class="gsm">Lokasi dokumen surat jalan</span></div>
+        <div class="locstate"><div class="st passed">di Vendor</div><div class="st on">di Klien</div><div class="st">di Hub Dash</div></div>
+      </div>
+    </div>
+    <div class="footer">
+      <button class="btn" id="pod-confirm" disabled onclick="confirmPod()">Lengkapi dulu</button>
+    </div>
+  </section>
+
+  <!-- CAPTURE -->
+  <section class="screen" id="s-capture">
+    <div class="appbar"><div class="back" onclick="capBack()">‹</div><h2 id="cap-title">Foto<small id="cap-sub"></small></h2></div>
+    <div class="scroll">
+      <div class="sec">
+        <div class="instr"><div class="n">i</div><div class="tx"><b id="cap-ihead">Instruksi</b><p id="cap-instr"></p></div></div>
+        <details class="collapse"><summary>Tips foto & SOP <span>▾</span></summary><div class="cbody" id="cap-tips"></div></details>
+        <div id="cap-preview"></div>
+      </div>
+      <div class="sec gapt" id="cap-shots-wrap" style="display:none">
+        <div class="seclabel"><span class="gsm">Foto terekam</span><span class="capcount" id="cap-count">0 foto</span></div>
+        <div class="thumbstrip" id="cap-strip"></div>
+      </div>
+      <div class="sec gapt" id="cap-cnum-wrap" style="display:none">
+        <div class="seclabel"><span class="gsm">No. kontainer · ketik sesuai fisik</span></div>
+        <div class="kminput"><input id="cap-cnum" placeholder="Contoh: TCLU 483920-1" oninput="cnumInputCh()"></div>
+        <div style="font-size:11px;color:var(--g500);margin-top:7px">Saat ini wajib ketik ulang nomor kontainer. Ketik sesuai fisik karena bisa beda dari surat jalan bila kontainer diganti.</div>
+      </div>
+    </div>
+    <div class="footer" id="cap-footer"></div>
+  </section>
+
+  <!-- OUTCOME -->
+  <section class="screen" id="s-outcome">
+    <div class="appbar"><div class="back" onclick="goBack()">‹</div><h2>Outcome stop<small id="oc-sub"></small></h2></div>
+    <div class="scroll"><div class="sec">
+      <div class="gsm" style="margin-bottom:10px">Pilih hasil stop ini</div>
+      <div id="oc-opts"></div>
+      <div id="oc-reason-wrap" style="display:none;margin-top:6px">
+        <div class="gsm" id="oc-reason-label" style="margin-bottom:6px">Alasan</div>
+        <div class="selectwrap"><select id="oc-select" onchange="ocReasonPicked()"></select></div>
+        <div id="oc-retur-photo" style="display:none;margin-top:8px"><button class="btn sec" style="height:44px;font-size:13px" id="oc-retur-btn" onclick="startReturCapture()">📷 Ambil foto barang retur (wajib)</button></div>
+        <textarea class="reason" id="oc-reason" placeholder="Catatan tambahan (opsional)…"></textarea>
+        <div class="note blue" id="oc-ops" style="margin-top:10px;display:none"><span class="i">ℹ</span><div class="tx">Tindak lanjut (ganti kendaraan / re-schedule / redelivery) ditangani <b>tim Ops</b>.</div></div>
+        <div class="note" id="oc-cascade" style="margin-top:10px;display:none"><span class="i">⚠</span><div class="tx"><b>Pickup gagal</b> → barang tidak terangkut, <b>seluruh drop dibatalkan</b> dan pengiriman selesai sebagai gagal.</div></div>
+      </div>
+    </div></div>
+    <div class="footer"><button class="btn" id="oc-confirm" disabled onclick="applyOutcome()">Pilih hasil</button></div>
+  </section>
+
+  <!-- RETURN -->
+  <section class="screen" id="s-return">
+    <div class="appbar"><div class="back" onclick="goBack()">‹</div><h2 id="rt-title">Kembali ke Hub Dash<small id="rt-sub"></small></h2></div>
+    <div class="scroll" id="rt-body"></div>
+    <div class="footer"><button class="btn" id="rt-btn" onclick="finishRun()">Serahkan ke Hub Dash & selesai</button></div>
+  </section>
+
+  <!-- SUMMARY -->
+  <section class="screen" id="s-sum">
+    <div class="scroll">
+      <div class="bigcheck" id="sum-check">✓</div>
+      <div style="text-align:center;padding:0 24px"><h2 style="font-size:19px;font-weight:700" id="sum-h">Pengiriman Selesai</h2><p style="font-size:13px;color:var(--g600);margin-top:5px;line-height:1.5" id="sum-lead"></p></div>
+      <div class="sec"><div class="card" style="padding:4px 16px" id="sum-card"></div></div>
+      <div class="sec" id="sum-evid-wrap" style="padding-top:0;display:none"><div class="seclabel"><span class="gsm">Ringkasan waktu proses</span></div><div class="evidbox" id="sum-evid"></div></div>
+      <div class="sec" id="sum-apr-wrap" style="padding-top:0"></div>
+    </div>
+    <div class="footer"><button class="btn sec" onclick="go('s-home')">Kembali ke Home</button></div>
+  </section>
+
+  <!-- one-time reminder at trip start (performance framing) -->
+  <div class="modal" id="reminder"><div class="box"><div class="ic">🚚</div><h4>Sudah siap belum?</h4><p><b>Ingat: update tiap step ya! Geser tombol tiap tahap pas kejadiannya</b> — jangan ditunda atau sekaligus di akhir.<br><br><b>Ketepatanmu = nilai performamu, dan dievaluasi juga oleh client Dash.</b> Jadi update tepat waktu ya — biar performamu tercatat baik.</p><button class="btn" style="margin-top:14px;height:44px" onclick="document.getElementById('reminder').classList.remove('on')">Siap, jalan! 🚀</button></div></div>
+
+  <!-- CS Dash: KHUSUS kendala sistem/aplikasi (bug). Kendala operasional → Grup WA Ops Dash. Pesan template auto-terisi baru muncul di WhatsApp (lihat PRD AC). -->
+  <div class="modal" id="csdash"><div class="box">
+    <div class="ic">🛠️</div><h4>Hubungi CS Dash</h4>
+    <p style="font-size:13px;line-height:1.6"><b>CS Dash khusus kendala sistem/aplikasi</b> (error/bug di app). Kalau <b>kendala operasional</b> — macet, ban bocor, antre lama, dll — hubungi <b>tim Ops Dash lewat Grup WA</b> saja biar lebih cepat ditangani.</p>
+    <div class="note blue" style="margin-top:10px;text-align:left"><span class="i">✓</span><div class="tx">Tim CS Dash akan segera bantu. Data yang sudah kamu rekam <b>tetap tersimpan</b> — pengiriman aman, lanjutkan bila bisa.</div></div>
+    <button class="btn" style="margin-top:12px;height:44px" onclick="document.getElementById('csdash').classList.remove('on');toast('Membuka WhatsApp CS Dash…')">Lanjut ke WhatsApp CS Dash</button>
+    <button class="btn sec" style="margin-top:8px;height:42px" onclick="document.getElementById('csdash').classList.remove('on')">Tutup</button>
+  </div></div>
+
+
+  <button id="skipdemo" onclick="skipDemo()" title="Demo: lompat ke langkah berikutnya" style="position:absolute;left:10px;bottom:64px;z-index:60;background:#171717cc;color:#fff;border:none;border-radius:99px;font-size:10.5px;font-weight:600;padding:6px 11px;cursor:pointer">⏭ Skip (demo)</button>
+  <div class="toast" id="toast"><span style="color:#3ee089">✓</span><span id="toast-msg">Tersimpan</span></div>
+</div>
+
+<div class="infobox">
+  <h3>Catatan untuk engineer & tim internal — Phase 0 (Ekspor-Impor)</h3>
+  <div style="margin-bottom:6px">Scope prototipe ini = <b>khusus Phase 0 Ekspor-Impor, happy-flow</b> (evidence-driven compliance: get-in/out wajib foto, balik empty wajib, no. kontainer via input manual driver). Detail lengkap + tiket + AC di <b>PRD_4W_Driver_App</b>; alur di <b>Flow_4W_Driver_Journey</b>.</div>
+  <div style="font-size:11px;color:var(--g500);margin-bottom:12px"><b>Coba prototype:</b> pilih <b>SHP-EXIM-01072 (Import)</b> atau <b>-01079 (Export)</b> → “Mulai pengiriman” → checklist K3 + foto kondisi kendaraan → runner (geser tiap transisi; foto hanya saat langkah bertanda foto) → foto kondisi akhir → ringkasan. Ketuk ikon sinyal kanan-atas = simulasi offline.</div>
+  <div class="cols">
+    <div>
+      <div class="sub">Yang dipangkas di Phase 0 (keputusan meeting 29 Jul)</div>
+      <ul>
+        <li><b>Gate pass = timestamp saja, TANPA foto</b> (ide unggah dari galeri dibatalkan). <b>Gate-in & gate-out TETAP foto real-time</b> (watermark jam + lokasi aktual) — konfirmasi Ops 30 Jul.</li>
+        <li><b>Foto wajib hanya:</b> kontainer & seal, barang (bongkar/muatan), surat jalan, odometer, kontainer di CY. (Kamera saja, ber-watermark.)</li>
+        <li><b>No. kontainer tidak wajib diinput</b> ke sistem di awal (sering berubah di lapangan — rusak/ditolak); acuan = <b>surat jalan</b>. No/seal dari DO = referensi di kartu kontainer, driver tetap foto fisik.</li>
+        <li><b>Dihilangkan:</b> lapor anomali/kendala, fitur gagal/failure, shifting/ganti driver, layar “balik ke pool”, tampilan target lead time, general shipment, preview V1, menu coming-soon. <b>Kendala sistem/aplikasi → CS Dash</b> (pesan template otomatis); <b>kendala operasional → Grup WA ops</b> (biar cepat eskalasi).</li>
+        <li>Terminologi: <b>“Get out Patimban” → “Mulai Berangkat”</b> (generik).</li>
+      </ul>
+      <div class="sub">Alur tervalidasi — Pickup · Delivery · Drop</div>
+      <ul>
+        <li><b>Import</b>: <b>Pickup</b> di pelabuhan (antri/dapat gate pass + foto gate-in/out + kontainer & seal) → <b>Delivery</b>/bongkar di customer (foto barang + surat jalan) → <b>Drop</b> kontainer kosong di CY <i>(WAJIB)</i>.</li>
+        <li><b>Export</b>: <b>Pickup</b> di depo (mulai berangkat → foto kontainer kosong) → <b>Pickup</b>/loading di customer (foto muatan + surat jalan) → <b>Drop</b> full container di CY.</li>
+        <li>Label ke driver = <b>Pickup/Delivery/Drop</b>; klasifikasi POP/POD hanya internal (PRD), tak ditampilkan.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="sub">Spine — bookend tiap trip</div>
+      <ul>
+        <li><b>Checklist pra-trip</b> (dokumen + tools + <b>SOP K3</b> + pernyataan tanggung jawab) — tombol Mulai terkunci sampai lengkap; item di-tap satu-satu (bukan bulk).</li>
+        <li><b>Foto kondisi kendaraan awal & akhir</b>: selfie + 4 sisi + kondisi bak muatan + <b>odometer (foto + ketik angka, dua-duanya wajib)</b>. Penutup trip = foto kondisi akhir di lokasi terakhir — <b>tanpa navigasi “balik ke pool”</b>.</li>
+      </ul>
+      <div class="sub">Integritas jam & aksi</div>
+      <ul>
+        <li>Jam = <b>waktu ketuk</b> (server-verified, non-backdate); <b>geofence prompt</b> saat masuk lokasi; reminder lembut <b>per-stage</b> (config); flag anti-bulk/proxy ke Ops.</li>
+        <li><b>Slide-to-confirm</b> untuk transisi (cegah kepencet); tap untuk buka kamera. Foto <b>kamera saja</b> (no galeri), ber-watermark, per langkah.</li>
+        <li><b>Timer tunggu gate pass</b> jalan otomatis di gate pelabuhan = bukti waktu proses (biaya inap/dispute); durasi dilipat ke timestamp tahap + ringkasan. <b>Tanpa target lead time.</b></li>
+      </ul>
+      <div class="sub">Kebutuhan back-end (paralel, di luar app)</div>
+      <ul>
+        <li>Update status ke klien <b>tiap 2 jam</b> → butuh dashboard/akses data; bila dashboard belum siap, <b>export Excel</b> dari back-end = solusi interim MVP.</li>
+        <li>Field baru: <b>workflowCategory · opsNote · container · PIC per stop · Locations master</b>. <b>Delivery exim dibuat dari platform internal</b> (<code>https://nexusdrive.lovable.app/requests/new</code>), namun perlu <b>penambahan input order nomor dari client</b> (contoh: <b>AGL Order No</b>). <b>1 unit = 1 driver, tanpa helper.</b></li>
+      </ul>
+    </div>
+  </div>
+  <div class="sub">Konfirmasi Ops (30 Jul) & catatan</div>
+  <ul>
+    <li>✅ <b>Balik kontainer kosong ke CY (import) = WAJIB</b> — jadi stop tetap (bukan opsional/pilihan driver). Dikonfirmasi Ops.</li>
+    <li>✅ <b>Gate-in & gate-out = foto real-time</b> (watermark jam + lokasi aktual); <b>gate pass = timestamp saja</b>. Dikonfirmasi Ops.</li>
+    <li><b>No. kontainer direkam via input manual driver di TIAP foto kontainer</b> (mutable — nangkep kalau kontainer diganti; checkbox “sama seperti tahap sebelumnya” utk reuse tanpa ketik ulang). <b>No. seal tidak diketik</b> — cukup dari foto kontainer & seal. Bukan OCR. <b>Admin bisa update</b> di platform.</li>
+    <li><b>Booking ID / Ref customer TIDAK ditampilkan di driver app</b> — itu kebutuhan <b>tracking client di Dash Link</b> (client search/filter shipments). Driver cukup pakai kode shipment. Field-nya tetap ada di sistem utk Dash Link. <b>Key tracking final client masih TBD</b> — validasi langsung ke client. Dependency <b>Dash Link (POV client)</b>.</li>
+    <li><b>Stop-based (konsep engineer):</b> tiap stop = main type <b>Pickup</b> / <b>Drop-off</b> + aktivitas (gate/foto/bongkar/loading) di dalamnya. Label driver (English) <b>Pickup · Delivery · Drop</b>. <b>Import = Pickup · Delivery · Drop</b>; <b>Export = Pickup · Pickup · Drop</b> (multi-pickup existing). Aturan label: <b>Delivery</b> = serah-terima barang (bongkar + surat jalan, POD); <b>Drop</b> = taruh/kembalikan kontainer di yard/port tanpa serah-terima barang (tetap DROPOFF/POD). "Drop" <b>BUKAN</b> grup Return (Return = jalur gagal/retur barang). Cek §6.6 PRD.</li>
+    <li><b>Sudah di-align ke data model engineer (31 Jul: multidrop-erd + shipapi):</b> exim = <code>type=DIRECT_4W</code> → <code>routes → route_stops (PICKUP/DROPOFF) → stop_proofs (POP/POD, per-attempt) via steppers/stepper_fields (IMAGE/TEXT/NUMBER)</code>. Aktivitas per-step = <b>stepper/MILESTONE</b>; status stop = <b>custody STATUS</b> (v2). <b>Tracking client = waybill + bookingId</b> (= AGL Order No). Create: import=<code>/multi-drop</code>, export=<code>/multi-pickup</code>. <b>Urutan flow SOP tidak berubah</b> — detail granularity step (status vs stepper field vs stop) tunggu final arsitektur engineer. Cek §5C PRD.</li>
+    <li><b>Rute yang direkomendasikan</b> tampil di detail (awareness kendaraan besar) + tombol <b>buka Google Maps</b> (origin→next). <b>Tanpa</b> turn-by-turn in-app. <i>(Catatan rute dinamis di-hide dulu — field-nya belum ada di platform internal.)</i></li>
+    <li><b>Notifikasi hambatan ke customer</b> (macet/ban bocor) <b>ditunda</b> — SOP siapa yang kirim (driver vs Ops) belum matang.</li>
+    <li>⏳ <b>Antrean gate pass di CY export</b> — tetap dipasang (konsisten dgn import & bukti waktu berharga); tinggal konfirmasi Ops apakah benar antre.</li>
+    <li>Target demo ke driver: <b>TBC (W2 atau W3 Aug)</b>.</li>
+    <li><b>Penyesuaian final V0 (3 Agu · Stepper/Form meeting):</b> (1) <b>Runner screen = peta + bottom sheet geser</b> (konsisten dgn Home) — peta selalu terlihat, pin bernomor per stop; sheet bisa geser naik (expanded) / turun (peek). Navigasi = Google Maps (tombol map peta). (2) <b>Stepper-first / form-direct:</b> stop >1 langkah → tampilkan daftar langkah dulu (timeline runner); stop 1 langkah → langsung form. (3) <b>No. kontainer TANPA auto-fill</b> — ketik ulang tiap tahap (akurasi per titik); checkbox "sama seperti sebelumnya" = <b>P2</b>, tidak di V0. (4) <b>Foto kendaraan awal = acuan</b> — di akhir trip cuma <b>odometer akhir wajib</b>; foto sisi opsional (bila ada kerusakan).</li>
+    <li><b>Flow status/activity masih menunggu konfirmasi final arsitektur sistem dari engineer.</b> Secara UI, activity/status mungkin ada sedikit adjustment nantinya — <b>tapi tidak akan mengubah urutan flow SOP Ops</b>. (TBC)</li>
+  </ul>
+</div>
+
+<script>
+function tick(){const d=new Date();document.getElementById('clock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+tick();setInterval(tick,15000);
+function nowLabel(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function today(){const d=new Date();return String(d.getDate()).padStart(2,'0')+'/07/2026';}
+let navStack=[];
+function currentScreen(){const a=document.querySelector('.screen.active');return a?a.id:null;}
+function go(id,isBack){const cur=currentScreen();if(!isBack&&cur&&cur!==id)navStack.push(cur);document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');const sc=document.querySelector('#'+id+' .scroll');if(sc)sc.scrollTop=0;}
+function goBack(){const prev=navStack.pop();go(prev||'s-home',true);}
+function openMenu(){document.getElementById('menu-sheet').classList.add('on');}
+function closeMenu(){document.getElementById('menu-sheet').classList.remove('on');}
+// CS Dash — hanya untuk kendala sistem/aplikasi. Pesan template auto-terisi muncul di WhatsApp saat lanjut (format di PRD AC), bukan di dalam app.
+function openCsDash(){document.getElementById('csdash').classList.add('on');}
+// Skip-step helper for internal showcase (demo only) — auto-completes the current screen
+function skipDemo(){const s=currentScreen();
+  if(s==='s-ship'){startTrip();return;}
+  if(s==='s-checklist'){CHECKLIST.docs.map(i=>'d-'+i.k).concat(CHECKLIST.tools.map(i=>'t-'+i.k),CHECKLIST.hse.map(i=>'h-'+i.k)).forEach(k=>{ckState[k]=true;const el=document.querySelector(`.ckitem[data-k="${k}"]`);if(el)el.classList.add('on');});updateChecklist();checklistDone();return;}
+  if(s==='s-vehcond'){(vehMode==='start'?VEH_START:VEH_END).forEach(t=>vehShots[t.k]=true);vehKm='184320';renderVehGrid();vehcondDone();return;}
+  if(s==='s-run'){advanceStatus();return;}
+  if(s==='s-pod'){document.querySelectorAll('#podgrid .podslot').forEach(el=>{el.classList.add('filled');if(el.classList.contains('inputslot')){el.dataset.filled='1';const inp=el.querySelector('input');if(inp)inp.value='INV-2026-07-DEMO';}});updatePod();confirmPod();return;}
+  if(s==='s-return'){finishRun();return;}
+  if(s==='s-capture'){shoot();if(cnumMode&&!capCnum){capCnum='TCLU 483920-1';const ci=document.getElementById('cap-cnum');if(ci)ci.value=capCnum;}confirmCapture();return;}
+  toast('Skip demo tidak berlaku di layar ini');
+}
+let toastT;function toast(m){document.getElementById('toast-msg').textContent=m;const t=document.getElementById('toast');t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1800);}
+let offline=false;
+function toggleOffline(){offline=!offline;document.getElementById('offbanner').classList.toggle('on',offline);document.body.classList.toggle('off',offline);document.getElementById('netchip').textContent=offline?'✕ Tanpa sinyal':'●●● 5G ▮▮▮ 84';toast(offline?'Mode offline — tersimpan lokal':'Online — sinkronisasi…');}
+function syncMark(){return offline?'<span class="syncbadge">⏳</span>':'';}
+function simMin(seed){let h=0;for(const c of String(seed))h=(h*31+c.charCodeAt(0))%9973;return 24+h%48;} // 24..71 min, stable per seed
+
+// ---------- CONFIG ----------
+const SLOTS={
+  doCode:{kind:'input',label:'Nomor surat jalan',ico:'🔢',required:true,hint:'Ketik nomor yang tertera di surat jalan (atau nomor DO / Delivery Order sesuai dokumen client). Pastikan persis sama — dipakai mencocokkan tagihan; salah ketik bisa menghambat penagihan.'},
+  muatan:{label:'Foto muatan (setelah loading)',ico:'📦',required:true,kind:'barang',instr:'Foto muatan setelah selesai loading, sebagai bukti barang sudah dimuat lengkap.',frame:'Pastikan seluruh muatan terlihat',min:1},
+  sjDepan:{label:'Surat jalan — halaman depan',ico:'📄',required:true,kind:'sj',instr:'Foto halaman depan surat jalan. Pastikan stempel & tanda tangan penerima terlihat penuh dan tidak terpotong.',frame:'Posisikan surat jalan di dalam bingkai',min:1},
+  lampiran:{label:'Lampiran / halaman isi',ico:'📎',required:false,optional:true,kind:'sj',multi:true,instr:'Opsional — foto lembar lampiran BILA ADA (surat jalan lebih dari 1 lembar), satu foto per lembar. Kalau surat jalan cuma 1 lembar (depan saja), lewati langkah ini.',frame:'Foto tiap lembar lampiran satu per satu',min:0,max:8},
+  barang:{label:'Foto barang diterima',ico:'📦',required:true,kind:'barang',instr:'Foto barang saat serah terima di lokasi penerima. Pastikan seluruh barang terlihat jelas.',frame:'Pastikan seluruh barang masuk bingkai',min:1},
+  // Export-Import slots
+  gatePass:{label:'Foto gate (masuk/keluar)',ico:'🚪',required:true,kind:'gate',instr:'Foto pos / gerbang gate saat masuk atau keluar. Waktu & lokasi tercatat otomatis (watermark) — jadi bukti kamu benar berada di gate saat itu.',frame:'Pastikan pos/gerbang gate terlihat',min:1},
+  lokasiDepo:{label:'Foto lokasi depo',ico:'📍',required:true,kind:'gate',instr:'Foto papan nama / area depo saat tiba & saat keluar. Depo tidak pakai gate formal — foto lokasi jadi buktinya (waktu & lokasi ter-watermark).',frame:'Pastikan papan / area depo terlihat',min:1},
+  containerSeal:{label:'Foto kontainer & seal',ico:'🚛',required:true,kind:'container',instr:'Foto kontainer dan nomor seal. Pastikan nomor kontainer & seal terlihat jelas dan cocok dengan dokumen.',frame:'Pastikan nomor kontainer & seal terlihat',min:1},
+  cyDrop:{label:'Foto drop kontainer di CY',ico:'📍',required:true,kind:'container',instr:'Foto kontainer setelah di-drop di Container Yard (CY). Bukti kontainer kosong sudah dikembalikan.',frame:'Pastikan kontainer & lokasi CY terlihat',min:1},
+  contInput:{kind:'input',label:'Nomor kontainer & seal',ico:'🔢',required:true,placeholder:'Cont: TCLU0000000 · Seal: SGL-000',hint:'Ketik nomor kontainer & nomor seal sesuai fisik/dokumen gate. Data ini TIDAK tersedia dari sistem saat shipment dibuat — driver input di lapangan.'},
+};
+// General status sets — "Antri loading" added per BD meeting (27 Jul)
+const ST_PORT=['Tandai berangkat','Tiba di gudang','Antri loading','Body pass','Mulai loading','Body gate','Selesai loading'];
+const ST_LOAD=['Tandai berangkat','Tiba di gudang','Antri loading','Mulai loading','Selesai loading'];
+const ST_DROP=['Tandai berangkat','Tiba di lokasi','Mulai bongkar','Selesai bongkar'];
+// Export-Import: status/proof di-inline per shipment (statuses[] + pk[] = photo-kind per tahap), foto wajib di setiap proses. Label GENERIK; nama customer/lokasi spesifik ada di field name/addr biar scalable.
+const FLOWTONE={purple:['#efeaf7','#431e7a'],sky:['#ebf8ff','#2597d0'],orange:['#fff3eb','#b75310'],teal:['#e6f6f4','#0b6f65']};
+// Route overview map (bukan navigasi aktif) — pin bernomor per stop + garis rute.
+const ROUTE_COL=['#5e2aac','#0b6f65','#b75310','#2597d0'];
+function driverMapHTML(s){
+  const n=s.stops.length;
+  const pos=s.stops.map((st,i)=>({x:(n<=1?50:14+i*(72/(n-1))),y:(i%2===0?36:66),seq:st.seq}));
+  const path='M '+pos.map(p=>p.x+' '+p.y).join(' L ');
+  const pins=pos.map((p,i)=>`<div class="dmap-pin" style="left:${p.x}%;top:${p.y}%"><div class="b" style="background:${ROUTE_COL[i]||'#5e2aac'}">${p.seq}</div></div>`).join('');
+  return `<div class="dmap"><div class="dmap-grid"></div><div class="dmap-river"></div>
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="#5e2aac" stroke-width="1.2" stroke-dasharray="3 2" opacity=".8"/></svg>
+    ${pins}<div class="dmap-me" style="left:${pos[0].x}%;top:${pos[0].y}%"><span></span></div></div>`;
+}
+// Render stop pins on the shipment-detail background map
+// v5: only 2 pins — A (first stop, purple) and B (last stop, teal), with name labels; solid polyline A→B.
+// Detail per stop ada di stop list dalam sheet — peta hanya ngasih konteks spasial origin→dest.
+function renderShipMapPins(s){
+  const cont=document.getElementById('sh-map-pins');if(!cont)return;
+  cont.innerHTML='';
+  const stops=s.stops.filter(st=>st.type!=='return');
+  if(!stops.length) return;
+  const first=stops[0], last=stops[stops.length-1];
+  // Fixed positions — A lower-left, B upper-right; looks like a real journey direction
+  const pA={x:28,y:62}, pB={x:68,y:26};
+  // Pin A — purple (origin)
+  cont.insertAdjacentHTML('beforeend',
+    `<div style="position:absolute;left:${pA.x}%;top:${pA.y}%;transform:translate(-50%,-100%);z-index:6;text-align:center">
+      <div style="width:26px;height:26px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);background:#5e2aac;border:2px solid #fff;box-shadow:0 2px 6px #17171733;display:grid;place-items:center;margin:0 auto">
+        <span style="transform:rotate(-45deg);color:#fff;font-size:11px;font-weight:800">A</span>
+      </div>
+      <div style="margin-top:4px;background:rgba(255,255,255,.92);border-radius:3px;padding:2px 5px;font-size:9.5px;font-weight:700;color:#431e7a;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 3px #0002">${first.name}</div>
+    </div>`);
+  // Pin B — teal (destination)
+  cont.insertAdjacentHTML('beforeend',
+    `<div style="position:absolute;left:${pB.x}%;top:${pB.y}%;transform:translate(-50%,-100%);z-index:6;text-align:center">
+      <div style="width:26px;height:26px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);background:#0e9384;border:2px solid #fff;box-shadow:0 2px 6px #17171733;display:grid;place-items:center;margin:0 auto">
+        <span style="transform:rotate(-45deg);color:#fff;font-size:11px;font-weight:800">B</span>
+      </div>
+      <div style="margin-top:4px;background:rgba(255,255,255,.92);border-radius:3px;padding:2px 5px;font-size:9.5px;font-weight:700;color:#0b6f65;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 3px #0002">${last.name}</div>
+    </div>`);
+  // Solid polyline SVG — straight line A→B
+  const mapEl=document.getElementById('sh-map-bg');
+  let svg=document.getElementById('sh-map-svg');
+  if(!svg){svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.id='sh-map-svg';svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('preserveAspectRatio','none');svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4';mapEl.appendChild(svg);}
+  svg.innerHTML=`<path d="M ${pA.x} ${pA.y} L ${pB.x} ${pB.y}" fill="none" stroke="#5e2aac" stroke-width="1" opacity=".45"/>`;
+}
+
+// Render map pins in runner map background
+// Same as ship map: only A (first stop, purple) and B (last stop, teal) with name labels; solid polyline.
+// Detail per tahap ada di stop list dalam sheet — peta hanya konteks spasial origin→dest.
+function renderRunMapPins(){
+  if(!CUR) return;
+  const cont=document.getElementById('run-map-pins');if(!cont)return;
+  cont.innerHTML='';
+  const stops=CUR.stops.filter(st=>st.type!=='return');
+  if(!stops.length) return;
+  const first=stops[0], last=stops[stops.length-1];
+  const pA={x:28,y:62}, pB={x:68,y:26};
+  // Pin A — purple (origin)
+  cont.insertAdjacentHTML('beforeend',
+    `<div style="position:absolute;left:${pA.x}%;top:${pA.y}%;transform:translate(-50%,-100%);z-index:6;text-align:center">
+      <div style="width:26px;height:26px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);background:#5e2aac;border:2px solid #fff;box-shadow:0 2px 6px #17171733;display:grid;place-items:center;margin:0 auto">
+        <span style="transform:rotate(-45deg);color:#fff;font-size:11px;font-weight:800">A</span>
+      </div>
+      <div style="margin-top:4px;background:rgba(255,255,255,.92);border-radius:3px;padding:2px 5px;font-size:9.5px;font-weight:700;color:#431e7a;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 3px #0002">${first.name}</div>
+    </div>`);
+  // Pin B — teal (destination)
+  cont.insertAdjacentHTML('beforeend',
+    `<div style="position:absolute;left:${pB.x}%;top:${pB.y}%;transform:translate(-50%,-100%);z-index:6;text-align:center">
+      <div style="width:26px;height:26px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);background:#0e9384;border:2px solid #fff;box-shadow:0 2px 6px #17171733;display:grid;place-items:center;margin:0 auto">
+        <span style="transform:rotate(-45deg);color:#fff;font-size:11px;font-weight:800">B</span>
+      </div>
+      <div style="margin-top:4px;background:rgba(255,255,255,.92);border-radius:3px;padding:2px 5px;font-size:9.5px;font-weight:700;color:#0b6f65;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 3px #0002">${last.name}</div>
+    </div>`);
+  // Solid polyline SVG A→B
+  let svg=document.getElementById('run-map-svg');
+  if(!svg){svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.id='run-map-svg';svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('preserveAspectRatio','none');svg.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4';document.getElementById('run-map-bg').appendChild(svg);}
+  svg.innerHTML=`<path d="M ${pA.x} ${pA.y} L ${pB.x} ${pB.y}" fill="none" stroke="#5e2aac" stroke-width="1" opacity=".45"/>`;
+}
+
+// Perhentian list in sheet route section
+function renderRunmapBody(){
+  if(!CUR) return;
+  document.getElementById('runmap-body').innerHTML=
+    '<div class="perhentian" style="margin-top:6px">'+CUR.stops.map((st,i)=>{
+      const isDone=i<si,isCur=i===si;
+      const col=isDone?'#1fc16b':(isCur?(CUR.cat==='exim'?'#0e9384':'#5e2aac'):'#a3a3a3');
+      return `<div class="ph-row ${isCur?'cur':''}"><div class="ph-no" style="background:${col}">${st.seq}</div>
+        <div class="ph-tx"><b>${st.title||st.name}</b><small>${st.addr}${st.eta?' · '+st.eta:''}</small></div>
+        ${isCur?'<span class="ph-here">di sini</span>':(isDone?'<span style="font-size:10px;font-weight:700;color:var(--green-600)">✓</span>':'')}</div>`;
+    }).join('')+'</div>';
+}
+
+function zoomRunMap(){toast('Menampilkan semua titik rute');}
+
+// Draggable shipment-detail bottom sheet — same pointer+touch pattern as runner sheet
+// Two snap points: peek ~46% (summary card + awal stop list keliatan), expanded ~80% (full scroll)
+let _ssDragging=false,_ssStartY=0,_ssStartH=0,_ssExpandH=0,_ssPeekH=0;
+function initShipSheet(){
+  const sh=document.getElementById('sh-sheet');
+  const grab=document.getElementById('sh-grab');
+  if(!sh||!grab) return;
+  const phone=document.querySelector('.phone');
+  // totalH = phone height minus statusbar (34) minus footer (74)
+  const totalH=(phone?phone.clientHeight:812)-34-74;
+  _ssPeekH=Math.round(totalH*0.46);   // peek: ~46% — summary card + awal stop list
+  _ssExpandH=Math.round(totalH*0.80); // expanded: ~80% — full scroll
+
+  sh.style.height=_ssPeekH+'px';
+  sh.style.transition='none';
+
+  function onDown(e){
+    _ssDragging=true;
+    _ssStartY=e.touches?e.touches[0].clientY:e.clientY;
+    _ssStartH=sh.offsetHeight;
+    sh.style.transition='none';
+    if(grab.setPointerCapture&&e.pointerId!=null) try{grab.setPointerCapture(e.pointerId);}catch(ex){}
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!_ssDragging) return;
+    const cy=e.touches?e.touches[0].clientY:e.clientY;
+    const dy=_ssStartY-cy;
+    const newH=Math.max(80,Math.min(_ssExpandH,_ssStartH+dy));
+    sh.style.height=newH+'px';
+    e.preventDefault();
+  }
+  function onUp(){
+    if(!_ssDragging) return;
+    _ssDragging=false;
+    const curH=sh.offsetHeight;
+    const mid=(_ssPeekH+_ssExpandH)/2;
+    const target=curH>mid?_ssExpandH:_ssPeekH;
+    sh.style.transition='height .28s cubic-bezier(.4,0,.2,1)';
+    sh.style.height=target+'px';
+  }
+  // Touch
+  grab.addEventListener('touchstart',onDown,{passive:false});
+  window.addEventListener('touchmove',onMove,{passive:false});
+  window.addEventListener('touchend',onUp);
+  // Pointer (mouse / stylus)
+  grab.addEventListener('pointerdown',onDown);
+  window.addEventListener('pointermove',onMove);
+  window.addEventListener('pointerup',onUp);
+}
+
+// Reset ship sheet to peek height each time openShip() is called
+function resetShipSheet(){
+  const sh=document.getElementById('sh-sheet');
+  if(sh&&_ssPeekH){sh.style.transition='none';sh.style.height=_ssPeekH+'px';}
+}
+
+// Draggable runner bottom sheet — snaps to two heights: peek & expanded
+let _rsDragging=false,_rsStartY=0,_rsStartH=0,_rsExpandH=0,_rsPeekH=0;
+function initRunSheet(){
+  const sh=document.getElementById('run-sheet');
+  const grab=document.getElementById('run-grab');
+  if(!sh||!grab) return;
+  // Heights relative to phone inner height (812 - 34 statusbar - 74 footer-appbar)
+  const phone=document.querySelector('.phone');
+  const totalH=(phone?phone.clientHeight:812)-34;
+  _rsPeekH=Math.round(totalH*0.40);   // peek: ~40% — shows hero + first status (no route list above hero)
+  _rsExpandH=Math.round(totalH*0.78);  // expanded: ~78% — full scroll
+
+  sh.style.height=_rsPeekH+'px';
+  sh.style.transition='none';
+
+  function onDown(e){
+    _rsDragging=true;
+    _rsStartY=e.touches?e.touches[0].clientY:e.clientY;
+    _rsStartH=sh.offsetHeight;
+    sh.style.transition='none';
+    if(grab.setPointerCapture&&e.pointerId!=null) try{grab.setPointerCapture(e.pointerId);}catch(ex){}
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!_rsDragging) return;
+    const cy=e.touches?e.touches[0].clientY:e.clientY;
+    const dy=_rsStartY-cy; // positive = dragging up
+    const newH=Math.max(80,Math.min(_rsExpandH,_rsStartH+dy));
+    sh.style.height=newH+'px';
+    e.preventDefault();
+  }
+  function onUp(e){
+    if(!_rsDragging) return;
+    _rsDragging=false;
+    const curH=sh.offsetHeight;
+    const mid=(_rsPeekH+_rsExpandH)/2;
+    const target=curH>mid?_rsExpandH:_rsPeekH;
+    sh.style.transition='height .28s cubic-bezier(.4,0,.2,1)';
+    sh.style.height=target+'px';
+  }
+  // Touch
+  grab.addEventListener('touchstart',onDown,{passive:false});
+  window.addEventListener('touchmove',onMove,{passive:false});
+  window.addEventListener('touchend',onUp);
+  // Pointer (mouse / stylus)
+  grab.addEventListener('pointerdown',onDown);
+  window.addEventListener('pointermove',onMove);
+  window.addEventListener('pointerup',onUp);
+}
+
+const CHECKLIST={
+  docs:[{k:'stnk',l:'STNK',s:'Surat tanda nomor kendaraan'},{k:'kir',l:'KIR',s:'Uji berkala kendaraan'},{k:'sim',l:'SIM driver',s:'Sesuai golongan (B1/B2)'},{k:'tugas',l:'Surat tugas / jalan',s:'Dokumen penugasan hari ini'}],
+  tools:[{k:'serep',l:'Ban serep',s:'Kondisi layak'},{k:'dongkrak',l:'Dongkrak & kunci roda',s:''},{k:'segitiga',l:'Segitiga pengaman',s:''},{k:'ganjal',l:'Ganjal ban',s:''},{k:'apar',l:'APAR (pemadam)',s:'Bila tersedia di unit'}],
+  hse:[{k:'hse',l:'Saya paham SOP K3 & bersedia bertanggung jawab atas konsekuensi bila lalai',s:'Konfirmasi sekali — do & don’t di atas berlaku sepanjang perjalanan'}],
+};
+const VEH_START=[{k:'selfie',l:'Selfie driver',ico:'🤳'},{k:'depan',l:'Kendaraan — depan',ico:'🚚'},{k:'belakang',l:'Kendaraan — belakang',ico:'🚚'},{k:'kiri',l:'Samping kiri',ico:'🚚'},{k:'kanan',l:'Samping kanan',ico:'🚚'},{k:'box',l:'Kondisi bak muatan',ico:'📦',hint:'General: dalam box. Exim (kontainer belum diangkut): foto bagian belakang truk/chassis.'},{k:'km',l:'KM awal (odometer)',ico:'🔢',km:true}];
+const VEH_END=[{k:'selfie',l:'Selfie driver',ico:'🤳'},{k:'depan',l:'Kendaraan — depan',ico:'🚚'},{k:'belakang',l:'Kendaraan — belakang',ico:'🚚'},{k:'kiri',l:'Samping kiri',ico:'🚚'},{k:'kanan',l:'Samping kanan',ico:'🚚'},{k:'box',l:'Kondisi bak muatan',ico:'📦',hint:'General: dalam box. Exim (kontainer belum diangkut): foto bagian belakang truk/chassis.'},{k:'km',l:'KM akhir (odometer)',ico:'🔢',km:true}];
+
+// ============================================================================
+// PHASE 0 — HANYA EKSPOR-IMPOR (AGL Patimban). Happy-flow only.
+// Aturan foto (meeting 29 Jul + konfirmasi Ops 30 Jul):
+//   FOTO real-time (watermark timestamp+GPS): kontainer/seal · barang/muatan · surat jalan · odometer · GATE-IN & GATE-OUT.
+//   TIMESTAMP saja (tanpa foto): GATE PASS (antri/dapat). pk='gate' → foto gate; pk='container|barang|sj' → foto; pk=null → timestamp.
+//   Balik kontainer kosong ke CY (import) = WAJIB (konfirmasi Ops).
+// ============================================================================
+const SHIPMENTS=[
+ // ---- IMPORT (Pelabuhan → customer → CY) — Pickup · Delivery · Drop ----
+ {key:'X',cat:'exim',direction:'import',code:'SHP-EXIM-01072',bookingId:'BKG-AGL-4471',custRef:'PO-PINDO-2207',client:'AGL Patimban',model:'Dedicated',flow:'Ekspor-Impor · Import',tone:'teal',
+  vehicle:'Tronton · B 9021 PXA',driver:'Andi',priority:true,origin:'Pelabuhan Patimban',dest:'Customer (end user)',load:'FCL 40ft',timing:'per-stop',
+  routeNote:'Lewat Tol Cipali → keluar Subang → jalur trailer (hindari jalan kampung; ada portal & tikungan sempit).',
+  container:{type:'FCL 40ft',line:'Import'}, // hanya jenis; no. kontainer & seal tidak dipakai dari sistem (acuan = surat jalan)
+  opsNote:'Ambil 1 kontainer FCL import di pelabuhan, antar & bongkar di lokasi customer, lalu WAJIB kembalikan kontainer kosong ke CY. Foto kontainer & seal fisik lalu cocokkan dengan surat jalan (acuan utama).',
+  stops:[
+   {type:'exim',seq:'1',name:'Pelabuhan Patimban',title:'Ambil Kontainer FCL (Import)',addr:'Terminal Peti Kemas Patimban, Subang',geo:'-6.2470, 107.9080',load:'Ambil FCL import',eta:'Di lokasi',pic:'Petugas gate pelabuhan',
+    note:'Antri gate pass (timer jalan) → dapat gate pass (timestamp) → foto gate-in → foto kontainer & seal → foto gate-out. Gate pass cukup timestamp; gate-in/out wajib foto.',
+    statuses:['Antri gate pass','Dapat gate pass','Gate-in pelabuhan','Foto kontainer & seal','Gate-out pelabuhan'],
+    pk:[null,null,'gate','container','gate'],wait:{from:0,to:1,base:47}},
+   {type:'exim',seq:'2',name:'Customer',title:'Bongkar di Customer',addr:'Lokasi customer (end user)',geo:'-6.5710, 107.7600',load:'FCL 40ft',eta:'62 km · ETA 1j 20m',pic:'Warehouse customer',
+    note:'Foto gate-in customer → bongkar → foto surat jalan → foto gate-out. Durasi bongkar dihitung otomatis.',
+    statuses:['Gate-in di customer','Mulai bongkar','Selesai bongkar','Surat jalan — depan','Lampiran surat jalan · opsional','Gate-out di customer'],
+    pk:['gate',null,'barang','sj','sjLamp','gate']},
+   {type:'exim',seq:'3',name:'Pelabuhan Patimban · CY',title:'Kembalikan Kontainer Kosong ke CY',addr:'Container Yard (CY), Pelabuhan Patimban',geo:'-6.2470, 107.9080',load:'Kontainer kosong',eta:'62 km · ETA 1j 25m',pic:'Petugas CY',
+    note:'WAJIB. Antri gate pass → dapat gate pass (timestamp) → foto gate-in → foto drop kontainer kosong di CY → foto gate-out.',
+    statuses:['Tiba di pelabuhan','Antri gate pass','Dapat gate pass','Gate-in pelabuhan','Drop kontainer kosong di CY','Gate-out pelabuhan'],
+    pk:[null,null,null,'gate','container','gate'],wait:{from:1,to:2,base:22}},
+  ]},
+ // ---- EXPORT (Depo empty → loading customer → drop full CY) — Pickup · Pickup · Drop ----
+ {key:'E',cat:'exim',direction:'export',code:'SHP-EXIM-01079',bookingId:'BKG-AGL-4488',custRef:'PO-IKK-2213',client:'AGL Patimban',model:'Dedicated',flow:'Ekspor-Impor · Export',tone:'teal',
+  vehicle:'Tronton · B 9021 PXA',driver:'Andi',priority:true,origin:'Depo empty',dest:'Pelabuhan (CY)',load:'FCL 40ft',timing:'per-stop',
+  routeNote:'Depo → jalur industri → Tol → Pelabuhan Patimban. Patuhi jam operasional truk & jembatan timbang.',
+  container:{type:'FCL 40ft',line:'Export'},
+  opsNote:'Ambil kontainer kosong di depo → loading barang di lokasi customer → antar & drop full container di CY pelabuhan. Foto kontainer & seal fisik lalu cocokkan dengan surat jalan (acuan utama).',
+  stops:[
+   {type:'exim',seq:'1',name:'Depo Empty',title:'Ambil Kontainer Kosong di Depo',addr:'Lokasi depo sesuai assignment',geo:'-6.1400, 106.9400',load:'Ambil kontainer kosong',eta:'Di lokasi',pic:'Petugas depo',
+    note:'Mulai berangkat → tiba depo → foto kontainer kosong → foto gate-out depo. Gate-out wajib foto.',
+    statuses:['Mulai berangkat','Tiba di depo','Foto kontainer kosong','Keluar dari depo'],
+    pk:[null,'loc','container','loc']},
+   {type:'exim',seq:'2',name:'Customer',title:'Loading di Customer',addr:'Lokasi muat customer (end user)',geo:'-6.5500, 107.7500',load:'Loading FCL 40ft',eta:'40 km · ETA 55 mnt',pic:'Warehouse customer',
+    note:'Foto gate-in → mulai loading → selesai loading (foto muatan) → foto surat jalan → foto gate-out. Durasi loading dihitung otomatis.',
+    statuses:['Gate-in di customer','Mulai loading','Selesai loading','Surat jalan — depan','Lampiran surat jalan · opsional','Gate-out di customer'],
+    pk:['gate',null,'barang','sj','sjLamp','gate']},
+   {type:'exim',seq:'3',name:'Pelabuhan Patimban · CY',title:'Antar Full Container ke CY',addr:'Container Yard (CY), Pelabuhan Patimban',geo:'-6.2470, 107.9080',load:'FCL 40ft',eta:'65 km · ETA 1j 30m',pic:'Petugas CY',
+    note:'Antri gate pass → dapat gate pass (timestamp) → foto gate-in → foto drop full container di CY → foto gate-out. (Antrean gate pass CY export masih dikonfirmasi Ops.)',
+    statuses:['Tiba di pelabuhan','Antri gate pass','Dapat gate pass','Gate-in pelabuhan','Drop full container di CY','Gate-out pelabuhan'],
+    pk:[null,null,null,'gate','container','gate'],wait:{from:1,to:2,base:34}},
+  ]},
+];
+
+// ---------- STATE ----------
+let CUR=null,si=0,done=0,stamps=[],outcomes={},pendingOutcome=null,runFailed=false;
+let finalizeReason=null,finalizeReasonText='';
+let capSlotEl=null,capCfg=null,capShots=[],returMode=false,returPhotoDone=false;
+let durations={},durMeta={},waitInt=null,waitBaseSec=0,waitT0=0,vehMode='start',vehShots={},vehKm='',tripStarted=false;
+let eximShots={},milestoneMode=false,milestoneIdx=-1,vehCapMode=false,vehCapKey='',laporMode=false,anomaliList=[],remindShown=false;
+let containerNums={},cnumMode=false,capCnum='',lastCnum=''; // no. kontainer diinput driver di TIAP foto kontainer (mutable; admin bisa update). Seal cukup dari foto — tidak diketik. Bukan OCR.
+function cnumInputCh(){capCnum=document.getElementById('cap-cnum').value;renderCapture();}
+// Checklist "sama seperti sebelumnya" — cara cepat: pakai nomor kontainer terakhir tanpa ketik ulang (kontainer biasanya sama sepanjang trip).
+function cnumSameToggle(){const on=document.getElementById('cnum-same-cb').checked;
+  capCnum=on?lastCnum:'';
+  const ci=document.getElementById('cap-cnum');ci.value=capCnum;ci.disabled=on;renderCapture();}
+const MST_KIND={gate:'gatePass',container:'containerSeal',barang:'barang',sj:'sjDepan',sjLamp:'lampiran',loc:'lokasiDepo'}; // photo-milestone kind → SLOTS key
+
+// ---------- HOME ----------
+function renderHomeMapPins(){
+  const cont=document.getElementById('home-map-pins');if(!cont)return;
+  // One pin per shipment — fixed scatter positions that sit clear of driver "me" dot (top area of map)
+  const positions=[{top:140,left:190},{top:90,left:255}];
+  cont.innerHTML='';
+  SHIPMENTS.forEach((s,i)=>{
+    const p=positions[i]||{top:120+i*40,left:170+i*40};
+    const col=s.cat==='exim'?'#0e9384':'#5e2aac';
+    cont.insertAdjacentHTML('beforeend',
+      `<div class="pin" style="top:${p.top}px;left:${p.left}px">
+        <div class="bub" style="background:${col}"><span>${i+1}</span></div>
+       </div>`);
+  });
+}
+function renderHome(){
+  const l=document.getElementById('ship-list');l.innerHTML='';
+  SHIPMENTS.forEach(s=>{
+    const prio=s.priority?'<span class="tag dk" title="Prioritas — belum tentu tersedia di sistem internal">Prioritas</span>':'';
+    const catTag=s.cat==='exim'?'<span class="tag teal">Ekspor-Impor</span>':'<span class="tag gray">General</span>';
+    const nStop=s.stops.filter(x=>x.type!=='return').length;
+    l.insertAdjacentHTML('beforeend',
+      `<div class="shipmini ${s.cat==='exim'?'exim':''}" onclick="openShipByKey('${s.key}')">
+        <div class="r1"><span class="code mono">${s.code}</span><span class="tag dk" title="Order model — belum tentu tersedia di sistem internal">${s.model}</span></div>
+        <div class="route"><b>${s.origin}</b><span class="ar">→</span><b>${s.dest}</b></div>
+        <div class="meta">${catTag}<span class="tag gray tnum">${nStop} ${s.cat==='exim'?'tahap':'stop'}</span>${prio}</div>
+        <div class="demoflag"><span class="d"></span>Demo: ${s.flow}</div>
+      </div>`);
+  });
+  document.getElementById('ship-count').textContent=SHIPMENTS.length+' shipment';
+  renderHomeMapPins();
+}
+function openShipByKey(k){CUR=SHIPMENTS.find(s=>s.key===k);si=0;done=0;stamps=[];outcomes={};runFailed=false;durations={};durMeta={};eximShots={};containerNums={};lastCnum='';anomaliList=[];tripStarted=false;remindShown=false;navStack=[];clearWait();openShip();}
+// Lapor kejadian di jalan (anomali: macet/kecelakaan) — foto + timestamp, TIDAK mengubah status stop
+function laporKejadian(){
+  laporMode=true;returMode=false;milestoneMode=false;vehCapMode=false;capShots=[];
+  capCfg={kind:'barang',label:'Foto kejadian di jalan',min:1,max:1,frame:'Pastikan kondisi kejadian terlihat',
+    instr:'Foto kejadian di jalan (macet / kecelakaan / anomali). Jam & lokasi tercatat otomatis — bukti kalau perjalanan terhambat.'};
+  document.getElementById('cap-title').firstChild.textContent='Lapor kejadian ';
+  document.getElementById('cap-sub').textContent='Macet / kecelakaan / anomali';
+  document.getElementById('cap-instr').textContent=capCfg.instr;
+  document.getElementById('cap-tips').innerHTML=capTips('barang');
+  document.getElementById('cap-ihead').textContent='Instruksi · 1 foto';
+  document.getElementById('cap-shots-wrap').style.display='none';document.getElementById('cap-strip').innerHTML='';document.getElementById('cap-count').textContent='0 foto';
+  renderCapture();go('s-capture');
+}
+// Shifting: serah terima ke driver lain di tengah trip (V0 = catat titik serah terima; reassign penuh = V1/Ops)
+function shiftingDriver(){
+  anomaliList.push({at:nowLabel(),type:'shifting',stop:(CUR.stops[si]||{}).name||''});
+  toast('Serah terima dicatat · driver berikutnya lanjut di device-nya (diatur Ops)');
+  go('s-home');
+}
+
+// ---------- SHIPMENT DETAIL ----------
+// Konsep engineer (multidrop-erd 31 Jul): flow exim = STOP-BASED. DB hanya 2 stop_type: PICKUP→POP, DROPOFF→POD. Aktivitas (gate/foto/bongkar/loading) = stepper DI DALAM stop.
+// Label driver (English) = presentasi (POP/POD internal, tak ditampilkan). Satu aturan berbasis aktivitas:
+//   Pickup   = ambil/muat custody → PICKUP/POP.   (import: full@port · export: empty@depo, loading@customer)
+//   Delivery = serah-terima barang ke penerima (bongkar + surat jalan) → DROPOFF/POD.   (import: bongkar@customer)
+//   Drop     = taruh/kembalikan kontainer di yard/port, TANPA serah-terima barang → DROPOFF/POD (tetap POD, bukan tipe "evidence" terpisah). BUKAN grup Return (Return = jalur GAGAL/retur barang).
+//   Import = Pickup(full@port) · Delivery(bongkar@customer,POD) · Drop(empty@CY,POD). Export = Pickup(empty@depo) · Pickup(loading@customer) · Drop(full@port,POD) [multi-pickup].
+function stopMeta(st,idx){
+  if(st.type==='return') return null;
+  if(CUR.cat==='exim'){
+    if(CUR.direction==='import') return [{a:'Pickup',c:'POP'},{a:'Delivery',c:'POD'},{a:'Drop',c:'POD'}][idx]||{a:'',c:''};
+    return [{a:'Pickup',c:'POP'},{a:'Pickup',c:'POP'},{a:'Drop',c:'POD'}][idx]||{a:'',c:''};
+  }
+  return st.type==='pickup'?{a:'Pickup',c:'POP'}:{a:'Delivery',c:'POD'};
+}
+function catChipHTML(meta){
+  if(!meta||!meta.c) return '';
+  const cc=meta.c==='POP'?['#ebf1ff','#2547d0']:meta.c==='POD'?['#e0faec','#16643b']:meta.c==='Bukti'?['#f5f5f5','#5c5c5c']:['#fff3eb','#b75310'];
+  return `<span class="type-pill" style="margin-left:5px;background:${cc[0]};color:${cc[1]}">${meta.c}</span>`;
+}
+function openShip(){
+  const s=CUR;const exim=s.cat==='exim';
+  document.getElementById('sh-title').firstChild.textContent=s.code+' ';
+  document.getElementById('sh-sub').textContent=`${s.client} · ${s.vehicle}`;
+  document.getElementById('sh-prio').innerHTML=s.priority?'<span class="tag dk" title="Prioritas — belum tentu tersedia di sistem internal">Prioritas</span>':'';
+  const nPickup=s.stops.filter(x=>x.type==='pickup').length;
+  const mp=nPickup>1?`<span class="tag purple">${nPickup} pickup</span>`:'';
+  const catBadge=exim?'<span class="tag teal">Ekspor-Impor</span>':'';
+  let segs='';
+  s.stops.forEach((st,idx)=>{
+    const seqbg=st.type==='return'?'#a3a3a3':(exim?'#0e9384':(st.type==='pickup'?'#5c5c5c':'#5e2aac'));
+    const pill=st.type==='return'?['Kembali','#ebf1ff','#2547d0']:(exim?['Tahap','#e6f6f4','#0b6f65']:(st.type==='pickup'?['Pickup','#f5f5f5','#5c5c5c']:['Drop','var(--purple-a10)','var(--purple-700)']));
+    const nm=st.title||st.name;
+    const sub=st.type==='return'?(st.rtype==='pool'?'Balik ke pool + foto kondisi akhir':'Kumpulkan & serahkan surat jalan'):(st.load||'')+(st.priority?' · <b style="color:#b75310">Prioritas</b>':'');
+    const meta=stopMeta(st,idx);
+    segs+=`<div class="stopitem" onclick="peekSeg(${idx})"><div class="seq" style="background:${seqbg}">${st.seq}</div>
+      <div class="body"><span class="type-pill" style="background:${pill[1]};color:${pill[2]}">${meta?meta.a:pill[0]}</span>
+      <div class="t" style="margin-top:4px">${nm}</div><div class="s">${st.type!=='return'&&st.addr?st.addr+' · ':''}${sub}</div></div><div class="chev">›</div></div>`;
+  });
+  // Data kontainer (no/seal) tidak ada di sistem Phase 0 → tidak ada blok kontainer. Pengingat foto kontainer & seal + cocokkan surat jalan ada di "Catatan & SOP dari Ops" di bawah.
+  const containerBlock='';
+  const opsBlock=(exim&&s.opsNote)?`<div class="note teal" style="margin-top:12px"><span class="i">📋</span><div class="tx"><b>Catatan & SOP dari Ops:</b> ${s.opsNote}</div></div>`:'';
+  const slaBlock=opsBlock;
+  // Booking ID / Ref customer TIDAK ditampilkan di driver app — itu urusan tracking client di Dash Link (client search/filter shipments). Driver cukup pakai kode shipment (ada di appbar). bookingId/custRef tetap ada di data utk Dash Link/internal.
+  const trackBlock='';
+  // Map pins rendered on the background map (no inline routeSection needed — map is always visible behind sheet)
+  renderShipMapPins(s);
+  document.getElementById('sh-body').innerHTML=
+    `<div class="sec" style="padding-top:10px"><div class="seclabel"><span class="gsm">Ringkasan klien · Shipment</span><span style="display:flex;gap:6px">${catBadge}${mp}</span></div>
+      <div class="card" style="padding:14px">
+        ${trackBlock}
+        <div class="addrrow"><div class="rail"><i></i><div class="line"></div></div><div class="txt"><b>${s.origin}</b><small>Origin</small></div></div>
+        <div class="addrrow to"><div class="rail"><i></i></div><div class="txt"><b>${s.dest}</b><small>Destination</small></div></div>
+        <div class="divider" style="margin:10px 0"></div>
+        <div class="kv"><div><div class="gsm">Muatan</div><div class="v" title="${s.load}">${s.load}</div></div><div><div class="gsm">Driver</div><div class="v" title="${s.driver}">${s.driver}</div></div><div><div class="gsm">Kendaraan</div><div class="v" title="${s.vehicle}">${s.vehicle}</div></div></div>
+        ${containerBlock}
+      </div>${slaBlock}</div>
+    <div class="sec gapt" style="padding-top:12px"><div class="seclabel"><span class="gsm">${exim?'Alur pengiriman · '+s.stops.length+' tahap':'Rute pengiriman · '+s.stops.length+' segmen'}</span><span class="tag gray">Pin di peta atas</span></div>${segs}</div>`;
+  const btn=document.getElementById('sh-start');
+  btn.textContent='Mulai pengiriman';
+  btn.onclick=startTrip;
+  go('s-ship');
+  resetShipSheet();
+}
+function peekSeg(i){if(!tripStarted){toast('Tekan "Mulai pengiriman" dulu — mulai dari checklist & cek kendaraan');return;}if(i<=furthest()){si=i;openStop();}else toast('Tahap ini terbuka setelah tahap sebelumnya selesai');}
+function furthest(){let f=0;for(let k=0;k<CUR.stops.length;k++){if(outcomes[k]!==undefined)f=k+1;}return f;}
+
+// ---------- SPINE: PRA-TRIP CHECKLIST ----------
+let ckState={};
+function startTrip(){
+  ckState={};
+  document.getElementById('ck-sub').textContent=`${CUR.client} · ${CUR.vehicle}`;
+  const docs=document.getElementById('ck-docs'),tools=document.getElementById('ck-tools'),hse=document.getElementById('ck-hse');
+  docs.innerHTML=CHECKLIST.docs.map(it=>ckRow('d',it)).join('');
+  tools.innerHTML=CHECKLIST.tools.map(it=>ckRow('t',it)).join('');
+  hse.innerHTML=CHECKLIST.hse.map(it=>ckRow('h',it)).join('');
+  updateChecklist();go('s-checklist');
+}
+function ckRow(g,it){return `<div class="ckitem" data-k="${g}-${it.k}" onclick="toggleCk('${g}-${it.k}')"><div class="box">✓</div><div><div class="lbl">${it.l}</div>${it.s?'<div class="sub">'+it.s+'</div>':''}</div></div>`;}
+function toggleCk(k){ckState[k]=!ckState[k];const el=document.querySelector(`.ckitem[data-k="${k}"]`);el.classList.toggle('on',ckState[k]);updateChecklist();}
+function updateChecklist(){
+  const total=CHECKLIST.docs.length+CHECKLIST.tools.length+CHECKLIST.hse.length;
+  const on=Object.values(ckState).filter(Boolean).length;
+  const b=document.getElementById('ck-btn');
+  if(on>=total){b.disabled=false;b.textContent='Lanjut · cek kondisi kendaraan';}
+  else{b.disabled=true;b.textContent=`Lengkapi checklist dulu (${on}/${total})`;}
+}
+function checklistDone(){toast('Checklist pra-trip lengkap');openVehcond('start');}
+
+// ---------- SPINE: VEHICLE CONDITION (bookends) ----------
+function openVehcond(mode){
+  vehMode=mode;vehShots={};vehKm='';
+  const start=mode==='start';
+  document.getElementById('vc-title').firstChild.textContent=(start?'Kondisi kendaraan · awal ':'Kondisi kendaraan · akhir ');
+  document.getElementById('vc-sub').textContent=`${CUR.client} · ${CUR.vehicle}`;
+  document.getElementById('vc-ihead').textContent=start?'Foto kondisi awal kendaraan':'Foto kondisi akhir kendaraan';
+  document.getElementById('vc-instr').textContent=start
+    ?'Selfie + 4 sisi + kondisi bak muatan + KM awal. Jadi baseline — dibandingkan dengan kondisi akhir untuk deteksi kerusakan.'
+    :'Foto ulang 4 sisi + kondisi bak muatan + KM akhir. Dibandingkan dengan foto awal untuk deteksi kerusakan/perubahan selama perjalanan.';
+  renderVehGrid();go('s-vehcond');
+}
+function renderVehGrid(){
+  const list=vehMode==='start'?VEH_START:VEH_END;
+  const grid=document.getElementById('vc-grid');
+  grid.innerHTML=list.map(t=>{
+    if(t.km){
+      const shot=vehShots[t.k], numOk=vehKm.trim().length>=3, done=shot&&numOk;
+      return `<div class="vtile ${done?'filled':''}" style="grid-column:span 2;min-height:auto;display:block;padding:12px;border-style:${done?'solid':'dashed'}">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><span class="ico" style="font-size:18px">${t.ico}</span><span class="lbl">${t.l}</span></div>
+        <button class="btn ${shot?'sec':''}" style="height:40px;font-size:12.5px" onclick="vehShoot('${t.k}')">${shot?'✓ Foto odometer terekam — ketuk untuk ulangi':'📷 Foto odometer (wajib)'}</button>
+        <div class="kminput" style="margin-top:8px"><input inputmode="numeric" placeholder="Ketik angka KM juga (wajib): 184320" value="${vehKm}" oninput="vehKmInput(this)"></div>
+        <div style="font-size:10px;color:var(--g500);margin-top:4px">Foto + ketik angka — antisipasi foto blur.</div></div>`;
+    }
+    const filled=vehShots[t.k];
+    if(filled) return `<div class="vtile filled" onclick="vehShoot('${t.k}')"><div class="cap">${photoHTML({kind:'vehicle'},{geo:'-6.24, 107.90',name:CUR.origin})}</div><div class="lab"><span>${t.l}</span><span>✓${offline?' ⏳':''}</span></div></div>`;
+    return `<div class="vtile" onclick="vehShoot('${t.k}')"><div class="ico">${t.ico}</div><div><div class="lbl">${t.l}</div><div class="req">${vehMode==='end'?'Opsional · bila ada kerusakan':'Ketuk untuk foto →'}</div></div></div>`;
+  }).join('');
+  updateVehcond();
+}
+// Vehicle-condition photos go through the SAME guided capture (instruksi → kamera → hasil ber-watermark + Tips foto & SOP)
+function vehShoot(k){
+  const list=vehMode==='start'?VEH_START:VEH_END;const t=list.find(x=>x.k===k);
+  vehCapMode=true;vehCapKey=k;returMode=false;milestoneMode=false;cnumMode=false;capShots=[];
+  const selfie=k==='selfie',odo=!!t.km;
+  capCfg={kind:'vehicle',label:t.l,min:1,max:1,
+    frame:odo?'Pastikan angka odometer terbaca':(selfie?'Posisikan wajah di dalam bingkai':'Pastikan bagian kendaraan terlihat penuh'),
+    instr:odo?'Foto odometer — pastikan angka KM terlihat jelas & terbaca.':(selfie?'Foto selfie driver — pastikan wajah terlihat jelas & penuh.':'Foto '+t.l.toLowerCase()+' — pastikan bagian kendaraan terlihat penuh, kondisi & plat jelas, pencahayaan cukup.')};
+  document.getElementById('cap-title').firstChild.textContent='Foto ';
+  document.getElementById('cap-sub').textContent=t.l;
+  document.getElementById('cap-instr').textContent=capCfg.instr;
+  document.getElementById('cap-tips').innerHTML=capTips('vehicle');
+  document.getElementById('cap-ihead').textContent='Instruksi · 1 foto';
+  document.getElementById('cap-shots-wrap').style.display='none';
+  document.getElementById('cap-strip').innerHTML='';document.getElementById('cap-count').textContent='0 foto';
+  renderCapture();go('s-capture');
+}
+function vehKmInput(inp){inp.value=inp.value.replace(/[^0-9]/g,'');vehKm=inp.value;updateVehcond();} // number-only validation (KM = integer)
+function updateVehcond(){
+  const list=vehMode==='start'?VEH_START:VEH_END; // odometer = foto WAJIB + angka KM WAJIB (antisipasi blur)
+  const numOk=vehKm.trim().length>=3;
+  // Akhir trip: foto awal = ACUAN (tak diambil ulang). Yang WAJIB di akhir hanya odometer akhir; foto sisi = opsional (bila ada kerusakan).
+  const ok = vehMode==='start' ? (list.every(t=>vehShots[t.k]) && numOk) : (!!vehShots['km'] && numOk);
+  const b=document.getElementById('vc-btn');
+  const have=list.filter(t=>vehShots[t.k]).length;
+  if(ok){b.disabled=false;b.textContent=vehMode==='start'?'Mulai pengiriman':'Selesai trip & lihat ringkasan';}
+  else{b.disabled=true;b.textContent=vehMode==='start'?`Lengkapi foto & angka KM dulu (${have}/${list.length}${numOk?'':' · KM'})`:`Foto + angka odometer akhir dulu${numOk?'':' · KM'}`;}
+}
+function vehcondBack(){ if(vehMode==='start') go('s-checklist'); else { openStop(); } }
+function vehcondDone(){
+  if(vehMode==='start'){toast('Kondisi awal terekam · KM '+vehKm);tripStarted=true;si=0;openStop();}
+  else{toast('Kondisi akhir terekam · KM '+vehKm);renderSummary();go('s-sum');}
+}
+
+// ---------- RUNNER ----------
+function clearWait(){if(waitInt){clearInterval(waitInt);waitInt=null;}}
+function openStop(){clearWait();const st=CUR.stops[si];if(st.type==='return'){renderReturn();go('s-return');return;}done=0;stamps=[];renderRun();go('s-run');
+  // reset sheet to peek height on each stop entry
+  const sh=document.getElementById('run-sheet');if(sh&&_rsPeekH){sh.style.transition='none';sh.style.height=_rsPeekH+'px';}
+  if(!remindShown){remindShown=true;setTimeout(()=>document.getElementById('reminder').classList.add('on'),350);}}
+function renderRun(){
+  const st=CUR.stops[si],exim=CUR.cat==='exim';
+  const kind=exim?'Tahap '+st.seq:(st.type==='pickup'?'Pickup':'Drop');
+  const nm=st.title||st.name;
+  document.getElementById('run-title').firstChild.textContent=(exim?nm+' ':(kind+' · '+st.name.split(' ').slice(0,2).join(' ')+' '));
+  document.getElementById('run-sub').textContent=`${CUR.client} · ${CUR.vehicle}`;
+  // Compact progress badge in appbar — replaces the route list that was in the sheet
+  const badge=document.getElementById('run-progress-badge');
+  if(badge){
+    const n=CUR.stops.length;
+    badge.textContent=exim?`Tahap ${st.seq}/${n}`:`Stop ${st.seq}/${n}`;
+    badge.style.background=exim?'var(--teal-50)':'var(--purple-a10)';
+    badge.style.color=exim?'var(--teal-700)':'var(--purple-700)';
+  }
+  const hero=document.getElementById('run-hero');hero.className='runhero'+(exim?' exim':'');
+  const meta=stopMeta(st,si);const metaTxt=meta?meta.a:kind;
+  // Baris chip = info muatan (jika ada) + nama driver (+ prioritas). Dipertahankan untuk konsistensi dgn general nanti. Navigasi & Hubungi CS = subject to engineering feasibility.
+  const loadChip=st.load?`<div class="chip">📦 ${st.load}</div>`:'';
+  const driverChip=`<div class="chip">🧑‍✈️ ${CUR.driver}</div>`;
+  const prioChip=st.priority?'<div class="chip">🚩 Prioritas</div>':'';
+  hero.innerHTML=
+    `<div class="top"><span>${exim?metaTxt:'Titik saat ini · '+metaTxt}</span><span class="tnum">${st.eta}</span></div>
+     <div class="addr"><div class="seq">${st.seq}</div><div><b>${nm}</b><small>${st.addr}</small></div></div>
+     <div class="chips">${loadChip}${driverChip}${prioChip}</div>`;
+  // run-note element removed (catatan internal dropped from driver UI)
+  renderBanners();
+  drawTimeline();
+  renderRunMapPins();
+}
+function renderBanners(){
+  const st=CUR.stops[si],wrap=document.getElementById('run-banners');let h='';
+  // Geofence prompt for arrival-type next status (anti "nanti diklik")
+  const nx=done<st.statuses.length?st.statuses[done]:null;
+  if(nx && /^(Tiba|Antri|Dapat gate|Sampai)/.test(nx)){
+    h+=`<div class="geobanner"><span class="i">📍</span><div class="tx"><b>Sudah sampai di ${st.name}?</b> Geser "${nx}" <b>pas kejadiannya</b> — bukan nanti. Biar catatan waktunya sesuai kondisi asli di lapangan.</div></div>`;
+  }
+  // Waiting timer (gate pass) — hanya tampil saat SEDANG menunggu; setelah dapat, durasi dilipat ke timeline + summary
+  if(st.wait && done>st.wait.from && done<=st.wait.to){
+    h+=`<div class="waitbanner"><div class="r1"><span class="lbl"><span class="live"></span>Menunggu gate pass</span></div><div class="t" id="wait-timer">00:00:00</div><div class="cap">Timer jalan otomatis. Geser "Dapat gate pass" pas gate pass sudah di tangan — lama nunggu kecatat sendiri.</div></div>`;
+  }
+  wrap.innerHTML=h;
+}
+// Auto-detect the "Mulai … → Selesai …" duration pair in any status set (loading/bongkar) — no per-stop config needed
+function durPair(st){const s=st.statuses;let from=-1;for(let i=0;i<s.length;i++){if(/^Mulai/.test(s[i])){from=i;break;}}if(from<0)return null;for(let j=from+1;j<s.length;j++){if(/^Selesai/.test(s[j])){const w=s[from].replace(/^Mulai\s*/,'').trim();return{from,to:j,label:'Durasi '+(w||'proses')};}}return null;}
+function drawTimeline(){
+  const st=CUR.stops[si],tl=document.getElementById('timeline');tl.innerHTML='';
+  const dp=durPair(st),exim=CUR.cat==='exim';
+  st.statuses.forEach((nm,i)=>{const cls=i<done?'done':(i===done?'next':'');
+    const photo=exim&&st.pk&&st.pk[i];
+    const scan=/scan|gate-/i.test(nm);
+    const nextHint=photo?'Geser untuk foto':'Geser untuk rekam';
+    const time=i<done?('Jam '+stamps[i]+(offline?' · ⏳ lokal':'')):(i===done?nextHint:'Menunggu');
+    let extra='';
+    if(dp && i===dp.to && i<done) extra+=`<div class="dur">⏱ ${dp.label} ${durations['d'+si]||''}</div>`;
+    if(st.wait && i===st.wait.to && i<done && durations['w'+si]) extra+=`<div class="dur">⏱ Tunggu gate pass ${durations['w'+si]}</div>`;
+    if(photo && i<done && eximShots[si+'-'+i]) extra+=`<div class="podthumbs"><div class="miniph">${photoHTML({kind:photo},st)}${syncMark()}</div></div>`;
+    if(photo==='container' && i<done && containerNums[si+'-'+i]) extra+=`<div class="dur">🔢 No. kontainer: ${containerNums[si+'-'+i]}</div>`;
+    tl.insertAdjacentHTML('beforeend',`<div class="tl ${cls}"><div class="mk"><i>${i<done?'✓':(i+1)}</i><div class="ln"></div></div><div class="ct"><div class="nm">${nm}</div><div class="tm">${time}</div>${extra}</div></div>`);
+  });
+  document.getElementById('status-count').textContent=done+'/'+st.statuses.length;
+  const lbl=document.getElementById('run-slide-lbl'),knob=document.getElementById('run-knob');
+  document.getElementById('run-slide').className='slide'+(exim?' exim':'');
+  let txt,icon='›';
+  if(done<st.statuses.length){const nm=st.statuses[done];const photo=exim&&st.pk&&st.pk[done];
+    if(photo){txt='Geser untuk foto';icon='📷';}
+    else if(st.wait&&done===st.wait.to){txt='Geser saat dapat gate pass';icon='⏱';}
+    else {txt='Geser: '+nm;icon='›';}
+  }else{txt=exim?'Geser untuk selesaikan tahap':(st.proof?(st.type==='pickup'?'Geser: isi bukti muat':'Geser untuk foto bukti'):'Geser untuk selesaikan stop');icon='✓';}
+  lbl.textContent=txt;knob.textContent=icon;
+}
+function advanceStatus(){const st=CUR.stops[si];
+  if(done<st.statuses.length){
+    const idx=done, photo=CUR.cat==='exim'&&st.pk&&st.pk[idx];
+    if(photo){ startMilestoneCapture(idx,photo); return; } // foto dulu, baru stamp (foto wajib di setiap proses)
+    stampStatus(idx);
+  }
+  else{ if(CUR.cat==='exim') finalizeStop('selesai'); else if(st.proof) openPod(); else finalizeStop('selesai'); }
+}
+function stampStatus(idx){const st=CUR.stops[si];stamps[idx]=nowLabel();done++;
+  const nm=st.statuses[idx];
+  toast((/scan|gate-/i.test(nm)?'Ter-scan · ':'Terekam · ')+nowLabel()+(offline?' (lokal)':''));
+  if(st.wait && idx===st.wait.from) startWait(st.wait.base);
+  if(st.wait && idx===st.wait.to) stopWait();
+  const dp=durPair(st); if(dp && idx===dp.to){durations['d'+si]=simMin(CUR.code+si+dp.label)+' mnt';durMeta['d'+si]=dp.label+' · '+st.name;}
+  renderRun();
+}
+function startMilestoneCapture(idx,kind){
+  milestoneMode=true;milestoneIdx=idx;capCfg=SLOTS[MST_KIND[kind]];capShots=[];returMode=false;
+  const st=CUR.stops[si];
+  // Input no. kontainer WAJIB di tiap foto kontainer (ambil & drop) — nangkep kalau kontainer sempat diganti. Prefill nomor terakhir; driver edit bila beda.
+  cnumMode=(kind==='container');
+  if(cnumMode){
+    // V0: TANPA auto-fill / backfill (meeting 3 Agu) — driver ketik ulang no. kontainer tiap tahap demi akurasi per titik.
+    // Auto-isi "sama seperti tahap sebelumnya" = P2 (nice-to-have, high-effort dynamic input) — tidak di-develop di V0.
+    capCnum=containerNums[si+'-'+idx]||'';
+    document.getElementById('cap-cnum').disabled=false;
+  }else{capCnum='';}
+  document.getElementById('cap-cnum').value=capCnum;
+  document.getElementById('cap-title').firstChild.textContent='Foto ';
+  document.getElementById('cap-sub').textContent=st.statuses[idx];
+  document.getElementById('cap-instr').textContent=capCfg.instr;
+  document.getElementById('cap-tips').innerHTML=capTips(capCfg.kind);
+  document.getElementById('cap-ihead').textContent='Instruksi · 1 foto';
+  document.getElementById('cap-shots-wrap').style.display='none';
+  document.getElementById('cap-strip').innerHTML='';document.getElementById('cap-count').textContent='0 foto';
+  renderCapture();go('s-capture');
+}
+function fmtHMS(sec){sec=Math.floor(sec);const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+function startWait(baseMin){clearWait();waitBaseSec=baseMin*60;waitT0=Date.now();
+  const upd=()=>{const el=document.getElementById('wait-timer');if(!el){return;}el.textContent=fmtHMS(waitBaseSec+(Date.now()-waitT0)/1000);};
+  upd();waitInt=setInterval(upd,1000);
+}
+function stopWait(){const total=waitBaseSec+(Date.now()-waitT0)/1000;durations['w'+si]=fmtHMS(total);durMeta['w'+si]='Tunggu gate pass · '+CUR.stops[si].name;clearWait();}
+
+// ---------- POD ----------
+function openPod(){
+  const st=CUR.stops[si];
+  document.getElementById('pod-title').firstChild.textContent = st.type==='pickup'?'Loading & bukti ':'Bukti '+((CUR.cat==='exim')?'tahap ':'pengiriman ');
+  document.getElementById('pod-sub').textContent=st.title||st.name;
+  document.getElementById('pod-loc-wrap').style.display = (st.type==='pickup'||CUR.cat==='exim')?'none':'block';
+  const grid=document.getElementById('podgrid');grid.innerHTML='';
+  st.proof.forEach((sk,idx)=>{const s=SLOTS[sk];
+    if(s.kind==='input'){
+      grid.insertAdjacentHTML('beforeend',
+        `<div class="podslot inputslot" data-sk="${sk}" data-req="1" data-filled="0">
+          <div style="display:flex;gap:12px"><div class="ico">${s.ico}</div><div style="flex:1"><div class="lbl">${s.label}</div><div class="hint">${s.hint}</div><span class="req w">Wajib</span></div></div>
+          <input placeholder="${s.placeholder||'Contoh: INV-2026-07-1183'}" oninput="doInput(this)">
+        </div>`);
+    }else{
+      const need=s.multi?`${s.min}–${s.max||s.min} foto (sesuai surat jalan)`:'1 foto';
+      grid.insertAdjacentHTML('beforeend',
+        `<div class="podslot" data-sk="${sk}" data-i="${idx}" data-req="${s.required?1:0}" onclick="startCapture(this)">
+          <div class="ico">${s.ico}</div><div style="flex:1"><div class="lbl">${s.label}</div><div class="hint">${s.instr}</div>
+          <span class="req ${s.required?'w':'o'}">${s.required?'Wajib':'Opsional'} · ${need}</span><div class="cta">Ketuk untuk ambil foto →</div><div class="podthumbs"></div></div>
+        </div>`);
+    }
+  });
+  updatePod();go('s-pod');
+}
+function doInput(inp){const slot=inp.closest('.podslot');const ok=inp.value.trim().length>=4;slot.dataset.filled=ok?'1':'0';slot.classList.toggle('filled',ok);updatePod();}
+function updatePod(){
+  let reqTotal=0,reqDone=0;
+  document.querySelectorAll('#podgrid .podslot').forEach(el=>{
+    if(el.dataset.req==='1'){reqTotal++;
+      const filled = el.classList.contains('inputslot') ? el.dataset.filled==='1' : el.classList.contains('filled');
+      if(filled)reqDone++;}
+  });
+  const pct=reqTotal?Math.round(reqDone/reqTotal*100):100;
+  document.getElementById('pod-bar').style.width=pct+'%';document.getElementById('pod-pct').textContent=pct+'%';
+  document.getElementById('pod-n').textContent=reqDone+'/'+reqTotal+' wajib';
+  const b=document.getElementById('pod-confirm');
+  if(reqDone>=reqTotal){b.disabled=false;b.textContent=(CUR.cat==='exim')?'Konfirmasi & lanjut tahap':'Konfirmasi & selesaikan stop';}else{b.disabled=true;b.textContent='Lengkapi bukti wajib dulu';}
+}
+function confirmPod(){finalizeStop('selesai');}
+
+// ---------- CAPTURE ----------
+function capTips(kind){
+  const net='<br><b>Kamera saja</b> — foto diambil langsung di lokasi, tidak bisa unggah dari galeri (anti-backdate/anti-foto lama).<br><b>Jaringan bermasalah?</b> Tetap ambil foto — tersimpan lokal (⏳), terkirim otomatis saat online.';
+  if(kind==='barang')return '<b>Wajib:</b> seluruh barang/muatan terlihat & tidak terpotong, kondisi jelas (jumlah/kemasan), pencahayaan cukup, tidak blur.<br><b>Hindari:</b> foto sebagian saja, sudut menutupi barang, hasil gelap.'+net;
+  if(kind==='container')return '<b>Wajib:</b> nomor kontainer & nomor seal terbaca jelas, tidak terpotong, pencahayaan cukup.<br><b>Hindari:</b> foto miring hingga nomor tak terbaca, hasil gelap/blur.'+net;
+  if(kind==='gate')return '<b>Wajib:</b> pos/gerbang gate terlihat jelas, pencahayaan cukup, tidak blur. Waktu & lokasi otomatis ter-watermark = bukti kamu di gate saat itu.<br><b>Hindari:</b> foto terpotong, hasil gelap/blur, memotret layar/HP lain.'+net;
+  if(kind==='vehicle')return '<b>Wajib:</b> bagian kendaraan / wajah (selfie) terlihat penuh & jelas, pencahayaan cukup, tidak blur.<br><b>Hindari:</b> foto terpotong, hasil gelap, atau menutupi plat.'+net;
+  return '<b>Wajib:</b> stempel & tanda tangan terlihat penuh, semua halaman, tidak terpotong, tidak blur.<br><b>Hindari:</b> dokumen tertutup tangan, memotret layar/HP lain, hasil gelap.'+net;
+}
+function photoHTML(cfg,stop){
+  const wm=`${today()} ${nowLabel()} WIB · GPS ${stop.geo}<br>${stop.name} · ${CUR.code} · Driver: ${CUR.driver}`;
+  let inner;
+  if(cfg.kind==='barang'||cfg.kind==='vehicle')inner='<div class="boxes"><span></span><span></span><span></span><span></span></div>';
+  else if(cfg.kind==='container')inner=`<div class="cont"><div class="cno">KONTAINER</div><div class="rib"></div></div><div class="seal">SEAL</div>`;
+  else if(cfg.kind==='gate'||cfg.kind==='loc')inner=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:100%;min-height:118px"><div style="font-size:32px">🚪</div><div style="font-size:11px;letter-spacing:1.5px;color:#fff;opacity:.9;font-weight:600">GATE / POS</div></div>`;
+  else inner=`<div class="doc"><div class="doctop">SURAT JALAN<span>${CUR.code}</span></div><div class="dln"></div><div class="dln"></div><div class="dln short"></div><div class="drow"><div class="dstamp">STEMPEL<br>ACC</div><div class="dsign">ttd</div></div></div>`;
+  return `<div class="podphoto ${cfg.kind}">${inner}<div class="wmtag">📍 auto-watermark</div><div class="wm">${wm}</div></div>`;
+}
+function startCapture(el){
+  capSlotEl=el;capCfg=SLOTS[el.dataset.sk];capShots=[];
+  document.getElementById('cap-title').firstChild.textContent='Foto ';
+  document.getElementById('cap-sub').textContent=capCfg.label;
+  document.getElementById('cap-instr').textContent=capCfg.instr;
+  document.getElementById('cap-tips').innerHTML=capTips(capCfg.kind);
+  document.getElementById('cap-ihead').textContent=(capCfg.max||1)>1?`Instruksi · ${capCfg.min}–${capCfg.max} foto`:'Instruksi · 1 foto';
+  document.getElementById('cap-shots-wrap').style.display='none';
+  document.getElementById('cap-strip').innerHTML='';document.getElementById('cap-count').textContent='0 foto';
+  renderCapture();go('s-capture');
+}
+function renderStrip(){
+  const wrap=document.getElementById('cap-shots-wrap'),strip=document.getElementById('cap-strip');
+  if(capShots.length===0){wrap.style.display='none';strip.innerHTML='';return;}
+  wrap.style.display='block';
+  const max=capCfg.max||1;
+  document.getElementById('cap-count').textContent=capShots.length+(max>1?' / '+max:'')+' foto';
+  strip.innerHTML=capShots.map((_,i)=>`<div class="tw"><span class="idx">${i+1}</span><button class="shotdel" onclick="removeShot(${i})">×</button>${photoHTML(capCfg,CUR.stops[si])}${syncMark()}</div>`).join('');
+}
+function removeShot(i){capShots.splice(i,1);toast('Foto dihapus');renderCapture();}
+function renderCapture(){
+  document.getElementById('cap-preview').innerHTML=`<div class="viewfinder"><div class="frame"><span class="tl2"></span><span class="tr2"></span><span class="bl2"></span><span class="br2"></span></div><div class="vf-hint">${capCfg.frame}</div></div>`;
+  renderStrip();
+  document.getElementById('cap-cnum-wrap').style.display=cnumMode?'block':'none';
+  const min=capCfg.min||1, max=capCfg.max||1, single=max===1;
+  const enough=capShots.length>=min, atMax=capShots.length>=max;
+  const cnumOk=!cnumMode||capCnum.trim().length>=4; // no. kontainer wajib diisi utk foto kontainer
+  const foot=document.getElementById('cap-footer');
+  if(single){
+    if(capShots.length===0){
+      foot.innerHTML=`<button class="btn" onclick="shoot()"><span style="font-size:19px">◉</span> Ambil foto</button>`;
+    }else{
+      // Sudah ada 1 foto → Gunakan foto (utama) + Ulangi foto (retake). Bukan tombol disabled.
+      foot.innerHTML=`<button class="btn" ${cnumOk?'':'disabled'} onclick="confirmCapture()">${cnumMode&&!cnumOk?'Ketik no. kontainer dulu':'Gunakan foto'}</button>`+
+        `<button class="btn sec" style="margin-top:8px" onclick="retake()">↺ Ulangi foto</button>`;
+    }
+  }else{
+    // Multi-foto: ambil beberapa + selesai; hapus per-foto lewat × di thumbnail.
+    foot.innerHTML=`<button class="btn ${enough?'sec':''}" ${atMax?'disabled':''} onclick="shoot()"><span style="font-size:19px">◉</span> ${atMax?'Maks '+max+' foto':'Ambil foto ('+(capShots.length+1)+')'}</button>`+
+      (capShots.length>0?`<button class="btn" ${enough?'':'disabled'} onclick="confirmCapture()" style="margin-top:8px">${enough?'Selesai · '+capShots.length+' foto':'Min '+min+' foto ('+capShots.length+'/'+min+')'}</button>`:(capCfg.optional?`<button class="btn sec" onclick="confirmCapture()" style="margin-top:8px">Lewati — tidak ada lampiran</button>`:''));
+  }
+}
+function retake(){capShots=[];toast('Ambil ulang foto');renderCapture();}
+function shoot(){
+  const max=capCfg.max||1;
+  if(capShots.length>=max){toast('Maksimal '+max+' foto');return;}
+  capShots.push(1);toast('Foto tersimpan · watermark'+(offline?' · ⏳ lokal':''));
+  renderCapture();
+}
+function confirmCapture(){
+  if(returMode){returMode=false;returPhotoDone=true;const rb=document.getElementById('oc-retur-btn');if(rb){rb.textContent='✓ Foto retur terekam'+(offline?' · ⏳':'');rb.disabled=true;}updateOcConfirm();go('s-outcome');return;}
+  if(milestoneMode){milestoneMode=false;
+    if(capShots.length>0){eximShots[si+'-'+milestoneIdx]=CUR.stops[si].pk[milestoneIdx];}
+    else{toast('Dilewati — tidak ada lampiran');} // langkah opsional dilewati: tetap lanjut, tanpa foto
+    if(cnumMode){const v=capCnum.trim();containerNums[si+'-'+milestoneIdx]=v;lastCnum=v;cnumMode=false;toast('Foto + no. kontainer terekam · '+v);}
+    stampStatus(milestoneIdx);go('s-run');return;}
+  if(vehCapMode){vehCapMode=false;vehShots[vehCapKey]=true;toast('Foto tersimpan · watermark'+(offline?' · ⏳ lokal':''));renderVehGrid();go('s-vehcond');return;}
+  if(laporMode){laporMode=false;anomaliList.push({at:nowLabel(),type:'kejadian',stop:(CUR.stops[si]||{}).name||''});toast('Kejadian di jalan tercatat · '+nowLabel());go('s-run');return;}
+  capSlotEl.classList.add('filled');const th=capSlotEl.querySelector('.podthumbs');th.innerHTML='';
+  for(let i=0;i<capShots.length;i++) th.insertAdjacentHTML('beforeend',`<div class="miniph">${photoHTML(capCfg,CUR.stops[si])}${syncMark()}</div>`);
+  const cta=capSlotEl.querySelector('.cta');cta.textContent=`✓ ${capShots.length} foto — ketuk untuk lihat/ubah${offline?' · ⏳':''}`;cta.style.color=offline?'#b7791f':'var(--green-600)';
+  updatePod();go('s-pod');
+}
+
+// ---------- OUTCOME ----------
+const OUTCOMES={
+  selesai:{label:'Selesai',desc:'Barang diterima lengkap',ico:'✓',bg:'var(--green-50)',fg:'var(--green-600)'},
+  catatan:{label:'Selesai dengan catatan',desc:'Diterima tapi ada catatan (kurang/rusak)',ico:'!',bg:'var(--orange-50)',fg:'#b75310'},
+  tertahan:{label:'Tertahan di customer',desc:'Antre/tertahan lama di lokasi (abnormal)',ico:'⏱',bg:'var(--orange-50)',fg:'#b75310'},
+  retur:{label:'Retur barang',desc:'Barang ditolak/rusak — dibawa kembali',ico:'↩',bg:'var(--sky-50)',fg:'var(--sky-700)'},
+  kejadian:{label:'Lapor kejadian / anomali',desc:'Macet / kecelakaan / tertahan di jalan — foto + catatan',ico:'📷',bg:'var(--orange-50)',fg:'#b75310'},
+  skip:{label:'Skip — dibatalkan client',desc:'Stop tidak dilayani atas permintaan client',ico:'⤼',bg:'var(--g100)',fg:'var(--g600)'},
+  gagal:{label:'Gagal — kendala lapangan',desc:'Tidak bisa diselesaikan (kendaraan/akses)',ico:'✕',bg:'var(--red-50)',fg:'var(--red-600)',ops:true},
+};
+const RETUR_SLOT={label:'Foto barang retur',kind:'barang',instr:'Foto barang yang diretur beserta kondisinya (mis. segel/kemasan rusak). Wajib sebagai bukti retur.',frame:'Pastikan kondisi barang terlihat',min:1};
+const KEJADIAN_SLOT={label:'Foto kejadian',kind:'barang',instr:'Foto kejadian di jalan (macet / kecelakaan / anomali). Jam & lokasi tercatat otomatis.',frame:'Pastikan kondisi kejadian terlihat',min:1};
+const VEHICLE_4W=['Kendaraan mati mendadak / mogok','Ban bocor / pecah','Kendaraan perlu perbaikan (masuk bengkel)'];
+function reasonsFor(k){
+  const isPickup=CUR.stops[si].type==='pickup';
+  if(k==='catatan')return['Barang kurang (diterima sebagian)','Kardus / kemasan rusak','Sebagian ditolak penerima','Ada biaya tak terduga (parkir / bongkar)','Lainnya'];
+  if(k==='tertahan')return['Antre bongkar/loading panjang di customer','Macet / lalu lintas padat di jalan','Dokumen customer belum siap','Menunggu konfirmasi penerima','Antre gate / timbangan','Lainnya'];
+  if(k==='kejadian')return['Macet / lalu lintas padat','Kecelakaan di jalan','Antre panjang','Cuaca / bencana','Lainnya'];
+  if(k==='retur')return['Kemasan / segel rusak','Barang tidak sesuai','Kadaluarsa / mendekati ED','Ditolak penerima','Lainnya'];
+  if(k==='skip')return['Detail pengiriman diubah','Pesanan sudah tidak diperlukan','Klien memilih layanan lain','Lokasi tujuan tutup','Lainnya'];
+  if(k==='gagal')return isPickup
+    ?[...VEHICLE_4W,'Pengirim tidak ada di alamat','Pengirim tidak bisa dihubungi','Lokasi di tujuan tutup','Kendala cuaca / bencana','Lainnya']
+    :[...VEHICLE_4W,'Penerima tidak ada di alamat','Penerima tidak bisa dihubungi','Lokasi di tujuan tutup','Akses ke lokasi terbatas','Kendala cuaca / bencana','Lainnya'];
+  return['Lainnya'];
+}
+function openOutcome(){
+  const st=CUR.stops[si];document.getElementById('oc-sub').textContent=' · '+(st.title||st.name);pendingOutcome=null;returPhotoDone=false;
+  let opts;
+  if(st.type==='pickup')opts=['kejadian','gagal'];
+  else if(CUR.cat==='exim')opts=['tertahan','kejadian','gagal'];
+  else opts=['catatan','retur','skip','kejadian','gagal'];
+  const wrap=document.getElementById('oc-opts');wrap.innerHTML='';
+  opts.forEach(k=>{const o=OUTCOMES[k];wrap.insertAdjacentHTML('beforeend',`<div class="oopt" data-k="${k}" onclick="pickOutcome('${k}')"><div class="od" style="background:${o.bg};color:${o.fg}">${o.ico}</div><div class="otx"><b>${o.label}</b><small>${o.desc}</small></div></div>`);});
+  document.getElementById('oc-reason-wrap').style.display='none';document.getElementById('oc-reason').value='';
+  document.getElementById('oc-retur-photo').style.display='none';
+  document.getElementById('oc-confirm').disabled=true;document.getElementById('oc-confirm').textContent='Pilih hasil';
+  if(st.hint)toast('Skenario contoh — '+st.hint);
+  go('s-outcome');
+}
+function pickOutcome(k){
+  pendingOutcome=k;returPhotoDone=false;document.querySelectorAll('#oc-opts .oopt').forEach(e=>e.classList.toggle('sel',e.dataset.k===k));
+  const st=CUR.stops[si],o=OUTCOMES[k],b=document.getElementById('oc-confirm'),rw=document.getElementById('oc-reason-wrap');
+  const isPickupFail=isPickupStop(st)&&k==='gagal';
+  document.getElementById('oc-cascade').style.display=isPickupFail?'flex':'none';
+  document.getElementById('oc-ops').style.display=(o.ops&&!isPickupFail)?'flex':'none';
+  if(k==='selesai'){rw.style.display='none';document.getElementById('oc-retur-photo').style.display='none';b.disabled=false;b.textContent=st.proof?'Lanjut isi bukti':'Selesaikan stop';return;}
+  rw.style.display='block';
+  document.getElementById('oc-reason-label').textContent='Alasan · '+o.label;
+  const sel=document.getElementById('oc-select');
+  sel.innerHTML='<option value="">— Pilih alasan —</option>'+reasonsFor(k).map(r=>`<option>${r}</option>`).join('');
+  sel.value='';document.getElementById('oc-reason').value='';
+  const rp=document.getElementById('oc-retur-photo');
+  if(k==='retur'||k==='kejadian'){rp.style.display='block';const rb=document.getElementById('oc-retur-btn');rb.disabled=false;rb.textContent=k==='retur'?'📷 Ambil foto barang retur (wajib)':'📷 Ambil foto kejadian (wajib)';}
+  else rp.style.display='none';
+  b.textContent=k==='catatan'?(st.proof?'Simpan catatan & bukti':'Simpan catatan'):(k==='tertahan'?'Catat tertahan & lanjut':(k==='kejadian'?'Simpan laporan & lanjut':(k==='retur'?'Simpan retur barang':(k==='skip'?'Tandai skip':(isPickupFail?'Gagalkan pengiriman':'Laporkan gagal')))));
+  updateOcConfirm();
+}
+function isPickupStop(st){return st.type==='pickup' || (CUR.cat==='exim' && (stopMeta(st,si)||{}).c==='POP' && si===0);}
+function updateOcConfirm(){const k=pendingOutcome;if(!k||k==='selesai')return;const hasReason=!!document.getElementById('oc-select').value;const needPhoto=(k==='retur'||k==='kejadian');document.getElementById('oc-confirm').disabled=!(hasReason&&(!needPhoto||returPhotoDone));}
+function ocReasonPicked(){updateOcConfirm();}
+function startReturCapture(){
+  const kj=pendingOutcome==='kejadian';returMode=true;capCfg=kj?KEJADIAN_SLOT:RETUR_SLOT;capShots=[];
+  document.getElementById('cap-title').firstChild.textContent=kj?'Foto kejadian ':'Foto retur ';
+  document.getElementById('cap-sub').textContent=CUR.stops[si].name;
+  document.getElementById('cap-instr').textContent=capCfg.instr;
+  document.getElementById('cap-tips').innerHTML=capTips('barang');
+  document.getElementById('cap-ihead').textContent='Instruksi · 1 foto';
+  document.getElementById('cap-shots-wrap').style.display='none';document.getElementById('cap-strip').innerHTML='';document.getElementById('cap-count').textContent='0 foto';
+  renderCapture();go('s-capture');
+}
+function capBack(){cnumMode=false;if(vehCapMode){vehCapMode=false;go('s-vehcond');return;}if(laporMode){laporMode=false;go('s-run');return;}if(milestoneMode){milestoneMode=false;go('s-run');return;}const r=returMode;returMode=false;go(r?'s-outcome':'s-pod');}
+function applyOutcome(){
+  const k=pendingOutcome;if(!k)return;const st=CUR.stops[si];
+  let reason='';
+  if(k!=='selesai'){const sel=document.getElementById('oc-select').value;const note=document.getElementById('oc-reason').value.trim();reason=sel+(note?' — '+note:'');}
+  if(k==='selesai'){if(st.proof)openPod();else finalizeStop('selesai');return;}
+  if(k==='tertahan'){ // abnormal: record note, continue same stop (not an end state)
+    durations['abn'+si]=reason;toast('Tertahan tercatat — lanjutkan proses');go('s-run');return;}
+  if(k==='kejadian'){ // anomali di jalan: foto + catatan, tidak mengubah status stop
+    anomaliList.push({at:nowLabel(),type:'kejadian',stop:(st.title||st.name),reason});toast('Kejadian tercatat · '+nowLabel());go('s-run');return;}
+  if(k==='catatan'){if(st.proof){finalizeReason='catatan';finalizeReasonText=reason;openPod();}else finalizeStop('catatan',reason);return;}
+  finalizeStop(k,reason);
+}
+
+// ---------- FINALIZE ----------
+function finalizeStop(type,reason){
+  if(finalizeReason&&type==='selesai'){type=finalizeReason;reason=finalizeReasonText;finalizeReason=null;finalizeReasonText='';}
+  outcomes[si]={type,reason:reason||''};
+  const st=CUR.stops[si];
+  // Pickup/POP failure cascades — no goods/container picked up ⇒ whole run fails (general drops & exim tahap berikutnya)
+  if(isPickupStop(st)&&type==='gagal'){runFailed=true;
+    const rz=CUR.cat==='exim'?'Gagal di pengambilan — kontainer/barang tidak terangkut':'Pickup gagal — barang tidak terangkut';
+    for(let k=si+1;k<CUR.stops.length;k++){if(CUR.stops[k].type!=='return')outcomes[k]={type:'gagal',reason:rz};}
+    toast('Gagal di pengambilan · pengiriman dibatalkan');renderSummary();go('s-sum');return;}
+  toast(OUTCOMES[type].label);si++;
+  if(si<CUR.stops.length)openStop();else{closeTrip();}
+}
+function closeTrip(){ // shared spine end bookend: vehicle condition (end) → summary
+  openVehcond('end');
+}
+
+// ---------- RETURN ----------
+// Dynamic waktu-proses rows (import punya 2 tunggu gate pass, export 1 — jadi jangan hardcode)
+// Target lead time SENGAJA tidak ditampilkan (meeting 29 Jul: belum ada kejelasan kebutuhan dari customer). App hanya mencatat waktu tunggu & durasi aktual.
+function eximEvidenceRows(){
+  const keys=Object.keys(durations).sort();
+  if(!keys.length)return '<div style="padding:12px;color:var(--g500);font-size:13px">Belum ada waktu tercatat.</div>';
+  return keys.map(k=>{const wait=k[0]==='w';return `<div class="segoutcome"><span>${durMeta[k]||k}</span><span class="tag ${wait?'orange':'teal'}">${durations[k]}</span></div>`;}).join('');
+}
+function renderReturn(){
+  const s=CUR;
+  // Export-Import: return-to-pool segment (no surat-jalan handover; CY drop already done)
+  if(s.cat==='exim'){
+    document.getElementById('rt-title').firstChild.textContent='Balik ke Pool ';
+    document.getElementById('rt-sub').textContent=`Tahap ${si+1} dari ${s.stops.length}`;
+    document.getElementById('rt-body').innerHTML=
+      `<div class="sec"><div class="note teal"><span class="i">✓</span><div class="tx">Kontainer sudah di-drop di CY & gate-out — <b>kerjaan dianggap selesai</b>. Balik ke pool untuk <b>foto kondisi akhir kendaraan</b>.</div></div></div>
+       <div class="sec gapt"><div class="seclabel"><span class="gsm">Ringkasan waktu proses</span></div><div class="card" style="padding:4px 14px">${eximEvidenceRows()}</div></div>
+       <div class="sec gapt"><div class="note blue"><span class="i">🔀</span><div class="tx"><b>Belum bisa balik pool?</b> Kalau ada shipment berikutnya atau ganti shift/driver, boleh lanjut dulu — foto kondisi akhir kendaraan menyusul pas benar-benar balik pool.</div></div>
+       <button class="btn sec" style="margin-top:10px;height:44px;font-size:13px" onclick="chainNext()">🔀 Belum balik ke pool — lanjut pengantaran / shifting</button></div>`;
+    const btn=document.getElementById('rt-btn');btn.disabled=false;btn.textContent='Balik ke pool · foto kondisi akhir';
+    return;
+  }
+  // General: surat-jalan hub handover
+  document.getElementById('rt-title').firstChild.textContent='Kembali ke Hub Dash ';
+  document.getElementById('rt-sub').textContent=`Segmen ${si+1} dari ${s.stops.length}`;
+  const drops=s.stops.map((st,i)=>({st,i})).filter(x=>x.st.type==='drop');
+  const served=drops.filter(x=>['selesai','catatan'].includes((outcomes[x.i]||{}).type));
+  let body='';
+  if(s.timing==='end-of-flow'){
+    body+=`<div class="sec"><div class="note blue"><span class="i">ℹ</span><div class="tx">Client ini tidak minta surat jalan per drop. Scan semua surat jalan di sini sebelum diserahkan ke hub.</div></div></div>`;
+    body+=`<div class="sec gapt"><div class="seclabel"><span class="gsm">Scan surat jalan</span><span class="tag gray tnum">${served.length} drop terlayani</span></div>`;
+    served.forEach(x=>{body+=`<div class="podslot" onclick="scanSJ(this)"><div class="ico">📄</div><div style="flex:1"><div class="lbl">Surat jalan — ${x.st.name}</div><div class="hint">Scan / foto surat jalan lengkap untuk drop ini.</div><span class="req w">Wajib · 1 foto</span><div class="cta">Ketuk untuk scan →</div></div></div>`;});
+    body+=`</div>`;
+  }else{
+    body+=`<div class="sec"><div class="note blue"><span class="i">ℹ</span><div class="tx">Surat jalan sudah difoto lengkap di tiap drop. Kumpulkan fisik & serahkan ke kantor.</div></div></div>`;
+    body+=`<div class="sec gapt"><div class="seclabel"><span class="gsm">POD terkumpul</span><span class="tag green">${served.length}/${drops.length} drop</span></div><div class="card">`;
+    if(served.length)served.forEach(x=>{body+=`<div class="segoutcome" style="padding:12px 14px">${x.st.name}<span class="tag green">✓ Lengkap</span></div>`;});
+    else body+='<div style="padding:14px;color:var(--g500);font-size:13px">Tidak ada drop terlayani.</div>';
+    body+=`</div></div>`;
+  }
+  const carried=drops.filter(x=>['retur','skip','gagal'].includes((outcomes[x.i]||{}).type));
+  if(carried.length) body+=`<div class="sec gapt"><div class="note"><span class="i">↩</span><div class="tx"><b>Barang dari ${carried.length} drop dibawa kembali</b> (retur / tidak terkirim). Serahkan ke tim gudang Hub Dash & catat di berita acara. <i>Pengelolaan retur penuh (redelivery / status ke client) = fase berikutnya.</i></div></div></div>`;
+  body+=`<div class="sec gapt"><div class="seclabel"><span class="gsm">Serah terima surat jalan</span></div><div class="locstate"><div class="st passed">di Vendor ✓</div><div class="st passed">di Klien ✓</div><div class="st on">di Hub Dash</div></div><div style="font-size:11px;color:var(--g500);margin-top:7px">Surat jalan <b>fisik</b> diserahkan ke Hub Dash = <b>syarat penagihan (invoicing)</b>. Status dokumen: <b>Fisik Pending → Diterima Kantor</b> (dipantau di platform internal & Dash Link).</div></div>`;
+  // Non-linear scenario (BD meeting 27 Jul): unit tak selalu balik hub — serah terima bisa DITUNDA / driver diganti
+  body+=`<div class="sec gapt"><div class="note blue"><span class="i">🔀</span><div class="tx"><b>Kembali ke Hub bersifat opsional.</b> Semua drop sudah tuntas — pengiriman dianggap <b>selesai</b>. Bila ada order berikutnya atau ganti shift/driver, unit bisa lanjut langsung; serah terima surat jalan & foto kondisi akhir ditunda sampai benar-benar balik pool (rekonsiliasi dokumen oleh Ops).</div></div>
+    <button class="btn sec" style="margin-top:10px;height:44px;font-size:13px" onclick="chainNext()">🔀 Belum balik ke pool — lanjut pengantaran / shifting</button></div>`;
+  document.getElementById('rt-body').innerHTML=body;
+  const btn=document.getElementById('rt-btn');
+  if(s.timing==='end-of-flow'){btn.dataset.total=served.length;btn.dataset.scanned=0;if(served.length){btn.disabled=true;btn.textContent=`Scan ${served.length} surat jalan dulu`;}else{btn.disabled=false;btn.textContent='Serahkan ke Hub Dash & selesai';}}
+  else{btn.disabled=false;btn.textContent='Serahkan ke Hub Dash & selesai';}
+}
+function scanSJ(el){
+  if(el.classList.contains('filled'))return;el.classList.add('filled');
+  el.querySelector('.cta').textContent='✓ Ter-scan · watermark';el.querySelector('.cta').style.color='var(--green-600)';toast('Surat jalan ter-scan');
+  const btn=document.getElementById('rt-btn');let sc=parseInt(btn.dataset.scanned)+1;btn.dataset.scanned=sc;
+  if(sc>=parseInt(btn.dataset.total)){btn.disabled=false;btn.textContent='Serahkan ke Hub Dash & selesai';}else btn.textContent=`Scan ${btn.dataset.total-sc} surat jalan lagi`;
+}
+function finishRun(){outcomes[si]={type:'selesai',reason:''};closeTrip();}
+function chainNext(){outcomes[si]={type:'selesai',reason:''};toast('Unit lanjut ke muat berikutnya — foto kondisi akhir ditunda sampai balik pool');go('s-home');}
+
+// ---------- SUMMARY ----------
+function renderSummary(){
+  const exim=CUR.cat==='exim';
+  const drops=CUR.stops.map((st,i)=>({st,i})).filter(x=>x.st.type==='drop');
+  const cnt={selesai:0,catatan:0,retur:0,skip:0,gagal:0};drops.forEach(x=>{const t=(outcomes[x.i]||{}).type;if(t!==undefined&&cnt[t]!==undefined)cnt[t]++;});
+  const parts=[];['selesai','catatan','retur','skip','gagal'].forEach(k=>{if(cnt[k])parts.push(cnt[k]+' '+k);});
+  const pickups=CUR.stops.map((st,i)=>({st,i})).filter(x=>x.st.type==='pickup');
+  const pickupOk=pickups.every(x=>(outcomes[x.i]||{}).type==='selesai');
+  const eximStops=CUR.stops.map((st,i)=>({st,i})).filter(x=>x.st.type==='exim');
+  const eximDone=eximStops.filter(x=>(outcomes[x.i]||{}).type==='selesai');
+  const eximOk=eximStops.every(x=>(outcomes[x.i]||{}).type==='selesai');
+  const check=document.getElementById('sum-check');
+  check.style.background=runFailed?'var(--red-500)':'var(--green-500)';check.style.boxShadow=runFailed?'0 0 0 8px var(--red-50)':'0 0 0 8px var(--green-50)';check.textContent=runFailed?'✕':'✓';
+  document.getElementById('sum-h').textContent=runFailed?'Pengiriman Gagal':'Pengiriman Selesai';
+
+  let rows='',lead='';
+  if(exim){
+    lead=`${CUR.code} selesai. Semua foto, jam, & waktu tunggu tersimpan.`;
+    const emptyRow=CUR.direction==='import'?`<div class="sumrow"><span class="k">Kontainer kosong</span><span class="v">Dikembalikan ke CY</span></div>`:'';
+    rows=`<div class="sumrow"><span class="k">Shipment</span><span class="v mono">${CUR.code}</span></div>
+      <div class="sumrow"><span class="k">Jenis kontainer</span><span class="v">${CUR.container.type}</span></div>
+      <div class="sumrow"><span class="k">Hasil</span><span class="v" style="color:var(--green-600)">✓ Selesai · ${eximDone.length} tahap</span></div>
+      ${emptyRow}`;
+  }else{
+    lead=runFailed?`${CUR.code} gagal di pickup — barang tidak terangkut, semua drop dibatalkan. Alasan & waktu tercatat untuk Ops.`:`${CUR.code} tercatat${offline?' (tersimpan lokal, sync saat online)':''}. Jam aktual, kondisi kendaraan & On-Time Pickup terekam.${CUR.timing==='end-of-flow'?' Surat jalan diserahkan ke Hub Dash.':''}`;
+    rows=`<div class="sumrow"><span class="k">Shipment</span><span class="v mono">${CUR.code}</span></div>
+      <div class="sumrow"><span class="k">On-Time Pickup</span><span class="v" style="color:${pickupOk?'var(--green-600)':'var(--red-600)'}">${pickupOk?'✓ Tepat waktu':'✕ Pickup gagal'}</span></div>
+      <div class="sumrow"><span class="k">Pickup</span><span class="v tnum">${pickups.length}× ${pickupOk?'selesai':'—'}</span></div>
+      <div class="sumrow"><span class="k">Hasil drop</span><span class="v">${parts.join(' · ')||'—'}</span></div>
+      <div class="sumrow"><span class="k">Lokasi surat jalan</span><span class="v">${runFailed?'— (tidak ada)':'di Hub Dash'}</span></div>`;
+    drops.forEach(x=>{const o=outcomes[x.i]||{type:'selesai'};const oc=OUTCOMES[o.type];
+      rows+=`<div class="sumrow"><span class="k">${x.st.name}</span><span class="v" style="color:${oc.fg}">${oc.label}${o.reason?' · <span style=\"font-weight:400;color:var(--g500)\">'+o.reason+'</span>':''}</span></div>`;});
+  }
+  document.getElementById('sum-lead').textContent=lead;
+  document.getElementById('sum-card').innerHTML=rows;
+
+  // Waktu-proses box (exim headline) — dinamis dari durations/durMeta
+  const evWrap=document.getElementById('sum-evid-wrap'),ev=document.getElementById('sum-evid');
+  if(exim && !runFailed){
+    evWrap.style.display='block';
+    ev.innerHTML=eximEvidenceRows();
+  }else evWrap.style.display='none';
+
+  // Apresiasi — one line, data-driven
+  let apr;
+  if(runFailed) apr='Tetap semangat, '+CUR.driver+'. Kendala sudah tercatat — tim Ops akan bantu tindak lanjut.';
+  else if(exim) apr='Kerja bagus, '+CUR.driver+'! Kontainer tuntas & semua bukti waktu terekam rapi. 💪';
+  else if(cnt.gagal||cnt.skip||cnt.retur||cnt.catatan) apr='Terima kasih, '+CUR.driver+'. Semua stop sudah tuntas & tercatat rapi. 🙌';
+  else apr='Kerja bagus, '+CUR.driver+'! Semua stop tepat waktu & lengkap. 💪';
+  document.getElementById('sum-apr-wrap').innerHTML=`<div class="apr"><span class="q">"</span><span class="t">${apr}</span></div>`;
+}
+
+// Swipe-to-confirm for the runner primary action — deliberate slide, prevents accidental taps (existing-app convention)
+function initSlide(){
+  const s=document.getElementById('run-slide'),k=document.getElementById('run-knob');if(!s||!k)return;
+  let dragging=false,startX=0,max=0,x=0,moved=false;
+  const reset=()=>{x=0;k.style.transition='transform .18s';k.style.transform='translateX(0)';};
+  k.addEventListener('pointerdown',e=>{dragging=true;moved=false;startX=e.clientX;max=s.clientWidth-k.clientWidth-6;k.style.transition='none';k.setPointerCapture&&k.setPointerCapture(e.pointerId);e.preventDefault();});
+  window.addEventListener('pointermove',e=>{if(!dragging)return;x=Math.max(0,Math.min(max,e.clientX-startX));if(x>4)moved=true;k.style.transform='translateX('+x+'px)';});
+  window.addEventListener('pointerup',()=>{if(!dragging)return;dragging=false;
+    if(x>max*0.7){k.style.transition='transform .12s';k.style.transform='translateX('+max+'px)';setTimeout(()=>{reset();advanceStatus();},130);}
+    else{reset();if(moved)toast('Geser tombol sampai ujung untuk konfirmasi');}});
+}
+renderHome();initSlide();initRunSheet();initShipSheet();
+</script>
+</body>
+</html>
