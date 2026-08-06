@@ -65,9 +65,9 @@ flowchart LR
 
 ## Data owned by this module
 
-**Today: none.** The module will own `ROUTES`, `ROUTE_STOPS`, `ROUTE_STOP_SHIPMENTS`, and `ROUTE_STOP_DELIVERIES` (a bare stop↔delivery-uid link table maintaining the legacy delivery-service integration) as specified in [route-prd-trd-v1.md](./route-prd-trd-v1.md) (added to `docs/modules/erd/erd.mermaid` in the same change, status draft).
+**Today: none.** The module will own `ROUTES`, `ROUTE_STOPS`, and `ROUTE_STOP_SHIPMENTS` as specified in [route-prd-trd-v1.md](./route-prd-trd-v1.md) (added to `docs/modules/erd/erd.mermaid` in the same change, status draft). Nothing links a route to a delivery-service delivery — the legacy bridge stays a separate path (decided 2026-08-06).
 
-Reads from other modules: `SHIPMENTS` (and possibly `ITEMS` — grain is an open question), rider/hub master data from core-service (snapshot pattern, no FK).
+Reads from other modules: `SHIPMENTS` (and possibly `ITEMS` — grain is an open question), rider/hub master data from core-service (snapshot pattern, no FK). It also **adds one column to `SHIPMENTS`** — `type` (`DOCKING`|`DIRECT_2W`|`DIRECT_4W`), set at intake; the route derives its own type from the shipments it serves rather than storing one (decided 2026-08-06).
 
 ## APIs & integrations
 
@@ -111,6 +111,8 @@ Reads from other modules: `SHIPMENTS` (and possibly `ITEMS` — grain is an open
 
 ## Changelog
 
+- 2026-08-06 — `shipment_type` recorded as a new `SHIPMENTS` column (route type is derived, not stored); `external_shift_id` / `external_trip_id` / `route_stops.leg_polyline` dropped from the route model; route `status` / `cancelled_at` / `cancellation_reason` dropped — status derives from `started_at`/`completed_at` and routes cannot be cancelled
+- 2026-08-06 — `ROUTE_STOP_DELIVERIES` removed from the owned-data list (user decision): routes carry no link to delivery-service deliveries; the legacy point-to-point bridge stays a fully separate path
 - 2026-08-05 — execution-surface question resolved (CEO review): riders execute routes natively in logistic-service at `/v1/routes` with a rider JWT, no trip-service bridge; recorded the existing `/driver/v1/*` surfaces the m-app already consumes, Fleet's ownership of vehicle custody (`GET /v1/handovers/drivers/:driverID`), and logistic-service's new rider-critical exposure
 - 2026-08-04 — created (v1): recorded current routing behavior across docking batches, the single-shipment delivery bridge, and the trip-service precedent; framed the gap the route module fills
-- 2026-08-04 — added `ROUTE_STOP_DELIVERIES` to the owned-data list (legacy delivery-service link table, per prd-trd v1)
+- 2026-08-04 — added `ROUTE_STOP_DELIVERIES` to the owned-data list (legacy delivery-service link table, per prd-trd v1) *(reverted 2026-08-06)*
