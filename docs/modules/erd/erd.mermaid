@@ -25,11 +25,13 @@ erDiagram
     %% serves 1+ shipments. Additive to dispatch/batches, which stay unchanged.
     %% The rider executes the route natively (logistic-service /v1/routes, rider JWT):
     %% start → DIRECT_4W checklist + 8-item vehicle check → stops → end + end check.
+    %% ROUTES has NO status column: status is derived from started_at/completed_at
+    %% (null→PLANNED, started→IN_PROGRESS, completed→COMPLETED). There is no
+    %% CANCELLED state — routes cannot be cancelled (decided 2026-08-06).
     ROUTES ||--o{ ROUTE_STOPS : "visits in sequence"
     ROUTES ||--o{ ROUTE_STOP_SHIPMENTS : serves
     ROUTE_STOPS ||--o{ ROUTE_STOP_SHIPMENTS : "serves at stop"
     SHIPMENTS ||--o{ ROUTE_STOP_SHIPMENTS : "routed via"
-    ROUTE_STOPS ||--o{ ROUTE_STOP_DELIVERIES : "legacy delivery links"
 
     %% ── Stop workflows (see docs/modules/stop-workflow — prd-trd v1 DRAFT) ──
     %% Per-client door-side forms. Definitions normalized below (cold, admin-side);
@@ -74,6 +76,7 @@ erDiagram
         text booking_id
         text delivery_group_id
         text service_type
+        text type "DOCKING|DIRECT_2W|DIRECT_4W default DOCKING — set at intake; a route derives its type from the shipments it serves"
         text priority_time_window "HH:MM - HH:MM"
         text sender_name
         text sender_phone
@@ -246,28 +249,22 @@ erDiagram
         uuid id PK
         text code "unique — RTE{yymmdd}{seq5}"
         text idempotency_key "unique, nullable — replay-safe creation"
-        text shipment_type "DOCKING|DIRECT_2W|DIRECT_4W default DOCKING"
         date planned_date "the day the rider works this route — rider list filters on it"
         text rider_id "external core-service rider id"
         jsonb rider "RiderSnapshot {id,code,name,phone_number}"
-        integer external_shift_id
-        text external_trip_id "nullable — reserved trip-service bridge"
         integer stop_count
         integer shipment_count
         numeric total_weight_kg
         numeric total_volume_m3
-        text status "PLANNED|IN_PROGRESS|COMPLETED|CANCELLED default PLANNED"
         jsonb pre_checklist_agreement "nullable — DIRECT_4W only: {agreed,checklistVersion,agreedAt} set at route start"
         jsonb start_check "nullable — DIRECT_4W only: {selfie,vehicleFront,vehicleBack,vehicleLeft,vehicleRight,vehicleBox,odometerPhoto,odometerReading,submittedAt}"
         jsonb end_check "nullable — DIRECT_4W only, same shape, SEPARATE column (never merged with start_check); odometerReading >= start_check's"
-        text route_polyline "provider snapshot"
+        text route_polyline "provider snapshot — ONE geometry for the whole journey (matches batches.route_polyline); stops carry distance/duration per leg, never their own polyline"
         integer route_distance_m
         integer route_duration_sec
         timestamptz route_computed_at
-        timestamptz started_at
-        timestamptz completed_at
-        timestamptz cancelled_at
-        text cancellation_reason
+        timestamptz started_at "null = PLANNED; set by the rider's explicit start"
+        timestamptz completed_at "set when the derivation passes; these two ARE the status"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -286,7 +283,6 @@ erDiagram
         integer shipment_count
         numeric total_weight_kg
         numeric total_volume_m3
-        text leg_polyline "provider snapshot — leg ending at this stop"
         integer leg_distance_m "provider leg ending here"
         integer leg_duration_sec
         text status "PENDING|COMPLETED|FAILED|SKIPPED default PENDING"
@@ -309,13 +305,6 @@ erDiagram
         text status "ACTIVE|BLOCKED|CANCELLED default ACTIVE"
         timestamptz created_at
         timestamptz updated_at
-    }
-
-    ROUTE_STOP_DELIVERIES {
-        uuid id PK
-        uuid route_stop_id FK "→ route_stops.id CASCADE"
-        text delivery_id "external delivery-service delivery uid (no FK)"
-        timestamptz created_at
     }
 
     STOP_WORKFLOWS {
