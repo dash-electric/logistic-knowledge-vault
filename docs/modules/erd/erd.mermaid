@@ -20,6 +20,25 @@ erDiagram
     BATCH_STOPS ||--o{ BATCH_ITEMS : "drops at"
     ITEMS ||--o{ BATCH_ITEMS : "assigned to batch"
 
+    %% ── Shipment routes (see docs/modules/shipment-route — prd-trd v1 DRAFT) ──
+    %% One route = one rider journey; ordered stops typed PICKUP|DROP_OFF; a stop
+    %% serves 1+ shipments. Additive to dispatch/batches, which stay unchanged.
+    ROUTES ||--o{ ROUTE_STOPS : "visits in sequence"
+    ROUTES ||--o{ ROUTE_STOP_SHIPMENTS : serves
+    ROUTE_STOPS ||--o{ ROUTE_STOP_SHIPMENTS : "serves at stop"
+    SHIPMENTS ||--o{ ROUTE_STOP_SHIPMENTS : "routed via"
+    ROUTE_STOPS ||--o{ ROUTE_STOP_DELIVERIES : "legacy delivery links"
+
+    %% ── Stop workflows (see docs/modules/stop-workflow — prd-trd v1 DRAFT) ──
+    %% Per-client door-side forms. Definitions normalized below (cold, admin-side);
+    %% execution denormalized: the resolved definition + submission state is
+    %% snapshotted into route_stops.workflow (single nullable JSONB) at route
+    %% creation — null means the m-app's static workflow applies.
+    STOP_WORKFLOWS ||--o{ WORKFLOW_MILESTONES : "ordered steps"
+    WORKFLOW_MILESTONES ||--o{ WORKFLOW_FIELDS : "ordered inputs"
+    ROUTE_STOPS ||--o{ WORKFLOW_SUBMISSIONS : "milestone evidence"
+    STOP_WORKFLOWS ||--o{ WORKFLOW_SUBMISSIONS : "submitted against"
+
     %% ── Invoice (proof-of-delivery + AI checker) ──
     INVOICES ||--o{ INVOICE_STATUS_HISTORY : "audits transitions"
     INVOICES ||--o{ AI_CHECKER_LOGS : "checked by"
@@ -219,6 +238,125 @@ erDiagram
         numeric volume_m3
         boolean deferred "default false"
         timestamptz created_at
+    }
+
+    ROUTES {
+        uuid id PK
+        text code "unique — RTE{yymmdd}{seq5}"
+        text idempotency_key "unique, nullable — replay-safe creation"
+        text shipment_type "DOCKING|DIRECT_2W|DIRECT_4W default DOCKING"
+        text rider_id "external core-service rider id"
+        jsonb rider "RiderSnapshot {id,code,name,phone_number}"
+        integer external_shift_id
+        text external_trip_id "nullable — reserved trip-service bridge"
+        integer stop_count
+        integer shipment_count
+        numeric total_weight_kg
+        numeric total_volume_m3
+        text status "PLANNED|IN_PROGRESS|COMPLETED|CANCELLED default PLANNED"
+        jsonb start_check "nullable — DIRECT_4W only: {selfie,vehicleFront,vehicleBack,vehicleLeft,vehicleRight,vehicleBox,odometerPhoto,odometerReading,submittedAt,submittedBy}"
+        jsonb end_check "nullable — DIRECT_4W only, same shape; odometerReading >= start_check's"
+        text route_polyline "provider snapshot"
+        integer route_distance_m
+        integer route_duration_sec
+        timestamptz route_computed_at
+        timestamptz started_at
+        timestamptz completed_at
+        timestamptz cancelled_at
+        text cancellation_reason
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ROUTE_STOPS {
+        uuid id PK
+        uuid route_id FK "→ routes.id CASCADE"
+        integer sequence "unique within route"
+        text type "PICKUP|DROP_OFF"
+        text address
+        numeric latitude
+        numeric longitude
+        text h3_index
+        text contact_name
+        text contact_phone
+        integer shipment_count
+        numeric total_weight_kg
+        numeric total_volume_m3
+        text leg_polyline "provider snapshot — leg ending at this stop"
+        integer leg_distance_m "provider leg ending here"
+        integer leg_duration_sec
+        text status "PENDING|COMPLETED|FAILED|SKIPPED default PENDING"
+        jsonb workflow "nullable — WorkflowSnapshot (definition + submission state); null = m-app static workflow"
+        timestamptz arrived_at "nullable — rider arrival at the stop"
+        timestamptz resolved_at
+        text resolved_by
+        text resolution_reason
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ROUTE_STOP_SHIPMENTS {
+        uuid id PK
+        uuid route_id FK "→ routes.id (denormalized for active-route invariant)"
+        uuid route_stop_id FK "→ route_stops.id CASCADE"
+        uuid shipment_id FK "→ shipments.id (unique per stop; ≤1 stop per type per route)"
+        numeric weight_kg
+        numeric volume_m3
+        text status "ACTIVE|BLOCKED|CANCELLED default ACTIVE"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ROUTE_STOP_DELIVERIES {
+        uuid id PK
+        uuid route_stop_id FK "→ route_stops.id CASCADE"
+        text delivery_id "external delivery-service delivery uid (no FK)"
+        timestamptz created_at
+    }
+
+    STOP_WORKFLOWS {
+        uuid id PK
+        integer client_id "external core-service client id (no FK)"
+        jsonb client "frozen {id,name} snapshot from core-service; nullable (best-effort)"
+        text name
+        text stop_type "PICKUP|DROP_OFF — the stop type this workflow gates, never both"
+        text status "ACTIVE|INACTIVE default ACTIVE — one ACTIVE per (client_id, stop_type) (partial unique)"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WORKFLOW_MILESTONES {
+        uuid id PK
+        uuid workflow_id FK "→ stop_workflows.id CASCADE"
+        integer sequence "unique within workflow"
+        text key "unique within workflow"
+        text name
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WORKFLOW_FIELDS {
+        uuid id PK
+        uuid milestone_id FK "→ workflow_milestones.id CASCADE"
+        integer sequence "unique within milestone"
+        text key "unique within milestone"
+        text label
+        text type "IMAGE|TEXT|NUMBER"
+        boolean required "default true"
+        jsonb config "nullable — {imageCount} xor {multiple} for IMAGE; {maxLength|min|max} for TEXT/NUMBER"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WORKFLOW_SUBMISSIONS {
+        uuid id PK
+        uuid route_stop_id FK "→ route_stops.id"
+        uuid workflow_id "soft → stop_workflows.id (definition also frozen in stop snapshot)"
+        text milestone_key "unique with route_stop_id — append-only, one submission per milestone"
+        integer milestone_sequence
+        jsonb values "submitted field values {fieldKey: value}"
+        text submitted_by
+        timestamptz submitted_at
     }
 
     INVOICES {

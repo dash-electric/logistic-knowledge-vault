@@ -1,0 +1,1129 @@
+<!--
+title: Shipment Route — Mockup
+module: shipment-route
+doctype: mockup
+version: 1
+status: draft            # draft | in-review | approved | shipped | superseded
+owner: aldi.iskandar@dashelectric.co
+created: 2026-08-04
+links:
+  prd-trd: ./route-prd-trd-v1.md
+  context: ./route-context-v1.md
+  related: ../stop-workflow/workflow-prd-trd-v1.md
+
+Scope: portal flow for creating a shipment and its route — pick the shipment
+type (DOCKING | DIRECT_2W | DIRECT_4W), enter ordered stops, and select the stop
+workflow on each stop. Rider-side execution is NOT in this mockup.
+
+Built against design-system/kit (@dash-electric/logistic-kit): tokens lifted from
+kit/styles/tokens.css, component chrome reproduced in plain CSS so the file stays
+self-contained. Every block names the kit component it maps to.
+Follows docs/brand/gsm.md: one accent (Dash Purple) used like punctuation,
+hairline rules, 2px radii, no gradients/glow/shadows, Plus Jakarta Sans + JetBrains Mono.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shipment Route · Create shipment &amp; route · Mockup · Dash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   Tokens — lifted from design-system/kit/styles/tokens.css (GSM v1.0).
+   Never hardcode a color outside this block.
+   ========================================================================== */
+:root {
+  --primary-base: #5E2AAC;
+  --primary-alpha-10: #5e2aac1a;
+  --primary-alpha-16: #5e2aac29;
+
+  --bg-white-0: #ffffff;
+  --bg-weak-50: #f7f7f7;
+  --bg-soft-200: #ebebeb;
+  --bg-strong-950: #171717;
+
+  --text-strong-950: #171717;
+  --text-sub-600: #5c5c5c;
+  --text-soft-400: #a3a3a3;
+  --text-disabled-300: #d1d1d1;
+  --text-white-0: #ffffff;
+
+  --stroke-soft-200: #1717171a;   /* Rule — 10% black */
+  --stroke-sub-300: #17171738;    /* Rule strong — 22% black */
+  --stroke-strong-950: #171717;
+
+  --tint: #1717170a;              /* 4% */
+  --tint-strong: #17171712;       /* 7% */
+
+  /* Operational status ramps — information, never decoration */
+  --state-success-base: #1fc16b; --state-success-lighter: #e0faec; --state-success-dark: #0b4627;
+  --state-error-base: #fb3748;   --state-error-lighter: #ffebec;   --state-error-dark: #681219;
+  --state-warning-base: #fa7319; --state-warning-lighter: #fff3eb; --state-warning-dark: #71330a;
+  --state-faded-base: #5c5c5c;   --state-faded-lighter: #f5f5f5;
+
+  --radius: 2px;                  /* kit collapses the whole radius scale to 2px */
+  --shadow-xs: inset 0 0 0 1px var(--stroke-soft-200);
+  --shadow-md: 0 2px 8px -4px #1717171a, 0 0 0 1px var(--stroke-soft-200);
+  --mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+  --duration-fast: 150ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: var(--text-strong-950);
+  background: var(--bg-weak-50);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11", "cv02";
+  min-height: 100vh;
+}
+::selection { background: var(--primary-base); color: #fff; }
+
+/* ===== Page chrome ===== */
+.page-header, .page-footer {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 24px;
+  padding: 14px clamp(20px, 4vw, 48px);
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text-sub-600); font-weight: 600; background: var(--bg-white-0);
+}
+.page-header { border-bottom: 1px solid var(--stroke-soft-200); position: sticky; top: 0; z-index: 5; }
+.page-footer { border-top: 1px solid var(--stroke-soft-200); font-variant-numeric: tabular-nums; }
+.page-header .left { display: flex; gap: 24px; align-items: baseline; }
+.page-header .right { color: var(--text-strong-950); font-weight: 700; }
+.brand-mark { display: inline-flex; align-items: center; gap: 0.42em; font-weight: 800; letter-spacing: -0.01em; color: var(--text-strong-950); }
+.logo-mark { display: inline-block; width: 1em; height: 1em; vertical-align: -0.14em; color: var(--primary-base); }
+.logo-mark svg { display: block; width: 100%; height: 100%; }
+
+/* ===== Board of screens ===== */
+.board { display: flex; flex-direction: column; gap: clamp(32px, 5vh, 64px); padding: clamp(28px, 5vh, 56px) clamp(16px, 4vw, 48px); max-width: 1240px; margin: 0 auto; }
+.state-tag { display: block; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-sub-600); font-weight: 600; margin-bottom: 10px; }
+.state-tag .num { color: var(--primary-base); font-weight: 700; margin-right: 12px; }
+.note { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--stroke-soft-200); font-size: 13px; color: var(--text-sub-600); line-height: 1.55; max-width: 84ch; }
+.note::before { content: 'Note'; display: block; font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+.note b { color: var(--text-strong-950); font-weight: 600; }
+.note .kit { font-family: var(--mono); font-size: 11px; }
+
+/* Screen = one portal page */
+.screen { background: var(--bg-white-0); border: 1px solid var(--stroke-sub-300); }
+.screen-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--stroke-soft-200); background: var(--bg-weak-50); }
+.crumbs { font-size: 12px; color: var(--text-sub-600); }
+.crumbs span { color: var(--text-soft-400); margin: 0 6px; }
+.crumbs b { color: var(--text-strong-950); font-weight: 600; }
+.screen-body { padding: 20px clamp(16px, 2.4vw, 28px) 24px; }
+
+/* ===== Type scale (kit text-* utilities) ===== */
+.t-h5 { font-size: 24px; font-weight: 500; line-height: 32px; letter-spacing: -0.01em; }
+.t-label-lg { font-size: 18px; font-weight: 500; line-height: 24px; letter-spacing: -0.27px; }
+.t-label-md { font-size: 16px; font-weight: 500; line-height: 24px; letter-spacing: -0.176px; }
+.t-label-sm { font-size: 14px; font-weight: 500; line-height: 20px; }
+.t-para-sm { font-size: 14px; font-weight: 400; line-height: 20px; }
+.t-para-xs { font-size: 12px; font-weight: 400; line-height: 16px; }
+.t-sub-xs { font-size: 12px; font-weight: 500; line-height: 16px; letter-spacing: 0.48px; text-transform: uppercase; }
+.sub { color: var(--text-sub-600); }
+.soft { color: var(--text-soft-400); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ===== StepIndicator (kit: step-indicator.tsx, horizontal) ===== */
+.steps { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.steps li { display: flex; align-items: center; gap: 8px; list-style: none; }
+.steps .dot { width: 20px; height: 20px; border-radius: 999px; display: grid; place-items: center; font-size: 11px; font-weight: 600; border: 1px solid var(--stroke-soft-200); color: var(--text-sub-600); background: var(--bg-white-0); font-variant-numeric: tabular-nums; }
+.steps .lbl { font-size: 14px; color: var(--text-sub-600); }
+.steps li.current .dot { background: var(--primary-base); border-color: var(--primary-base); color: #fff; }
+.steps li.current .lbl { color: var(--text-strong-950); font-weight: 500; }
+.steps li.done .dot { background: var(--state-success-base); border-color: var(--state-success-base); color: #fff; }
+.steps .chev { color: var(--text-soft-400); font-size: 14px; }
+
+/* ===== Layout helpers ===== */
+.cols { display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: clamp(20px, 3vw, 36px); align-items: start; }
+.stack { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; gap: 10px; }
+.row.wrap { flex-wrap: wrap; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.between { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.mt-4 { margin-top: 4px; } .mt-8 { margin-top: 8px; } .mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; } .mt-20 { margin-top: 20px; } .mt-24 { margin-top: 24px; }
+.hr { height: 1px; background: var(--stroke-soft-200); margin: 20px 0; }
+
+/* Section header (kit: Divider + Label) */
+.section-head { display: flex; align-items: baseline; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--stroke-soft-200); margin-bottom: 16px; flex-wrap: wrap; }
+.section-head .eyebrow { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 700; color: var(--primary-base); font-variant-numeric: tabular-nums; }
+.section-head .req { margin-left: auto; font-size: 11px; color: var(--text-soft-400); font-family: var(--mono); }
+
+/* ===== Field / Input / Select (kit: field.tsx, input.tsx, select.tsx) ===== */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-strong-950); }
+.field > label .opt { color: var(--text-soft-400); font-weight: 400; }
+.control {
+  display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px;
+  background: var(--bg-white-0); border: 1px solid var(--stroke-soft-200); border-radius: var(--radius);
+  font-size: 14px; color: var(--text-strong-950); transition: border-color var(--duration-fast) var(--ease-out);
+}
+.control.sm { height: 36px; padding: 0 10px; }
+.control .ph { color: var(--text-soft-400); }
+.control .chev { margin-left: auto; color: var(--text-soft-400); font-size: 12px; }
+.control.focused { border-color: var(--stroke-strong-950); box-shadow: 0 0 0 2px var(--primary-alpha-16); }
+.control.disabled { background: var(--bg-weak-50); border-color: transparent; color: var(--text-disabled-300); }
+.control.area { height: auto; min-height: 72px; align-items: flex-start; padding: 10px 12px; line-height: 1.5; }
+.hint { font-size: 12px; color: var(--text-sub-600); }
+.hint.error { color: var(--state-error-dark); font-weight: 500; }
+.hint.error::before { content: '✕'; margin-right: 6px; color: var(--state-error-base); }
+
+/* ===== Button (kit: button.tsx — primary filled is INK, never purple) ===== */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 40px; padding: 0 14px; border-radius: var(--radius); border: 1px solid transparent;
+  font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;
+  background: var(--bg-strong-950); color: var(--text-white-0);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.btn.sm { height: 36px; padding: 0 12px; }
+.btn.xs { height: 32px; padding: 0 10px; font-size: 13px; }
+.btn.stroke { background: var(--bg-white-0); border-color: var(--stroke-soft-200); color: var(--text-sub-600); box-shadow: var(--shadow-xs); }
+.btn.ghost { background: transparent; color: var(--text-sub-600); }
+.btn.danger-ghost { background: transparent; color: var(--state-error-base); }
+.btn.disabled { background: var(--bg-weak-50); color: var(--text-disabled-300); cursor: not-allowed; }
+.btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* ===== Badge (kit: badge.tsx — pill) / Tag (kit: tag.tsx — square) ===== */
+.badge { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.badge.neutral { background: var(--bg-strong-950); color: #fff; }
+.badge.faded { background: var(--state-faded-lighter); color: var(--state-faded-base); }
+.badge.success { background: var(--state-success-lighter); color: var(--state-success-base); }
+.badge.error { background: var(--state-error-lighter); color: var(--state-error-base); }
+.badge.warning { background: var(--state-warning-lighter); color: var(--state-warning-base); }
+.badge.stroke { background: transparent; box-shadow: inset 0 0 0 1px var(--stroke-sub-300); color: var(--text-sub-600); }
+.badge .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+.badge.live { box-shadow: inset 0 0 0 1px var(--stroke-sub-300); color: var(--text-strong-950); }
+.badge.live .dot { background: var(--primary-base); }
+.tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border-radius: var(--radius); background: var(--bg-weak-50); box-shadow: inset 0 0 0 1px var(--stroke-soft-200); font-family: var(--mono); font-size: 11px; color: var(--text-strong-950); }
+.tag .x { color: var(--text-soft-400); }
+.tag.flag { box-shadow: inset 0 0 0 1px var(--state-error-base); }
+
+/* ===== Card / radio card (kit: card.tsx + radio.tsx) ===== */
+.card { border: 1px solid var(--stroke-soft-200); border-radius: var(--radius); background: var(--bg-white-0); padding: 16px; }
+.card.weak { background: var(--bg-weak-50); border-color: transparent; }
+.type-card { border: 1px solid var(--stroke-soft-200); border-radius: var(--radius); padding: 14px; cursor: pointer; background: var(--bg-white-0); display: flex; flex-direction: column; gap: 8px; }
+.type-card.selected { border-color: var(--stroke-strong-950); box-shadow: 0 0 0 2px var(--primary-alpha-16); }
+.type-card .head { display: flex; align-items: center; gap: 8px; }
+.type-card .radio { width: 16px; height: 16px; border-radius: 999px; border: 1px solid var(--stroke-sub-300); display: grid; place-items: center; flex: 0 0 auto; }
+.type-card.selected .radio { border-color: var(--primary-base); }
+.type-card.selected .radio::after { content: ''; width: 8px; height: 8px; border-radius: 999px; background: var(--primary-base); }
+.type-card .name { font-size: 16px; font-weight: 500; letter-spacing: -0.176px; }
+.type-card .code { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--text-soft-400); }
+.type-card .desc { font-size: 13px; line-height: 1.45; color: var(--text-sub-600); }
+.type-card .conseq { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; line-height: 1.45; color: var(--text-strong-950); padding-top: 8px; border-top: 1px solid var(--stroke-soft-200); margin-top: auto; }
+.type-card .conseq .k { font-family: var(--mono); font-size: 10px; color: var(--text-soft-400); text-transform: uppercase; letter-spacing: 0.08em; flex: 0 0 auto; padding-top: 2px; }
+
+/* ===== Switch (kit: switch.tsx) ===== */
+.switch { width: 32px; height: 18px; border-radius: 999px; background: var(--bg-soft-200); position: relative; flex: 0 0 auto; }
+.switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 999px; background: #fff; box-shadow: 0 1px 2px 0 #1717172e; }
+.switch.on { background: var(--bg-strong-950); }
+.switch.on::after { left: 16px; }
+
+/* ===== Stop sequence list (kit: stop-sequence-list.tsx + stop-list-item.tsx) ===== */
+.stops { border: 1px solid var(--stroke-soft-200); border-radius: var(--radius); }
+.stop { display: grid; grid-template-columns: 44px minmax(0,1fr); border-bottom: 1px solid var(--stroke-soft-200); }
+.stop:last-child { border-bottom: 0; }
+.stop.selected { background: var(--bg-weak-50); }
+.rail { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 0 16px 12px; }
+.rail .handle { color: var(--text-soft-400); font-size: 14px; line-height: 1; cursor: grab; }
+.seq { width: 22px; height: 22px; border-radius: 999px; display: grid; place-items: center; background: var(--bg-strong-950); color: #fff; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+.stop.selected .seq { box-shadow: 0 0 0 3px var(--primary-alpha-16); }
+.rail .line { flex: 1 1 auto; width: 1px; min-height: 12px; border-left: 1px dashed var(--stroke-sub-300); }
+.stop-body { padding: 14px 14px 16px 4px; min-width: 0; }
+.stop-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.stop-head .addr { font-size: 14px; font-weight: 500; letter-spacing: -0.084px; }
+.stop-head .actions { margin-left: auto; display: flex; gap: 4px; }
+.stop-meta { margin-top: 5px; font-size: 12px; color: var(--text-sub-600); font-variant-numeric: tabular-nums; }
+/* pickup = hollow ink ring, drop-off = ink square (kit: address-pair.tsx glyphs) */
+.pin { width: 10px; height: 10px; flex: 0 0 auto; }
+.pin.pickup { border-radius: 999px; border: 3px solid var(--bg-strong-950); background: var(--bg-white-0); }
+.pin.drop { border-radius: var(--radius); background: var(--bg-strong-950); }
+
+/* Workflow slot on a stop */
+.wf { margin-top: 12px; border: 1px solid var(--stroke-soft-200); border-radius: var(--radius); background: var(--bg-weak-50); padding: 10px 12px; }
+.wf .wf-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wf .wf-head .lbl { font-size: 12px; font-weight: 500; letter-spacing: 0.48px; text-transform: uppercase; color: var(--text-sub-600); }
+.wf .wf-head .src { margin-left: auto; font-size: 11px; font-family: var(--mono); color: var(--text-soft-400); }
+.wf .control { margin-top: 8px; background: var(--bg-white-0); }
+.ms-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ms-chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; background: var(--bg-white-0); box-shadow: inset 0 0 0 1px var(--stroke-soft-200); font-size: 11px; color: var(--text-sub-600); }
+.ms-chip .n { font-family: var(--mono); color: var(--primary-base); font-weight: 600; }
+
+/* Select menu (kit: select.tsx content) */
+.menu { border: 1px solid var(--stroke-soft-200); border-radius: var(--radius); background: var(--bg-white-0); box-shadow: var(--shadow-md); padding: 4px; margin-top: 6px; }
+.menu .group { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-soft-400); font-weight: 600; padding: 8px 10px 4px; }
+.menu .opt { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: var(--radius); cursor: pointer; }
+.menu .opt.on { background: var(--bg-weak-50); }
+.menu .opt .check { width: 14px; color: var(--primary-base); font-size: 12px; flex: 0 0 auto; padding-top: 3px; }
+.menu .opt .name { font-size: 14px; font-weight: 500; }
+.menu .opt .meta { font-size: 12px; color: var(--text-sub-600); margin-top: 2px; }
+.menu .opt.disabled { cursor: not-allowed; }
+.menu .opt.disabled .name, .menu .opt.disabled .meta { color: var(--text-disabled-300); }
+.menu .opt.disabled .why { font-size: 11px; color: var(--text-sub-600); margin-top: 3px; }
+.menu .sep { height: 1px; background: var(--stroke-soft-200); margin: 4px 0; }
+
+/* Milestone preview (kit: accordion.tsx + item-row.tsx) */
+.ms-list { border: 1px solid var(--stroke-soft-200); border-radius: var(--radius); }
+.ms-row { display: grid; grid-template-columns: 28px minmax(0,1fr); gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--stroke-soft-200); }
+.ms-row:last-child { border-bottom: 0; }
+.ms-row .idx { width: 22px; height: 22px; border-radius: 999px; display: grid; place-items: center; background: var(--bg-weak-50); box-shadow: inset 0 0 0 1px var(--stroke-soft-200); font-size: 11px; font-weight: 600; color: var(--primary-base); font-variant-numeric: tabular-nums; }
+.ms-row .name { font-size: 14px; font-weight: 500; }
+.ms-row .fields { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.fchip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border-radius: var(--radius); background: var(--bg-weak-50); font-size: 12px; color: var(--text-strong-950); }
+.fchip .type { font-family: var(--mono); font-size: 10px; color: var(--text-sub-600); text-transform: uppercase; }
+.fchip .cnt { font-family: var(--mono); font-size: 10px; color: var(--primary-base); font-weight: 600; }
+.fchip.empty { color: var(--text-sub-600); background: transparent; box-shadow: inset 0 0 0 1px var(--stroke-soft-200); }
+
+/* ===== Alert (kit: alert.tsx / information-banner.tsx) ===== */
+.alert { display: flex; gap: 10px; padding: 12px 14px; border-radius: var(--radius); font-size: 13px; line-height: 1.55; }
+.alert .ico { flex: 0 0 auto; width: 16px; height: 16px; border-radius: 999px; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; margin-top: 2px; }
+.alert .body b { font-weight: 600; }
+.alert.error { background: var(--state-error-lighter); color: var(--state-error-dark); }
+.alert.error .ico { background: var(--state-error-base); }
+.alert.warning { background: var(--state-warning-lighter); color: var(--state-warning-dark); }
+.alert.warning .ico { background: var(--state-warning-base); }
+.alert.success { background: var(--state-success-lighter); color: var(--state-success-dark); }
+.alert.success .ico { background: var(--state-success-base); }
+.alert.info { background: var(--bg-weak-50); color: var(--text-strong-950); }
+.alert.info .ico { background: var(--bg-strong-950); }
+.alert ul { margin: 6px 0 0 0; padding-left: 18px; }
+.alert li { margin-top: 3px; }
+
+/* ===== Summary rail (kit: stat.tsx / widget-shell.tsx) ===== */
+.rail-card { border: 1px solid var(--stroke-soft-200); border-radius: var(--radius); }
+.rail-card .rc-head { padding: 12px 14px; border-bottom: 1px solid var(--stroke-soft-200); font-size: 12px; font-weight: 500; letter-spacing: 0.48px; text-transform: uppercase; color: var(--text-sub-600); }
+.rail-card .rc-body { padding: 6px 14px 12px; }
+.stat-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--stroke-soft-200); }
+.stat-row:last-child { border-bottom: 0; }
+.stat-row .k { font-size: 13px; color: var(--text-sub-600); }
+.stat-row .v { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; text-align: right; }
+.stat-row .v small { font-size: 11px; font-weight: 500; color: var(--text-sub-600); margin-left: 3px; }
+
+/* ===== Table (kit: table.tsx) ===== */
+.table-wrap { overflow-x: auto; }
+table.dt { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+table.dt th { text-align: left; font-size: 12px; font-weight: 500; letter-spacing: 0.48px; text-transform: uppercase; color: var(--text-sub-600); padding: 10px 12px; border-bottom: 1px solid var(--stroke-sub-300); white-space: nowrap; }
+table.dt td { font-size: 14px; padding: 12px; border-bottom: 1px solid var(--stroke-soft-200); vertical-align: top; }
+table.dt tr:last-child td { border-bottom: 0; }
+table.dt td .sec { font-size: 12px; color: var(--text-sub-600); margin-top: 3px; }
+table.dt td.num { text-align: right; }
+
+/* ===== Code block (payload preview) ===== */
+pre.code { font-family: var(--mono); font-size: 11.5px; line-height: 1.7; background: var(--tint); border: 1px solid var(--stroke-soft-200); border-radius: var(--radius); padding: 14px; overflow-x: auto; color: var(--text-strong-950); }
+pre.code .c { color: var(--text-soft-400); }
+pre.code .k { color: var(--primary-base); }
+pre.code .add { background: var(--primary-alpha-10); }
+code.inline { font-family: var(--mono); font-size: 11.5px; background: var(--tint); border: 1px solid var(--stroke-soft-200); padding: 1px 5px; border-radius: var(--radius); }
+
+/* Form action bar (kit: bulk-action-bar.tsx idiom) */
+.formbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 14px 20px; border-top: 1px solid var(--stroke-soft-200); background: var(--bg-weak-50); }
+.formbar .lead { font-size: 13px; color: var(--text-sub-600); }
+
+/* Empty state (kit: empty-state.tsx) */
+.empty { border: 1px dashed var(--stroke-sub-300); border-radius: var(--radius); padding: 20px; text-align: center; }
+.empty .t { font-size: 14px; font-weight: 500; }
+.empty .d { font-size: 13px; color: var(--text-sub-600); margin-top: 4px; line-height: 1.5; }
+
+/* Spec deltas block */
+.deltas { border: 1px solid var(--stroke-sub-300); border-radius: var(--radius); background: var(--bg-white-0); padding: 20px clamp(16px, 2.4vw, 28px) 24px; }
+.deltas h2 { font-size: 20px; font-weight: 500; line-height: 28px; }
+.deltas ol { margin: 14px 0 0 0; padding-left: 20px; }
+.deltas li { font-size: 14px; line-height: 1.65; color: var(--text-sub-600); margin-top: 12px; }
+.deltas li b { color: var(--text-strong-950); font-weight: 600; }
+
+@media (max-width: 900px) {
+  .cols { grid-template-columns: minmax(0,1fr); }
+  .grid-3, .grid-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Logo sprite — copy verbatim, never redraw or recolor -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <symbol id="dash-logo" viewBox="0 0 44 43">
+    <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M11.2196 5.93653C11.1018 6.17664 11.0055 6.42114 11.0055 6.47999C11.0055 6.53876 10.958 6.65766 10.8999 6.74411C10.8418 6.83063 10.7463 7.02704 10.6876 7.18055C10.6288 7.33406 10.5093 7.62114 10.4218 7.81851C10.3342 8.01588 10.1634 8.41062 10.0419 8.69571C9.92058 8.9808 9.69691 9.50114 9.54489 9.85202C9.39278 10.2029 9.02627 11.0641 8.73038 11.7659C8.4344 12.4677 8.16024 13.076 8.12101 13.1176C8.08179 13.1593 8.04975 13.2415 8.04975 13.3004C8.04975 13.3592 7.94566 13.6301 7.81841 13.9024C7.69115 14.1747 7.38088 14.8819 7.12876 15.4741C6.87672 16.0662 6.54592 16.8377 6.39366 17.1886C6.24139 17.5395 6.05231 17.988 5.97346 18.1854C5.83718 18.5265 5.25306 19.8792 5.09536 20.2189C5.05462 20.3066 4.96755 20.513 4.90196 20.6774L4.78261 20.9765H8.12389H11.4652L11.6284 20.5977C11.7821 20.2414 12.0609 19.6451 12.9613 17.7468C13.1693 17.3082 13.7452 16.0881 14.2409 15.0355C14.7368 13.9828 15.3302 12.7268 15.5597 12.2444C16.2469 10.7996 16.6773 9.87865 16.6773 9.85297C16.6773 9.83152 17.3934 8.32593 18.1571 6.74195C18.3051 6.43493 18.4632 6.08509 18.5084 5.96444C18.5536 5.84386 18.6275 5.74514 18.6725 5.74514C18.7274 5.74514 18.7597 7.39626 18.7706 10.7492C18.7794 13.5014 18.7943 15.8608 18.8037 15.9924C18.8129 16.124 18.8235 17.2992 18.8274 18.6041L18.8342 20.9765H22.5841C25.3165 20.9765 26.3494 21.0013 26.3906 21.0679C26.4217 21.1181 26.3716 21.3065 26.2791 21.4865C26.0908 21.8532 25.4223 23.2644 25.0173 24.1505C24.8708 24.4708 24.5894 25.0629 24.3919 25.4663C24.1944 25.8697 23.8656 26.5586 23.6612 26.9972C23.4568 27.4358 23.1091 28.1715 22.8885 28.632C22.6679 29.0925 22.2729 29.9179 22.0108 30.4662C21.7487 31.0144 21.3356 31.8757 21.0929 32.38C20.8501 32.8844 20.4426 33.7516 20.1872 34.3071C19.9318 34.8626 19.6864 35.3829 19.6418 35.4634C19.4959 35.727 18.9782 36.8015 18.9025 36.998L18.8285 37.1902L20.2893 37.1321C21.0927 37.1001 21.8938 37.0605 22.0696 37.0441C23.1606 36.9421 23.5058 36.8951 24.1866 36.7558C24.604 36.6705 25.0713 36.5823 25.2251 36.5598C25.867 36.4661 28.0722 35.7112 29.1394 35.2196C32.02 33.893 34.4145 31.7796 36.332 28.8713C36.559 28.5269 37.1237 27.4764 37.3827 26.9165C37.9035 25.7907 38.0866 25.374 38.0866 25.3141C38.0866 25.2818 38.1732 25.0373 38.279 24.7706C38.6817 23.7564 39.2762 21.4304 39.4831 20.0594C39.6359 19.0472 39.6396 17.0707 39.4904 16.2245C39.1959 14.554 38.7424 13.3161 37.9009 11.8855C37.4905 11.1877 37.2285 10.8681 36.3295 9.96797C35.6811 9.31876 35.0115 8.73295 34.6515 8.49978C33.924 8.02856 32.6273 7.32337 31.9754 7.04435C31.0309 6.6402 29.2403 6.05423 28.1808 5.80263L27.1024 5.54657L19.268 5.52329L11.4338 5.5L11.2196 5.93653ZM11.3363 21.6344C11.2052 21.9085 10.9675 22.4378 10.8079 22.8106C10.6485 23.1834 10.4854 23.5484 10.4455 23.6216C10.4056 23.6949 10.1702 24.2153 9.92242 24.7779C9.67462 25.3407 9.37042 26.0164 9.24643 26.2795C9.12245 26.5427 8.89079 27.063 8.73165 27.4358C8.57252 27.8087 8.37409 28.2572 8.29077 28.4327C8.10432 28.8252 7.59345 29.9638 6.89525 31.5427C6.60439 32.2006 6.29795 32.8824 6.21431 33.0579C6.13067 33.2333 5.90132 33.7357 5.70465 34.1743C5.50789 34.6129 5.14361 35.4203 4.89517 35.9686C4.64665 36.5168 4.42409 37.0103 4.4006 37.0651C4.36665 37.1444 5.82008 37.1648 11.5162 37.1648H18.6745V29.1504V21.136H15.1246H11.5747L11.3363 21.6344Z"/>
+  </symbol>
+</svg>
+
+<header class="page-header">
+  <div class="left">
+    <span class="brand-mark"><svg class="logo-mark" aria-hidden="true"><use href="#dash-logo"/></svg>DASH</span>
+    <span>shipment-route · create shipment &amp; route · Mockup v1</span>
+  </div>
+  <div class="right">Draft — not a real UI</div>
+</header>
+
+<div class="board">
+
+  <!-- ================================================================== -->
+  <!-- 01 — Step 1: shipment type + shipment details                       -->
+  <!-- ================================================================== -->
+  <div>
+    <span class="state-tag"><span class="num">01</span>Step 1 of 3 — shipment type &amp; details</span>
+    <div class="screen">
+      <div class="screen-bar">
+        <div class="crumbs">Operations <span>/</span> Shipments <span>/</span> <b>New shipment</b></div>
+        <div class="row">
+          <span class="badge faded">Draft</span>
+          <button class="btn ghost sm">Discard</button>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <div class="between">
+          <div>
+            <h1 class="t-h5">Create shipment</h1>
+            <p class="t-para-sm sub mt-4">Pick the shipment type first — it decides how the route is planned and what the rider owes at the door.</p>
+          </div>
+          <ol class="steps">
+            <li class="current"><span class="dot">1</span><span class="lbl">Shipment</span></li>
+            <span class="chev">›</span>
+            <li><span class="dot">2</span><span class="lbl">Route &amp; stops</span></li>
+            <span class="chev">›</span>
+            <li><span class="dot">3</span><span class="lbl">Review</span></li>
+          </ol>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="section-head">
+          <span class="eyebrow">01</span>
+          <span class="t-label-md">Shipment type</span>
+          <span class="req">shipmentType · required</span>
+        </div>
+
+        <div class="grid-3">
+          <div class="type-card">
+            <div class="head">
+              <span class="radio"></span>
+              <span class="name">Docking</span>
+              <span class="code">DOCKING</span>
+            </div>
+            <p class="desc">Hub-and-spoke. Goods are consolidated into a hub, then ride out on one rider's round. The default for planned volume.</p>
+            <div class="conseq"><span class="k">Route</span><span>Hub collection is an ordinary pickup stop, then one drop-off per outlet.</span></div>
+          </div>
+
+          <div class="type-card">
+            <div class="head">
+              <span class="radio"></span>
+              <span class="name">Direct 2W</span>
+              <span class="code">DIRECT_2W</span>
+            </div>
+            <p class="desc">Motorbike, point to point, no hub. Small parcels and same-day runs where consolidating costs more than it saves.</p>
+            <div class="conseq"><span class="k">Route</span><span>Pickup at origin, drop-off at destination. No vehicle check.</span></div>
+          </div>
+
+          <div class="type-card selected">
+            <div class="head">
+              <span class="radio"></span>
+              <span class="name">Direct 4W</span>
+              <span class="code">DIRECT_4W</span>
+            </div>
+            <p class="desc">Van or truck, direct. Bulk, cold chain, and multi-outlet rounds that will not fit on a bike.</p>
+            <div class="conseq"><span class="k">Gate</span><span>8-item vehicle check at route start <b>and</b> end — no stop resolves without it.</span></div>
+          </div>
+        </div>
+
+        <div class="alert info mt-16">
+          <span class="ico">i</span>
+          <span class="body"><b>Direct 4W selected.</b> The rider is asked for a selfie, four vehicle sides, inside the box, an odometer photo and an odometer reading before the first stop — and the same eight again at the end. The odometer delta becomes the route's actual distance.</span>
+        </div>
+
+        <div class="mt-24"></div>
+        <div class="section-head">
+          <span class="eyebrow">02</span>
+          <span class="t-label-md">Shipment details</span>
+          <span class="req">client drives workflow resolution</span>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>Client</label>
+            <div class="control"><span>FORE Coffee</span><span class="badge stroke">ID 12</span><span class="chev">▾</span></div>
+            <span class="hint">Two active stop workflows: 1 pickup, 1 drop-off.</span>
+          </div>
+          <div class="field">
+            <label>Waybill</label>
+            <div class="control disabled"><span class="mono">DSH-2026-000123</span><span class="chev">auto</span></div>
+            <span class="hint">Generated on save.</span>
+          </div>
+          <div class="field">
+            <label>Pieces</label>
+            <div class="control"><span class="mono">18</span></div>
+          </div>
+          <div class="field">
+            <label>Weight <span class="opt">· kg</span></label>
+            <div class="control"><span class="mono">126.4</span></div>
+          </div>
+          <div class="field">
+            <label>Priority window</label>
+            <div class="control"><span class="mono">06:00 – 09:00</span><span class="chev">▾</span></div>
+            <span class="hint">Feeds the on-time-vs-promise metric.</span>
+          </div>
+          <div class="field">
+            <label>Client reference <span class="opt">· optional</span></label>
+            <div class="control"><span class="ph">e.g. PO-88214</span></div>
+          </div>
+        </div>
+
+        <div class="field mt-16">
+          <label>Handling notes <span class="opt">· optional</span></label>
+          <div class="control area"><span class="ph">Anything the rider must know that is not a workflow step.</span></div>
+        </div>
+      </div>
+
+      <div class="formbar">
+        <span class="lead">Type stays changeable while the route is <span class="mono">PLANNED</span>.</span>
+        <div class="btn-row">
+          <button class="btn stroke">Cancel</button>
+          <button class="btn">Continue to route</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">The three types are the fork in the whole flow, so they lead the screen as cards rather than a dropdown — and each one states the consequence it carries (hub pickup stop, no check, 8-item check). <b>Spec delta:</b> <code class="inline">shipment_type</code> lives on <code class="inline">routes</code> today, not on <code class="inline">shipments</code> — see route-prd-trd v1, open question "Shipment-level typing". <span class="kit">Kit: Card · Radio · Input · Select · Textarea · StepIndicator · Alert · Button.</span></p>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- 02 — Step 2: route + stops + per-stop workflow                      -->
+  <!-- ================================================================== -->
+  <div>
+    <span class="state-tag"><span class="num">02</span>Step 2 of 3 — route, stops, and the workflow on each stop</span>
+    <div class="screen">
+      <div class="screen-bar">
+        <div class="crumbs">Operations <span>/</span> Shipments <span>/</span> New shipment <span>/</span> <b>Route</b></div>
+        <div class="row">
+          <span class="badge stroke"><span class="mono">DIRECT_4W</span></span>
+          <span class="badge live"><span class="dot"></span>Unsaved</span>
+        </div>
+      </div>
+
+      <div class="screen-body">
+        <div class="between">
+          <div>
+            <h1 class="t-h5">Route &amp; stops</h1>
+            <p class="t-para-sm sub mt-4">One route is one rider. Order the stops the way the rider will drive them — every pickup before its drop-off.</p>
+          </div>
+          <ol class="steps">
+            <li class="done"><span class="dot">✓</span><span class="lbl">Shipment</span></li>
+            <span class="chev">›</span>
+            <li class="current"><span class="dot">2</span><span class="lbl">Route &amp; stops</span></li>
+            <span class="chev">›</span>
+            <li><span class="dot">3</span><span class="lbl">Review</span></li>
+          </ol>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="cols">
+          <div>
+            <div class="grid-2">
+              <div class="field">
+                <label>Rider</label>
+                <div class="control"><span>Budi Santoso</span><span class="badge stroke"><span class="mono">RDR-0456</span></span><span class="chev">▾</span></div>
+                <span class="hint">Snapshotted onto the route. Changeable while <span class="mono">PLANNED</span>.</span>
+              </div>
+              <div class="field">
+                <label>Shift <span class="opt">· optional</span></label>
+                <div class="control"><span class="mono">904202601</span><span class="chev">▾</span></div>
+                <span class="hint">Morning · 05:30 – 14:00</span>
+              </div>
+            </div>
+
+            <div class="card weak mt-16 row" style="justify-content:space-between">
+              <div>
+                <div class="t-label-sm">Optimize stop order on save</div>
+                <div class="t-para-xs sub mt-4">Runs the routing provider and rewrites <span class="mono">sequence</span>. Off keeps your order exactly.</div>
+              </div>
+              <span class="switch"></span>
+            </div>
+
+            <div class="section-head mt-24">
+              <span class="eyebrow">03</span>
+              <span class="t-label-md">Stops</span>
+              <span class="req">3 stops · drag to reorder</span>
+            </div>
+
+            <div class="stops">
+
+              <!-- Stop 1 — PICKUP at hub -->
+              <div class="stop">
+                <div class="rail">
+                  <span class="handle">⠿</span>
+                  <span class="seq">1</span>
+                  <span class="line"></span>
+                </div>
+                <div class="stop-body">
+                  <div class="stop-head">
+                    <span class="pin pickup"></span>
+                    <span class="badge neutral">Pickup</span>
+                    <span class="addr">Hub Pasar Minggu — Jl. Raya Masjid Al Hidayah No.14B</span>
+                    <span class="actions">
+                      <button class="btn ghost xs">Edit</button>
+                      <button class="btn danger-ghost xs">Remove</button>
+                    </span>
+                  </div>
+                  <div class="stop-meta">−6.277036, 106.834822 · Toko Hidayah · +62 811 111 111 · 18 pieces · 126.4 kg</div>
+                  <div class="row wrap mt-8">
+                    <span class="tag">DSH-2026-000123</span>
+                  </div>
+
+                  <div class="wf">
+                    <div class="wf-head">
+                      <span class="lbl">Stop workflow</span>
+                      <span class="badge success">Matched</span>
+                      <span class="src">stopType=PICKUP</span>
+                    </div>
+                    <div class="control sm"><span>FORE hub collection check</span><span class="chev">▾</span></div>
+                    <div class="ms-chips">
+                      <span class="ms-chip"><span class="n">1</span>Seal check <span class="soft">· 2 fields</span></span>
+                      <span class="ms-chip"><span class="n">2</span>Load confirmation <span class="soft">· confirm only</span></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stop 2 — DROP_OFF, selected -->
+              <div class="stop selected">
+                <div class="rail">
+                  <span class="handle">⠿</span>
+                  <span class="seq">2</span>
+                  <span class="line"></span>
+                </div>
+                <div class="stop-body">
+                  <div class="stop-head">
+                    <span class="pin drop"></span>
+                    <span class="badge neutral">Drop-off</span>
+                    <span class="addr">FORE Rambutan — Jl. Rambutan No.46, Ps. Minggu</span>
+                    <span class="actions">
+                      <button class="btn ghost xs">Edit</button>
+                      <button class="btn danger-ghost xs">Remove</button>
+                    </span>
+                  </div>
+                  <div class="stop-meta">−6.275665, 106.836154 · Ibu Sari · +62 812 222 222 · 11 pieces · 78.0 kg</div>
+                  <div class="row wrap mt-8">
+                    <span class="tag">DSH-2026-000123</span>
+                    <span class="tag">del-20260804-0001 <span class="x">legacy</span></span>
+                  </div>
+
+                  <div class="wf">
+                    <div class="wf-head">
+                      <span class="lbl">Stop workflow</span>
+                      <span class="badge success">Matched</span>
+                      <span class="src">stopType=DROP_OFF</span>
+                    </div>
+                    <div class="control sm focused"><span>FORE outlet delivery</span><span class="chev">▴</span></div>
+                    <div class="ms-chips">
+                      <span class="ms-chip"><span class="n">1</span>Arrival evidence <span class="soft">· 2 fields</span></span>
+                      <span class="ms-chip"><span class="n">2</span>Handover <span class="soft">· 2 fields</span></span>
+                      <span class="ms-chip"><span class="n">3</span>Leave-behind <span class="soft">· confirm only</span></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stop 3 — DROP_OFF, mixed clients -> no workflow -->
+              <div class="stop">
+                <div class="rail">
+                  <span class="handle">⠿</span>
+                  <span class="seq">3</span>
+                </div>
+                <div class="stop-body">
+                  <div class="stop-head">
+                    <span class="pin drop"></span>
+                    <span class="badge neutral">Drop-off</span>
+                    <span class="addr">Kopi Kenangan Cilandak — Jl. TB Simatupang No.9</span>
+                    <span class="actions">
+                      <button class="btn ghost xs">Edit</button>
+                      <button class="btn danger-ghost xs">Remove</button>
+                    </span>
+                  </div>
+                  <div class="stop-meta">−6.290110, 106.802340 · Pak Anto · +62 813 333 333 · 7 pieces · 48.4 kg</div>
+                  <div class="row wrap mt-8">
+                    <span class="tag">DSH-2026-000124</span>
+                    <span class="badge warning">2 clients on this stop</span>
+                  </div>
+
+                  <div class="wf">
+                    <div class="wf-head">
+                      <span class="lbl">Stop workflow</span>
+                      <span class="badge faded">None</span>
+                      <span class="src">mixed clients</span>
+                    </div>
+                    <div class="control sm"><span class="ph">No workflow — rider app static flow</span><span class="chev">▾</span></div>
+                    <div class="t-para-xs sub mt-8">Shipments from two clients share this stop, so no single client's rules apply. The rider gets the built-in flow and nothing is gated.</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="btn-row mt-12">
+              <button class="btn stroke sm">+ Add pickup stop</button>
+              <button class="btn stroke sm">+ Add drop-off stop</button>
+            </div>
+          </div>
+
+          <!-- Summary rail -->
+          <div class="stack" style="gap:16px">
+            <div class="rail-card">
+              <div class="rc-head">Route summary</div>
+              <div class="rc-body">
+                <div class="stat-row"><span class="k">Stops</span><span class="v">3 <small>1 pickup · 2 drop-off</small></span></div>
+                <div class="stat-row"><span class="k">Shipments</span><span class="v">2</span></div>
+                <div class="stat-row"><span class="k">Pieces</span><span class="v">18</span></div>
+                <div class="stat-row"><span class="k">Weight</span><span class="v">126.4 <small>kg</small></span></div>
+                <div class="stat-row"><span class="k">Planned distance</span><span class="v">21.4 <small>km</small></span></div>
+                <div class="stat-row"><span class="k">Planned duration</span><span class="v">1h 12m</span></div>
+                <div class="stat-row"><span class="k">Workflows attached</span><span class="v">2 <small>of 3 stops</small></span></div>
+              </div>
+            </div>
+
+            <div class="rail-card">
+              <div class="rc-head">Rules checked on save</div>
+              <div class="rc-body">
+                <div class="stat-row"><span class="k">Pickup before drop-off</span><span class="badge success">Pass</span></div>
+                <div class="stat-row"><span class="k">Every shipment has both</span><span class="badge success">Pass</span></div>
+                <div class="stat-row"><span class="k">No shipment on a live route</span><span class="badge success">Pass</span></div>
+                <div class="stat-row"><span class="k">Workflow stop type matches</span><span class="badge success">Pass</span></div>
+              </div>
+            </div>
+
+            <div class="alert warning">
+              <span class="ico">!</span>
+              <span class="body"><b>Vehicle check pending.</b> This is a <span class="mono">DIRECT_4W</span> route — the rider cannot resolve stop 1 until the start check is submitted in the app.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="formbar">
+        <span class="lead">Totals are recomputed server-side on save — the rail is a preview.</span>
+        <div class="btn-row">
+          <button class="btn stroke">Back</button>
+          <button class="btn">Review route</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">The stop list is the spine of the screen: sequence rail on the left to drag, and a workflow slot on every stop so "what must the rider do here?" is answered on the same row as the address. Pickup is a hollow ink ring, drop-off a filled square — the glyph carries the type, never color. <b>Spec delta:</b> workflow-prd-trd v1 Req 3 resolves the workflow automatically with no caller input; here resolution produces a <i>default</i> the planner can override, which needs <code class="inline">workflowID</code> on the stop payload. <span class="kit">Kit: StopSequenceList · StopListItem · AddressPair glyphs · Select · Switch · Tag · Badge · Stat · Alert.</span></p>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- 03 — Workflow picker open on one stop                               -->
+  <!-- ================================================================== -->
+  <div>
+    <span class="state-tag"><span class="num">03</span>Selecting the workflow for stop 2 — picker open</span>
+    <div class="screen">
+      <div class="screen-bar">
+        <div class="crumbs">Route <span>/</span> Stop 2 <span>/</span> <b>Workflow</b></div>
+        <span class="badge stroke"><span class="mono">DROP_OFF</span></span>
+      </div>
+      <div class="screen-body">
+        <div class="cols">
+          <div>
+            <div class="stops">
+              <div class="stop selected">
+                <div class="rail"><span class="handle">⠿</span><span class="seq">2</span></div>
+                <div class="stop-body">
+                  <div class="stop-head">
+                    <span class="pin drop"></span>
+                    <span class="badge neutral">Drop-off</span>
+                    <span class="addr">FORE Rambutan — Jl. Rambutan No.46</span>
+                  </div>
+                  <div class="stop-meta">FORE Coffee · client 12 · 1 shipment</div>
+
+                  <div class="wf">
+                    <div class="wf-head">
+                      <span class="lbl">Stop workflow</span>
+                      <span class="src">filtered by stop type &amp; client</span>
+                    </div>
+                    <div class="control sm focused"><span>FORE outlet delivery</span><span class="chev">▴</span></div>
+
+                    <div class="menu">
+                      <div class="group">FORE Coffee · drop-off</div>
+                      <div class="opt on">
+                        <span class="check">✓</span>
+                        <span>
+                          <div class="name">FORE outlet delivery</div>
+                          <div class="meta">3 milestones · 4 fields · active since 12 Jul 2026</div>
+                        </span>
+                      </div>
+                      <div class="opt">
+                        <span class="check"></span>
+                        <span>
+                          <div class="name">FORE outlet delivery — cold chain</div>
+                          <div class="meta">4 milestones · 6 fields · adds temperature photo + reading</div>
+                        </span>
+                      </div>
+                      <div class="sep"></div>
+                      <div class="opt disabled">
+                        <span class="check"></span>
+                        <span>
+                          <div class="name">FORE hub collection check</div>
+                          <div class="meta">2 milestones · 2 fields</div>
+                          <div class="why">Pickup workflow — cannot gate a drop-off stop.</div>
+                        </span>
+                      </div>
+                      <div class="sep"></div>
+                      <div class="opt">
+                        <span class="check"></span>
+                        <span>
+                          <div class="name">No workflow</div>
+                          <div class="meta">Rider app static flow · nothing gated at this stop</div>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mt-16">
+                    <div class="t-sub-xs sub" style="margin-bottom:8px">What the rider will see — frozen onto this stop on save</div>
+                    <div class="ms-list">
+                      <div class="ms-row">
+                        <span class="idx">1</span>
+                        <div>
+                          <div class="name">Arrival evidence</div>
+                          <div class="fields">
+                            <span class="fchip">Outlet front photo <span class="type">image</span> <span class="cnt">×3</span></span>
+                            <span class="fchip">Receiver name <span class="type">text</span></span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="ms-row">
+                        <span class="idx">2</span>
+                        <div>
+                          <div class="name">Handover</div>
+                          <div class="fields">
+                            <span class="fchip">Goods photos <span class="type">image</span> <span class="cnt">1+</span></span>
+                            <span class="fchip">Quantity received <span class="type">number</span></span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="ms-row">
+                        <span class="idx">3</span>
+                        <div>
+                          <div class="name">Leave-behind</div>
+                          <div class="fields">
+                            <span class="fchip empty">No fields — slide to confirm, timestamp only</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p class="t-para-xs sub mt-8">Milestones run in order and the stop cannot be completed until all three are submitted. A later edit to the definition will not touch this stop.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack" style="gap:16px">
+            <div class="rail-card">
+              <div class="rc-head">Why these options</div>
+              <div class="rc-body">
+                <div class="stat-row"><span class="k">Stop type</span><span class="v" style="font-size:13px"><span class="mono">DROP_OFF</span></span></div>
+                <div class="stat-row"><span class="k">Client on stop</span><span class="v" style="font-size:13px">FORE · 12</span></div>
+                <div class="stat-row"><span class="k">Candidates</span><span class="v">2</span></div>
+                <div class="stat-row"><span class="k">Not selectable</span><span class="v">1 <small>wrong stop type</small></span></div>
+              </div>
+            </div>
+            <div class="alert info">
+              <span class="ico">i</span>
+              <span class="body">A workflow gates exactly one stop type. Pickup definitions never become selectable on a drop-off stop, and the service rejects the mismatch even if a payload asks for it.</span>
+            </div>
+            <div class="empty">
+              <div class="t">Client has no workflow?</div>
+              <div class="d">The stop saves with <span class="mono">workflow: null</span> and the rider app runs its built-in flow.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Picking is deliberately narrow: options are filtered to the stop's own type and the client on the stop, and the invalid one stays visible but disabled with its reason — cheaper to read than a validation error later. The milestone preview is the honest part of the screen: it is exactly the snapshot that freezes onto the stop. <b>Spec delta:</b> a client may hold only <i>one</i> ACTIVE workflow per (client, stop type) today, so this picker would offer a single option — a real choice means allowing several. <span class="kit">Kit: Select content · Accordion · ItemRow · EmptyState · Stat · Alert.</span></p>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- 04 — Validation blocked                                             -->
+  <!-- ================================================================== -->
+  <div>
+    <span class="state-tag"><span class="num">04</span>Blocked — invariants rejected the whole route</span>
+    <div class="screen">
+      <div class="screen-bar">
+        <div class="crumbs">Route <span>/</span> <b>Save failed</b></div>
+        <span class="badge error">3 problems</span>
+      </div>
+      <div class="screen-body">
+        <div class="alert error">
+          <span class="ico">✕</span>
+          <span class="body">
+            <b>Nothing was saved.</b> A route is written whole or not at all — clear all three, then save again.
+            <ul>
+              <li>Stop 2 drops off <span class="mono">DSH-2026-000123</span> before it is picked up at stop 3 — <span class="mono">422</span>, pickup must come first.</li>
+              <li><span class="mono">DSH-2026-000124</span> is already on route <span class="mono">RTE260805-00031</span> (in progress) — <span class="mono">409</span>, one live route per shipment.</li>
+              <li>Stop 4 serves no shipments — <span class="mono">422</span>, a stop must serve at least one.</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="stops mt-20">
+          <div class="stop">
+            <div class="rail"><span class="handle">⠿</span><span class="seq">2</span><span class="line"></span></div>
+            <div class="stop-body">
+              <div class="stop-head">
+                <span class="pin drop"></span>
+                <span class="badge error">Drop-off · out of order</span>
+                <span class="addr">FORE Rambutan — Jl. Rambutan No.46</span>
+                <span class="actions"><button class="btn stroke xs">Move after stop 3</button></span>
+              </div>
+              <div class="row wrap mt-8"><span class="tag">DSH-2026-000123</span></div>
+              <div class="hint error mt-8">Its pickup is sequenced at 3. Drag this stop below it, or move the pickup up.</div>
+            </div>
+          </div>
+          <div class="stop">
+            <div class="rail"><span class="handle">⠿</span><span class="seq">3</span><span class="line"></span></div>
+            <div class="stop-body">
+              <div class="stop-head">
+                <span class="pin pickup"></span>
+                <span class="badge neutral">Pickup</span>
+                <span class="addr">Hub Pasar Minggu — Jl. Raya Masjid Al Hidayah No.14B</span>
+              </div>
+              <div class="row wrap mt-8">
+                <span class="tag">DSH-2026-000123</span>
+                <span class="tag flag">DSH-2026-000124 <span class="x">live route</span></span>
+              </div>
+              <div class="hint error mt-8">Remove <span class="mono">DSH-2026-000124</span> from this route, or cancel <span class="mono">RTE260805-00031</span> first.</div>
+            </div>
+          </div>
+          <div class="stop">
+            <div class="rail"><span class="handle">⠿</span><span class="seq">4</span></div>
+            <div class="stop-body">
+              <div class="stop-head">
+                <span class="pin drop"></span>
+                <span class="badge error">Drop-off · empty</span>
+                <span class="addr">Kopi Kenangan Cilandak — Jl. TB Simatupang No.9</span>
+                <span class="actions">
+                  <button class="btn stroke xs">Assign shipments</button>
+                  <button class="btn danger-ghost xs">Remove stop</button>
+                </span>
+              </div>
+              <div class="wf">
+                <div class="wf-head"><span class="lbl">Stop workflow</span><span class="badge faded">Not resolved</span></div>
+                <div class="control sm disabled"><span>Waiting for shipments</span><span class="chev">▾</span></div>
+                <div class="t-para-xs sub mt-8">A workflow resolves from the client on the stop, so an empty stop cannot have one.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="formbar">
+        <span class="lead">Save stays blocked until all three clear.</span>
+        <div class="btn-row">
+          <button class="btn stroke">Back</button>
+          <button class="btn disabled">Review route</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">Whole-request rejection is a real property of the API, so the screen says it once at the top and then anchors each failure to the stop that caused it, with the single action that fixes it. Red is information here, not decoration — every error also carries a glyph and an HTTP code, so color is never the only signal. <span class="kit">Kit: Alert · Badge · StopListItem · Hint · Button.</span></p>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- 05 — Step 3: review + payload                                       -->
+  <!-- ================================================================== -->
+  <div>
+    <span class="state-tag"><span class="num">05</span>Step 3 of 3 — review and create</span>
+    <div class="screen">
+      <div class="screen-bar">
+        <div class="crumbs">Operations <span>/</span> Shipments <span>/</span> New shipment <span>/</span> <b>Review</b></div>
+        <ol class="steps">
+          <li class="done"><span class="dot">✓</span><span class="lbl">Shipment</span></li>
+          <span class="chev">›</span>
+          <li class="done"><span class="dot">✓</span><span class="lbl">Route</span></li>
+          <span class="chev">›</span>
+          <li class="current"><span class="dot">3</span><span class="lbl">Review</span></li>
+        </ol>
+      </div>
+      <div class="screen-body">
+        <div class="between">
+          <div>
+            <h1 class="t-h5">Review before creating</h1>
+            <p class="t-para-sm sub mt-4">One shipment, one rider, three stops. Workflows freeze at this moment.</p>
+          </div>
+          <div class="row">
+            <span class="badge stroke"><span class="mono">DIRECT_4W</span></span>
+            <span class="badge faded">Will be created as PLANNED</span>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="table-wrap">
+          <table class="dt">
+            <thead>
+              <tr>
+                <th style="width:44px">#</th>
+                <th style="width:100px">Type</th>
+                <th>Stop</th>
+                <th>Serves</th>
+                <th>Workflow</th>
+                <th class="num" style="width:110px">Milestones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">1</td>
+                <td><span class="badge neutral">Pickup</span></td>
+                <td>Hub Pasar Minggu<div class="sec">Jl. Raya Masjid Al Hidayah No.14B · Toko Hidayah</div></td>
+                <td><span class="tag">DSH-2026-000123</span></td>
+                <td>FORE hub collection check<div class="sec">client 12 · pickup</div></td>
+                <td class="num mono">2</td>
+              </tr>
+              <tr>
+                <td class="mono">2</td>
+                <td><span class="badge neutral">Drop-off</span></td>
+                <td>FORE Rambutan<div class="sec">Jl. Rambutan No.46 · Ibu Sari</div></td>
+                <td><span class="tag">DSH-2026-000123</span></td>
+                <td>FORE outlet delivery<div class="sec">client 12 · drop-off</div></td>
+                <td class="num mono">3</td>
+              </tr>
+              <tr>
+                <td class="mono">3</td>
+                <td><span class="badge neutral">Drop-off</span></td>
+                <td>Kopi Kenangan Cilandak<div class="sec">Jl. TB Simatupang No.9 · Pak Anto</div></td>
+                <td><span class="tag">DSH-2026-000124</span></td>
+                <td><span class="sub">None — rider app static flow</span><div class="sec">mixed clients on stop</div></td>
+                <td class="num mono">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid-2 mt-20">
+          <div class="alert warning">
+            <span class="ico">!</span>
+            <span class="body"><b>Two vehicle checks required.</b> The start check gates the first stop, the end check gates route completion. Eight items each, and the odometer must not go backwards.</span>
+          </div>
+          <div class="alert info">
+            <span class="ico">i</span>
+            <span class="body"><b>Workflows freeze on create.</b> Editing <i>FORE outlet delivery</i> tomorrow will not touch this route — only routes created after the edit.</span>
+          </div>
+        </div>
+
+        <div class="mt-24">
+          <div class="t-sub-xs sub" style="margin-bottom:8px">Request preview — POST {{baseUrlLogistic}}/internal/v1/routes</div>
+<pre class="code">{
+  <span class="k">"idempotencyKey"</span>: "rte-req-20260805-0007",
+  <span class="k">"shipmentType"</span>: "DIRECT_4W",
+  <span class="k">"externalShiftID"</span>: 904202601,
+  <span class="k">"rider"</span>: { "id": "456", "code": "RDR-0456", "name": "Budi Santoso", "phoneNumber": "+62815550456" },
+  <span class="k">"shouldOptimize"</span>: false,
+  <span class="k">"stops"</span>: [
+    {
+      <span class="k">"type"</span>: "PICKUP",
+      <span class="k">"address"</span>: "Jl. Raya Masjid Al Hidayah No.14B, Ps. Minggu, Jakarta Selatan",
+      <span class="k">"latitude"</span>: -6.277036, <span class="k">"longitude"</span>: 106.834822,
+      <span class="k">"contactName"</span>: "Toko Hidayah", <span class="k">"contactPhone"</span>: "+62811111111",
+      <span class="k">"shipments"</span>: [ { "id": "5f9c…", "waybill": "DSH-2026-000123" } ],
+      <span class="add"><span class="k">"workflowID"</span>: "wf_01hf…pickup"</span>      <span class="c">// new — planner's choice, not auto-resolution</span>
+    },
+    {
+      <span class="k">"type"</span>: "DROP_OFF",
+      <span class="k">"address"</span>: "Jl. Rambutan No.46, Ps. Minggu, Jakarta Selatan",
+      <span class="k">"latitude"</span>: -6.275665, <span class="k">"longitude"</span>: 106.836154,
+      <span class="k">"contactName"</span>: "Ibu Sari", <span class="k">"contactPhone"</span>: "+62812222222",
+      <span class="k">"shipments"</span>: [ { "id": "5f9c…" } ],
+      <span class="k">"deliveries"</span>: [ { "id": "del-20260804-0001" } ],
+      <span class="add"><span class="k">"workflowID"</span>: "wf_01hf…dropoff"</span>
+    },
+    {
+      <span class="k">"type"</span>: "DROP_OFF",
+      <span class="k">"address"</span>: "Jl. TB Simatupang No.9, Cilandak, Jakarta Selatan",
+      <span class="k">"latitude"</span>: -6.290110, <span class="k">"longitude"</span>: 106.802340,
+      <span class="k">"shipments"</span>: [ { "id": "7a21…", "waybill": "DSH-2026-000124" } ],
+      <span class="add"><span class="k">"workflowID"</span>: null</span>                   <span class="c">// explicit "static flow", not an omission</span>
+    }
+  ]
+}</pre>
+          <p class="t-para-xs sub mt-8">The highlighted lines are the contract change this flow implies. Everything else matches the collection example in <span class="mono">Logistic Service/Internal/Route/</span> as it stands today.</p>
+        </div>
+      </div>
+      <div class="formbar">
+        <span class="lead">Creating assigns the route code and puts the route on Budi Santoso's list.</span>
+        <div class="btn-row">
+          <button class="btn stroke">Back to stops</button>
+          <button class="btn">Create shipment &amp; route</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">Review is a table, not a re-render of the form — the planner is checking order and evidence coverage, and the workflow column is the reason this screen exists at all. The payload preview is for the reviewer of this mockup rather than the operator: it makes the API delta (<code class="inline">workflowID</code> per stop, explicit <code class="inline">null</code>) impossible to miss. <span class="kit">Kit: Table · Badge · Tag · Alert · StepIndicator · Button.</span></p>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- 06 — Created                                                        -->
+  <!-- ================================================================== -->
+  <div>
+    <span class="state-tag"><span class="num">06</span>Created</span>
+    <div class="screen">
+      <div class="screen-bar">
+        <div class="crumbs">Operations <span>/</span> Routes <span>/</span> <b>RTE260805-00042</b></div>
+        <span class="badge live"><span class="dot"></span>Planned</span>
+      </div>
+      <div class="screen-body">
+        <div class="alert success">
+          <span class="ico">✓</span>
+          <span class="body"><b>Route RTE260805-00042 created.</b> Shipment <span class="mono">DSH-2026-000123</span> is planned on it, Budi Santoso has it on his list, and both stop workflows are frozen onto their stops.</span>
+        </div>
+
+        <div class="grid-3 mt-20">
+          <div class="card">
+            <div class="t-sub-xs sub">Route</div>
+            <div class="t-label-lg mt-4 mono">RTE260805-00042</div>
+            <div class="t-para-xs sub mt-4">DIRECT_4W · 3 stops · 2 shipments</div>
+          </div>
+          <div class="card">
+            <div class="t-sub-xs sub">Waiting on</div>
+            <div class="t-label-lg mt-4">Start vehicle check</div>
+            <div class="t-para-xs sub mt-4">8 items · submitted by the rider in the app</div>
+          </div>
+          <div class="card">
+            <div class="t-sub-xs sub">Evidence gated</div>
+            <div class="t-label-lg mt-4">5 milestones</div>
+            <div class="t-para-xs sub mt-4">across 2 of 3 stops</div>
+          </div>
+        </div>
+
+        <div class="btn-row mt-20">
+          <button class="btn">Open route</button>
+          <button class="btn stroke">Create another shipment</button>
+          <button class="btn ghost">Back to routes</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">Confirmation states what is now true and what the route is waiting for. The vehicle check is the next real-world action, so it earns a card rather than a line of prose. <span class="kit">Kit: Alert · Card · Button.</span></p>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- Spec deltas                                                         -->
+  <!-- ================================================================== -->
+  <div class="deltas">
+    <h2>What this mockup asks the specs to change</h2>
+    <p class="t-para-sm sub mt-4">Three deltas against the current drafts. None are settled — each needs a product call before implementation.</p>
+    <ol>
+      <li><b>Per-stop workflow selection instead of pure auto-resolution.</b> workflow-prd-trd v1 Req 3 resolves a stop's workflow from the client's single ACTIVE definition matching the stop type, with no caller input. This flow keeps that resolution as the <i>default</i> but lets the planner override it, which needs a nullable <code class="inline">workflowID</code> on the stop payload for <code class="inline">POST /internal/v1/routes</code> and <code class="inline">POST /internal/v1/routes/:routeID/stops</code>, plus validation that the chosen workflow's <code class="inline">stopType</code> matches the stop and its client is on the stop.</li>
+      <li><b>More than one ACTIVE workflow per client and stop type.</b> <code class="inline">stop_workflows</code> carries a partial unique index of one ACTIVE per <code class="inline">(client_id, stop_type)</code>. A picker with one option is not a picker — offering a genuine choice (standard vs cold chain, say) means dropping that index and deciding what "the default" means when nobody picks.</li>
+      <li><b>Shipment-level type.</b> <code class="inline">shipment_type</code> lives on <code class="inline">routes</code> today (route-prd-trd v1 Req 14, and its open question "Shipment-level typing"). This flow sets the type on the shipment and lets the route inherit it, which implies a <code class="inline">shipments.shipment_type</code> column and a rule for what happens when one route serves shipments of mixed types.</li>
+    </ol>
+  </div>
+
+</div>
+
+<footer class="page-footer">
+  <span>Mockups follow docs/brand/gsm.md and design-system/kit — layout is illustrative, copy is real</span>
+  <span>v1 · 2026-08-05</span>
+</footer>
+
+</body>
+</html>
