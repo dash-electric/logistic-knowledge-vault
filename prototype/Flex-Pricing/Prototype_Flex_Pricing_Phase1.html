@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DASH · Flex Pricing — Phase 1 Prototype (BackOffice + Next Portal)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary-base:#7D52F4; --primary-dark:#6E3FF3; --primary-darker:#5B2DD4;
+  --primary-alpha-24:rgba(125,82,244,.24); --primary-alpha-16:rgba(125,82,244,.16); --primary-alpha-10:rgba(125,82,244,.10);
+  --bg-strong-950:#0E121B; --text-strong-950:#0E121B; --text-sub-600:#525866; --text-soft-400:#99A0AE;
+  --stroke-sub-300:#CACFD8; --stroke-soft-200:#E1E4EA;
+  --state-success-base:#38C793; --state-success-lighter:#E0FAEF; --state-success-dark:#176448;
+  --state-error-base:#FB3748; --state-error-lighter:#FFEBEC; --state-error-dark:#710E21;
+  --state-warning-base:#F6A723; --state-warning-lighter:#FEF3E1; --state-warning-dark:#B8740A;
+  --state-information-base:#335CFF; --state-information-lighter:#EBF1FF; --state-information-dark:#162664;
+  --state-feature-base:#7D52F4; --state-feature-lighter:#EEE9FE; --state-feature-dark:#3A1F8A;
+  --radius-8:8px; --radius-10:10px; --radius-12:12px; --radius-16:16px; --radius-full:9999px;
+  --shadow-card-xs:0 1px 2px rgba(14,18,27,.04),0 0 0 1px rgba(14,18,27,.025);
+  --shadow-card-lg:0 24px 56px -20px rgba(14,18,27,.22);
+  --font-sans:'Plus Jakarta Sans',-apple-system,sans-serif; --mono:'JetBrains Mono',monospace;
+  --primary-lighter:var(--primary-alpha-10);
+  --success-lighter:var(--state-success-lighter);--success-dark:var(--state-success-dark);
+  --bg-weak:#F5F7FA;--bg-soft:#FAFBFC;--stroke-soft:var(--stroke-soft-200);--stroke-sub:var(--stroke-sub-300);
+  --text-strong:var(--text-strong-950);--text-sub:var(--text-sub-600);--text-soft:var(--text-soft-400);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-sans);background:var(--bg-weak);color:var(--text-strong);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;letter-spacing:-.008em}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit}
+.mono{font-family:var(--mono)}
+
+.demobar{position:sticky;top:0;z-index:250;background:var(--bg-strong-950);color:#fff;display:flex;align-items:center;gap:14px;padding:9px 18px}
+.demobar .brand{font-weight:800;font-size:12px;letter-spacing:.03em;color:rgba(255,255,255,.6)}
+.demobar .seg{display:flex;background:rgba(255,255,255,.08);border-radius:var(--radius-10);padding:3px}
+.demobar .seg button{padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:600;color:rgba(255,255,255,.66);transition:.14s}
+.demobar .seg button.active{background:#fff;color:var(--text-strong)}
+.demobar .spacer{flex:1}
+.demobar .phase{font-size:11px;font-weight:700;color:#c9b6ff;background:var(--primary-alpha-16);padding:4px 10px;border-radius:var(--radius-full)}
+
+.surface{display:none}.surface.active{display:block}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:var(--radius-10);font-weight:600;font-size:13px;border:1px solid var(--stroke-sub);background:#fff;color:var(--text-strong);transition:.12s}
+.btn:hover{background:var(--bg-weak)}
+.btn svg{width:15px;height:15px}
+.btn.primary{background:var(--primary-base);color:#fff;border-color:var(--primary-base);font-weight:700}
+.btn.primary:hover{background:var(--primary-dark)}
+.btn.lighter{background:var(--primary-alpha-10);color:var(--primary-dark);border-color:transparent}
+.btn.sm{padding:6px 11px;font-size:12px}.btn.xs{padding:5px 9px;font-size:11.5px;border-radius:var(--radius-8)}
+.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:var(--bg-weak)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.card{background:#fff;border:1px solid var(--stroke-soft);border-radius:var(--radius-12);box-shadow:var(--shadow-card-xs)}
+.switch{position:relative;width:42px;height:24px;flex-shrink:0;cursor:pointer;display:inline-block}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch .track{position:absolute;inset:0;background:var(--stroke-sub);border-radius:999px;transition:.15s}
+.switch input:checked+.track{background:var(--primary-base)}
+.switch .track:before{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch input:checked+.track:before{transform:translateX(18px)}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:var(--radius-full)}
+.pill.flex{background:var(--state-feature-lighter);color:var(--state-feature-dark)}
+.pill.ok{background:var(--state-success-lighter);color:var(--state-success-dark)}
+.pill.info{background:var(--state-information-lighter);color:var(--state-information-dark)}
+.tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:var(--bg-weak);color:var(--text-sub);letter-spacing:.02em}
+.tag.p2{background:var(--state-feature-lighter);color:var(--state-feature-dark)}
+.note{display:flex;gap:9px;padding:11px 13px;border-radius:var(--radius-10);font-size:12.5px;line-height:1.5}
+.note svg{width:16px;height:16px;flex-shrink:0;margin-top:1px}
+.note.info{background:var(--state-information-lighter);color:var(--state-information-dark)}
+.note.feat{background:var(--state-feature-lighter);color:var(--state-feature-dark)}
+.note.ok{background:var(--state-success-lighter);color:var(--state-success-dark)}
+.note.neutral{background:var(--bg-weak);color:var(--text-sub)}
+
+/* consolidated info-notes (NOT for build) */
+.buildnote{border:1px dashed var(--stroke-sub);border-radius:var(--radius-12);padding:14px 16px;background:var(--bg-soft)}
+.buildnote .bh{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-soft);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.buildnote ul{margin:0;padding-left:18px}
+.buildnote li{font-size:12.5px;color:var(--text-sub);margin-bottom:5px;line-height:1.5}
+
+/* ============ BACKOFFICE ============ */
+.bo-shell{display:flex;min-height:calc(100vh - 40px)}
+.bo-side{width:216px;background:#fff;border-right:1px solid var(--stroke-soft);flex-shrink:0;display:flex;flex-direction:column;padding:16px 0}
+.bo-side .logo{padding:2px 18px 18px;display:flex;align-items:center;justify-content:space-between}
+.bo-side .logo svg{height:22px;width:auto}
+.bo-side .sec{font-size:10px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.06em;padding:14px 18px 6px;display:flex;align-items:center;gap:8px}
+.bo-side .item{display:flex;align-items:center;gap:11px;padding:9px 18px 9px 30px;font-size:13px;color:var(--text-sub);font-weight:500;cursor:pointer;border-radius:0}
+.bo-side .item.active{color:var(--primary-dark);background:var(--primary-alpha-10);font-weight:700;border-radius:8px;margin:0 10px;padding-left:20px}
+.bo-side .foot{margin-top:auto;padding:12px 16px 0;border-top:1px solid var(--stroke-soft);display:flex;align-items:center;gap:9px}
+.bo-side .foot .av{width:32px;height:32px;border-radius:50%;background:var(--primary-base);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.bo-side .foot .nm{font-size:12.5px;font-weight:700;line-height:1.2}
+.bo-side .foot .em{font-size:10.5px;color:var(--text-soft)}
+.bo-main{flex:1;display:flex;flex-direction:column;min-width:0}
+.bo-body{padding:22px 26px;overflow:auto}
+.bo-crumb{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.bo-crumb .back{font-size:22px;color:var(--text-soft)}
+.bo-crumb h1{font-size:22px;font-weight:800}
+.botabs{display:flex;gap:6px;border-bottom:1px solid var(--stroke-soft);margin:18px 0 22px;overflow-x:auto}
+.botab{padding:9px 14px;font-weight:600;font-size:13.5px;color:var(--text-soft);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
+.botab.active{color:var(--primary-dark);border:1px solid var(--stroke-soft);border-bottom:none;border-radius:8px 8px 0 0;background:#fff;box-shadow:0 -1px 0 var(--primary-base) inset}
+.botab:hover:not(.active){color:var(--text-strong)}
+
+/* additional fees card */
+.af-card{padding:20px 22px;margin-bottom:20px}
+.af-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.af-top h3{font-size:16px;font-weight:800}
+.af-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+.af-grid .col h4{font-size:13px;font-weight:800;margin-bottom:10px}
+.af-kv{margin-bottom:10px}
+.af-kv .k{font-size:11px;color:var(--text-soft)}
+.af-kv .v{font-size:13px;font-weight:600}
+.af-sub{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px}
+
+/* rules table */
+.rtable{width:100%;border-collapse:collapse;font-size:13px;border-radius:var(--radius-12);overflow:hidden;box-shadow:var(--shadow-card-xs)}
+.rtable th{background:var(--primary-base);color:#fff;font-weight:700;font-size:12px;padding:12px 16px;text-align:left}
+.rtable th:first-child{width:52px;text-align:center}
+.rtable td{padding:13px 16px;border-bottom:1px solid var(--stroke-soft);background:#fff;vertical-align:middle}
+.rtable tr:nth-child(even) td{background:var(--bg-soft)}
+.rtable td:first-child{text-align:center;font-weight:700;color:var(--text-sub)}
+.rtable .chips{display:flex;gap:8px;flex-wrap:wrap}
+.rtable .chip{border:1px solid var(--stroke-soft);border-radius:8px;padding:5px 10px;font-size:12px;background:#fff}
+.rtable .acts{display:flex;gap:10px;justify-content:flex-end}
+.rtable .acts .ic{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.rtable .acts .ic.calc{background:var(--state-information-lighter);color:var(--state-information-base)}
+.rtable .acts .ic.del{background:var(--state-error-lighter);color:var(--state-error-base)}
+.rowflex td{background:var(--state-feature-lighter) !important;box-shadow:inset 3px 0 0 var(--primary-base)}
+
+/* config rows */
+.cfg-row{display:flex;align-items:center;gap:16px;padding:15px 18px;border-bottom:1px solid var(--stroke-soft)}
+.cfg-row:last-child{border-bottom:none}
+.cfg-row .ci{flex:1}.cfg-row .ci .ct{font-weight:700;font-size:13px}.cfg-row .ci .cd{font-size:12px;color:var(--text-soft);margin-top:2px}
+.cfg-row select{border:1px solid var(--stroke-sub);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;min-width:130px}
+
+/* ===== full-page wizard ===== */
+.wiz{position:fixed;inset:0;z-index:300;background:#fff;display:none;flex-direction:column}
+.wiz.show{display:flex}
+.wiz-top{height:56px;border-bottom:1px solid var(--stroke-soft);display:flex;align-items:center;gap:16px;padding:0 22px;flex-shrink:0}
+.wiz-top .x{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);font-size:18px}
+.wiz-top .x:hover{background:var(--bg-weak)}
+.wiz-top .sep{width:1px;height:22px;background:var(--stroke-soft)}
+.wiz-top .ttl{font-weight:700;font-size:15px}
+.wiz-steps{display:flex;align-items:center;justify-content:center;gap:10px;padding:18px;border-bottom:1px solid var(--stroke-soft);flex-shrink:0}
+.wstep{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text-soft)}
+.wstep .n{width:22px;height:22px;border-radius:50%;background:#EFF1F4;color:var(--text-sub);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.wstep.active{color:var(--text-strong)}.wstep.active .n{background:var(--primary-base);color:#fff}
+.wstep.done .n{background:var(--state-success-base);color:#fff}
+.wstep .arw{color:var(--stroke-sub);margin:0 6px}
+.wiz-body{flex:1;overflow:auto;padding:26px;background:var(--bg-weak)}
+.wcard{background:#fff;border:1px solid var(--stroke-soft);border-radius:var(--radius-12);box-shadow:var(--shadow-card-xs)}
+
+/* basic step */
+.basic-wrap{max-width:960px;margin:0 auto}
+.basic-card{padding:26px 28px}
+.basic-card h2{font-size:18px;font-weight:800;margin-bottom:16px}
+.basic-sub{background:var(--bg-weak);padding:8px 14px;border-radius:8px;font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--text-soft);margin-bottom:20px}
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:20px 24px;margin-bottom:22px}
+.fld label{display:block;font-size:12px;color:var(--text-soft);margin-bottom:6px}
+.fld .ro{font-size:15px;font-weight:600;padding:2px 0}
+.fld select,.fld input{width:100%;padding:12px 14px;border:1px solid var(--stroke-sub);border-radius:var(--radius-10);font-size:14px;background:#fff;color:var(--text-strong)}
+.fld select:focus,.fld input:focus{outline:none;border-color:var(--primary-base);box-shadow:0 0 0 3px var(--primary-lighter)}
+.fld select:disabled,.fld input:disabled{background:var(--bg-weak);color:var(--text-soft);cursor:not-allowed}
+.fld .hint{font-size:11px;color:var(--text-soft);margin-top:6px}
+.basic-foot{display:flex;justify-content:flex-end;border-top:1px solid var(--stroke-soft);padding-top:18px}
+
+/* pricing two-col */
+.price-grid{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;max-width:1200px;margin:0 auto}
+.sect{padding:20px 22px;margin-bottom:18px}
+.sect h3{font-size:17px;font-weight:800}
+.sect .sc{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--text-soft);text-transform:uppercase;margin:2px 0 12px}
+.ptable{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:10px}
+.ptable th{background:var(--primary-base);color:#fff;font-weight:700;font-size:11px;padding:9px 11px;text-align:left}
+.ptable td{padding:6px 8px;border-bottom:1px solid var(--stroke-soft)}
+.ptable input{width:100%;border:1px solid var(--stroke-soft);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--mono)}
+.pt-empty{text-align:center;padding:34px 10px;color:var(--text-soft)}
+.pt-empty .ic{width:52px;height:52px;border-radius:14px;background:var(--primary-alpha-10);color:var(--primary-base);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.pt-empty .t{font-weight:700;color:var(--text-strong);font-size:13.5px}
+.pt-empty .d{font-size:12px;max-width:340px;margin:4px auto 0}
+.addrow{display:flex;align-items:center;justify-content:center;gap:14px;padding-top:6px;color:var(--text-sub);font-size:12px}
+.addrow .lnk{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--text-strong);cursor:pointer}
+
+/* flex fields */
+.ffield{margin-bottom:16px}
+.ffield label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
+.inpwrap{position:relative}
+.inpwrap .pre{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text-soft);font-weight:600}
+.inpwrap input{width:100%;padding:11px 13px 11px 36px;border:1px solid var(--stroke-sub);border-radius:var(--radius-10);font-size:14px;font-family:var(--mono);font-weight:600}
+.inpwrap.plain input{padding-left:13px}
+.inpwrap input:focus{outline:none;border-color:var(--primary-base);box-shadow:0 0 0 3px var(--primary-lighter)}
+.unit-static{display:inline-flex;align-items:center;gap:8px;background:var(--bg-weak);border:1px solid var(--stroke-soft);border-radius:var(--radius-10);padding:11px 14px;font-size:13px;font-weight:700;color:var(--text-sub)}
+.fhint{font-size:11px;color:var(--text-soft);margin-top:6px}
+
+/* calculator card (matches existing) */
+.calc{padding:18px 20px}
+.calc h3{font-size:16px;font-weight:800;margin-bottom:2px}
+.calc .qc{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--text-soft);text-transform:uppercase;margin-bottom:14px}
+.calc .cin{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.calc .cin.one{grid-template-columns:1fr}
+.calc .cin label{font-size:11px;color:var(--text-soft);display:block;margin-bottom:5px}
+.calc .cin input{width:100%;padding:9px 11px;border:1px solid var(--stroke-sub);border-radius:8px;font-size:13px;font-family:var(--mono)}
+.calc .brk{border:1px solid var(--stroke-soft);border-radius:var(--radius-10);padding:14px}
+.calc .bh{font-size:12.5px;font-weight:800;color:var(--primary-dark);margin-bottom:8px}
+.calc .bl{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;color:var(--text-sub)}
+.calc .bl .v{font-family:var(--mono);font-weight:600;color:var(--text-strong)}
+.calc .fin{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--stroke-soft);margin-top:8px;padding-top:10px}
+.calc .fin .k{font-weight:800;color:var(--primary-dark)}
+.calc .fin .v{font-family:var(--mono);font-weight:800;font-size:16px;color:var(--primary-dark)}
+.wiz-foot-inline{display:flex;justify-content:space-between;gap:10px;margin-top:14px}
+
+/* summary */
+.sum-card{max-width:860px;margin:0 auto;padding:26px 28px}
+.sum-sec{margin-bottom:20px}
+.sum-sec .sh{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--text-soft);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--stroke-soft)}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+.sum-grid .sk{font-size:11px;color:var(--text-soft)}.sum-grid .sv{font-weight:700;font-size:14px}
+
+/* ============ NEXT PORTAL ============ */
+.np-shell{display:flex;min-height:calc(100vh - 40px);background:#fff}
+.np-side{width:196px;border-right:1px solid var(--stroke-soft);flex-shrink:0;padding:18px 0;display:flex;flex-direction:column}
+.np-side .logo{padding:0 18px 22px}.np-side .logo svg{height:22px}
+.np-side .item{display:flex;align-items:center;gap:11px;padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--text-sub)}
+.np-side .item svg{width:17px;height:17px}
+.np-side .item.active{color:var(--text-strong);background:var(--bg-weak)}
+.np-side .foot{margin-top:auto;padding:14px 18px 0;border-top:1px solid var(--stroke-soft)}
+.np-side .foot .nm{font-weight:700;font-size:13px}.np-side .foot .tp{font-size:11.5px;color:var(--text-soft)}
+.np-main{flex:1;display:flex;flex-direction:column;min-width:0}
+.np-top{height:60px;border-bottom:1px solid var(--stroke-soft);display:flex;align-items:center;padding:0 24px;gap:16px}
+.np-top h1{font-size:19px;font-weight:800}.np-top .sub{font-size:12px;color:var(--text-soft)}
+.np-body{padding:24px;overflow:auto}
+.cswitch{margin-left:auto;display:flex;align-items:center;gap:10px;background:var(--bg-weak);border:1px solid var(--stroke-soft);border-radius:var(--radius-10);padding:5px 6px 5px 14px}
+.cswitch .lbl{font-size:10.5px;color:var(--text-soft);font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.cswitch .seg{display:flex;background:#fff;border-radius:8px;padding:3px;border:1px solid var(--stroke-soft)}
+.cswitch .seg button{padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;color:var(--text-sub)}
+.cswitch .seg button.active{background:var(--primary-base);color:#fff}
+.stat-row{display:flex;gap:12px;margin-bottom:18px}
+.stat{flex:1;border:1px solid var(--stroke-soft);border-radius:var(--radius-12);padding:13px 15px}
+.stat .n{font-size:22px;font-weight:800;font-family:var(--mono)}.stat .l{font-size:11.5px;color:var(--text-soft);font-weight:600;margin-top:2px}
+.dtable{width:100%;border-collapse:collapse;font-size:13px}
+.dtable th{text-align:left;font-size:10.5px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.03em;padding:11px 14px;border-bottom:1px solid var(--stroke-soft)}
+.dtable td{padding:13px 14px;border-bottom:1px solid var(--stroke-soft)}
+.dtable tr:hover td{background:var(--bg-soft)}
+
+/* create full-page overlay */
+.cd-overlay{position:fixed;inset:0;z-index:300;background:var(--bg-weak);display:none;flex-direction:column}
+.cd-overlay.show{display:flex}
+.cd-top{height:60px;background:#fff;border-bottom:1px solid var(--stroke-soft);display:flex;align-items:center;gap:16px;padding:0 22px;flex-shrink:0}
+.cd-top .x{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);font-size:18px}.cd-top .x:hover{background:var(--bg-weak)}
+.cd-top .ttl{font-weight:700;font-size:16px}
+.cd-top .r{margin-left:auto;display:flex;align-items:center;gap:12px}
+.avail{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--state-success-dark);background:var(--state-success-lighter);border:1px solid #cbf5e5;padding:7px 12px;border-radius:var(--radius-full)}
+.avail .d{width:8px;height:8px;border-radius:50%;background:var(--state-success-base)}
+.cd-top .lnk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--text-sub)}
+.cd-scroll{flex:1;overflow:auto;padding:22px}
+.cd-cols{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start;max-width:1400px;margin:0 auto}
+.cd-card{background:#fff;border:1px solid var(--stroke-soft);border-radius:var(--radius-16);padding:24px}
+.cd-card h2{font-size:20px;font-weight:800;margin-bottom:16px}
+.cd-langkah{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--text-soft);text-transform:uppercase;background:var(--bg-weak);padding:8px 14px;border-radius:8px;margin:18px 0 14px}
+.cd-langkah:first-of-type{margin-top:0}
+.rrow{border:1px solid var(--stroke-soft);border-radius:var(--radius-12);padding:16px;margin-bottom:12px}
+.rrow .rh{display:flex;align-items:flex-start;gap:12px}
+.rrow .pin{width:26px;height:26px;border-radius:7px;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rrow .pin.p{background:var(--primary-base)}.rrow .pin.d{background:var(--state-error-base)}
+.rrow .rc{flex:1;min-width:0}
+.rrow .rt{font-weight:700;font-size:14px}
+.rrow .ubah{margin-left:auto;color:var(--primary-dark);font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;gap:5px;align-items:center}
+.rrow .placeholder{color:var(--text-soft);font-size:13px;padding:12px 0}
+.rrow .rmeta{font-size:12px;color:var(--text-sub);margin-top:3px;line-height:1.45}
+.rrow .inner-svc{border:1px solid var(--state-success-base);background:var(--state-success-lighter);border-radius:10px;padding:10px 12px;margin-top:12px;display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;color:var(--state-success-dark)}
+.rrow .inner-svc .gd{width:8px;height:8px;border-radius:50%;background:var(--state-success-base);margin-left:auto}
+.addstop{width:100%;justify-content:center;background:var(--primary-alpha-10);color:var(--primary-dark);border:none;padding:13px;border-radius:var(--radius-12);font-weight:700;font-size:13px;cursor:pointer}
+.svc-row{border:1.5px solid var(--primary-base);border-radius:var(--radius-12);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.svc-row.empty{border-color:var(--stroke-soft);border-style:solid}
+.svc-row .oi{width:32px;height:32px;border-radius:9px;background:var(--bg-weak);display:flex;align-items:center;justify-content:center}
+.svc-row .ot{font-weight:700;font-size:14px}.svc-row .os{font-size:12px;color:var(--text-soft)}
+.prot-row{border:1px solid var(--stroke-soft);border-radius:var(--radius-12);padding:16px;display:flex;align-items:center;gap:12px}
+.prot-row .pt{font-weight:700;font-size:13.5px}.prot-row .ps{font-size:12px;color:var(--text-soft)}
+/* payment */
+.pay-method{border:1.5px solid var(--primary-base);border-radius:var(--radius-12);padding:14px 16px;display:flex;align-items:center;gap:12px;background:#fff}
+.pay-method .oi{width:34px;height:34px;border-radius:9px;background:var(--bg-weak);display:flex;align-items:center;justify-content:center}
+.pay-method .r{width:18px;height:18px;border-radius:50%;border:5px solid var(--primary-base);margin-left:auto}
+.pricebox{border:1px solid var(--stroke-soft);border-radius:var(--radius-12);padding:16px;margin:16px 0}
+.pricebox .pl{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;color:var(--text-sub)}
+.pricebox .pl .v{font-family:var(--mono);font-weight:600;color:var(--text-strong)}
+.pricebox .pt{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:10px;border-top:1px solid var(--stroke-soft)}
+.pricebox .pt .k{font-weight:800}.pricebox .pt .v{font-family:var(--mono);font-weight:800;font-size:17px}
+
+/* right drawer */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:440px;max-width:100%;background:#fff;box-shadow:var(--shadow-card-lg);z-index:340;transform:translateX(100%);transition:transform .28s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column}
+.drawer.show{transform:none}
+.dr-head{padding:20px 22px;border-bottom:1px solid var(--stroke-soft);display:flex;align-items:flex-start}
+.dr-head h3{font-size:16px;font-weight:700}.dr-head p{font-size:12.5px;color:var(--text-soft);margin-top:2px}
+.dr-head .x{margin-left:auto;width:34px;height:34px;border:1px solid var(--stroke-soft);border-radius:9px;display:flex;align-items:center;justify-content:center}
+.dr-body{padding:20px 22px;overflow:auto;flex:1}
+.dr-foot{padding:16px 22px;border-top:1px solid var(--stroke-soft)}
+.dr-sublabel{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--text-soft);text-transform:uppercase;margin-bottom:12px}
+.dr-tabs{display:flex;gap:6px;background:var(--bg-weak);padding:4px;border-radius:var(--radius-10);margin-bottom:18px}
+.dr-tabs button{flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text-sub)}
+.dr-tabs button.active{background:#fff;color:var(--text-strong);box-shadow:var(--shadow-card-xs)}
+.dr-field{margin-bottom:16px}
+.dr-field label{display:block;font-size:12px;color:var(--text-sub);font-weight:600;margin-bottom:6px}
+.dr-field input{width:100%;padding:11px 13px;border:1px solid var(--stroke-sub);border-radius:var(--radius-10);font-size:14px}
+.dr-field input:focus{outline:none;border-color:var(--primary-base);box-shadow:0 0 0 3px var(--primary-lighter)}
+/* day pills + slots */
+.days{display:flex;align-items:center;gap:6px;margin-bottom:18px}
+.days .nav{width:30px;height:44px;border:1px solid var(--stroke-soft);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--text-soft);flex-shrink:0}
+.day{flex:1;text-align:center;border:1px solid var(--stroke-soft);border-radius:10px;padding:7px 0;cursor:pointer}
+.day .dn{font-size:10.5px;color:var(--text-soft);font-weight:600}.day .dd{font-size:16px;font-weight:800}
+.day.active{background:var(--primary-base);border-color:var(--primary-base)}.day.active .dn,.day.active .dd{color:#fff}
+.express-now{display:flex;align-items:center;gap:10px;padding:12px 0}
+.express-now .ei{width:30px;height:30px}
+.express-now .et{font-weight:700;font-size:13px}.express-now .es{font-size:11px;color:var(--text-soft)}
+.busy{background:var(--bg-weak);border-radius:10px;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text-sub);margin-bottom:12px}
+.busy a{color:var(--primary-dark);font-weight:700}
+.slot{border:1px solid var(--stroke-soft);border-radius:10px;padding:13px 15px;display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;cursor:pointer;font-size:13.5px;font-weight:600;font-family:var(--mono)}
+.slot .r{width:18px;height:18px;border-radius:50%;border:2px solid var(--stroke-sub)}
+.slot.sel{border-color:var(--primary-base)}.slot.sel .r{border:5px solid var(--primary-base)}
+.stype{border:1.5px solid var(--stroke-soft);border-radius:var(--radius-12);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px}
+.stype .oi{width:30px;height:30px;border-radius:8px;background:var(--primary-alpha-10);color:var(--primary-base);display:flex;align-items:center;justify-content:center}
+.stype .ot{font-weight:700;font-size:14px}.stype .os{font-size:12px;color:var(--text-soft)}
+.stype .r{width:18px;height:18px;border-radius:50%;border:2px solid var(--stroke-sub);margin-left:auto}
+.stype.sel{border-color:var(--primary-base)}.stype.sel .r{border:5px solid var(--primary-base)}
+.stype.locked{opacity:.55;cursor:not-allowed}.stype.locked .oi{background:var(--state-error-lighter);color:var(--state-error-base)}
+
+.scrim{position:fixed;inset:0;background:rgba(14,18,27,.35);z-index:330;display:none}.scrim.show{display:block}
+.toast-wrap{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:400;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:var(--bg-strong-950);color:#fff;padding:11px 16px;border-radius:var(--radius-10);font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;box-shadow:var(--shadow-card-lg)}
+.toast svg{width:16px;height:16px}.toast.ok svg{color:var(--state-success-base)}.toast.err svg{color:var(--state-error-base)}
+kbd{font-family:var(--mono);font-size:11px;background:var(--bg-weak);border:1px solid var(--stroke-soft);border-radius:5px;padding:1px 5px}
+</style>
+</head>
+<body>
+
+<div class="demobar">
+  <span class="brand">DASH · FLEX PRICING</span>
+  <div class="seg"><button id="tab-bo" class="active" onclick="switchSurface('bo')">BackOffice · Pricing</button><button id="tab-np" onclick="switchSurface('np')">Next Portal · Client</button></div>
+  <span class="phase">PHASE 1 · Prototype</span>
+  <div class="spacer"></div>
+</div>
+
+<!-- ============ BACKOFFICE ============ -->
+<div id="surface-bo" class="surface active">
+ <div class="bo-shell">
+  <aside class="bo-side">
+    <div class="logo"><span id="logoBO"></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#99A0AE" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></div>
+    <div class="sec"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0"/></svg> Masterdata</div>
+    <div class="item active">Client</div>
+    <div class="foot"><span class="av">IK</span><div><div class="nm">Isumi Karina</div><div class="em">isumi.karina@dashelectric.co</div></div></div>
+  </aside>
+  <div class="bo-main">
+    <div class="bo-body">
+      <div class="bo-crumb"><span class="back">←</span><h1>Detail PT. MAP BOGA ADIPERKASA Tbk</h1><span class="pill flex" id="clientBadge" style="display:none">✦ Flex</span></div>
+      <div class="botabs">
+        <div class="botab">Detail</div><div class="botab">Outlet</div>
+        <div class="botab active" onclick="boTab('pricing',this)">Pricing</div>
+        <div class="botab">Manajemen Pengguna</div><div class="botab">Daftar Delivery</div>
+        <div class="botab" onclick="boTab('pengaturan',this)">Pengaturan</div><div class="botab">SLA</div>
+      </div>
+
+      <!-- Pricing -->
+      <div id="bo-pricing">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:16px"><button class="btn primary" onclick="openWizard()">+ Tambah</button></div>
+        <div class="card af-card">
+          <div class="af-top"><h3>Additional Fees</h3><button class="btn lighter sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg> Edit</button></div>
+          <div class="af-grid">
+            <div class="col"><h4>Others</h4>
+              <div class="af-kv"><div class="k">Price per Stop (Flat)</div><div class="v">Rp 3.500 — mulai stop ke-3</div></div>
+              <div class="af-kv"><div class="k">Payment Method</div><div class="v">Invoicing <span class="pill ok" style="margin-left:6px">Pajak Logistic Active</span></div></div>
+            </div>
+            <div class="col"><h4>Asuransi</h4><div class="af-sub">
+              <div class="af-kv"><div class="k">Basic</div><div class="v">Rp 500</div></div><div class="af-kv"><div class="k">Standard</div><div class="v">Rp 1.000</div></div>
+              <div class="af-kv"><div class="k">Platinum</div><div class="v">Rp 2.000</div></div><div class="af-kv"><div class="k">Ultimate</div><div class="v">Rp 3.500</div></div>
+            </div></div>
+            <div class="col"><h4>Parking Fee</h4>
+              <div class="af-kv"><div class="k">Titik parkir pertama (Rp)</div><div class="v">Rp 0</div></div>
+              <div class="af-kv"><div class="k">Setiap titik tambahan (Rp)</div><div class="v">Rp 0</div></div>
+            </div>
+          </div>
+        </div>
+        <table class="rtable"><thead><tr><th>No</th><th>Service Category</th><th>Service Type</th><th>Summary</th><th></th></tr></thead><tbody id="ruleRows"></tbody></table>
+      </div>
+
+      <!-- Pengaturan -->
+      <div id="bo-pengaturan" style="display:none">
+        <div style="font-weight:800;font-size:16px;margin-bottom:4px">Konfigurasi Client</div>
+        <div style="font-size:12.5px;color:var(--text-soft);margin-bottom:14px">Menentukan aturan yang bisa / tidak bisa dipakai client di Next Portal.</div>
+        <div class="card">
+          <div class="cfg-row"><div class="ci"><div class="ct">Client Service</div><div class="cd">Pilih jenis layanan client: Express, Fleet+, Flex</div></div><select id="cfgClientService"><option>Express</option><option>Fleet+</option><option>Flex</option></select></div>
+          <div class="cfg-row"><div class="ci"><div class="ct">Allow Self Order Customer</div><div class="cd">Izinkan customer membuat pesanan sendiri via Consumer Web App</div></div><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+          <div class="cfg-row"><div class="ci"><div class="ct">Portal Allow Invoicing Summary</div><div class="cd">Menampilkan summary invoice pada Next Portal — matikan untuk klien Flex bila harga tak perlu ditampilkan</div></div><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+          <div class="cfg-row"><div class="ci"><div class="ct">Portal Bypass Self Service Client</div><div class="cd">Izinkan Client Self Service menggunakan feature Next Portal</div></div><label class="switch"><input type="checkbox" checked><span class="track"></span></label></div>
+        </div>
+        <div class="note feat" style="margin-top:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><div>Saat kategori <b>Flex</b> di-publish di tab Pricing, <b>Client Service</b> otomatis disinkronkan menjadi <b>Flex</b>. Aturan pricing lama (Fleet+/Express) tetap tersimpan.</div></div>
+      </div>
+    </div>
+  </div>
+ </div>
+</div>
+
+<!-- ============ NEXT PORTAL ============ -->
+<div id="surface-np" class="surface">
+ <div class="np-shell">
+  <aside class="np-side">
+    <div class="logo"><span id="logoNP"></span></div>
+    <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8zM5.5 18.5a2.5 2.5 0 1 0 .01 0M18.5 18.5a2.5 2.5 0 1 0 .01 0"/></svg> Deliveries</div>
+    <div class="foot"><div class="nm" id="npClientName">PT. MAP Boga</div><div class="tp" id="npClientType">Flex · Dedicated Courier</div></div>
+  </aside>
+  <div class="np-main">
+    <div class="np-top">
+      <div><h1>Delivery</h1><div class="sub">Buat & pantau pengiriman dari pickup sampai selesai.</div></div>
+      <div class="cswitch"><span class="lbl">Demo klien</span><div class="seg"><button id="cl-flex" class="active" onclick="setClient('flex')">MAP Boga · Flex</button><button id="cl-exp" onclick="setClient('exp')">Happy Fresh · Express</button></div></div>
+    </div>
+    <div class="np-body">
+      <div class="stat-row">
+        <div class="stat"><div class="n">0</div><div class="l">Pending Delivery</div></div>
+        <div class="stat"><div class="n">2</div><div class="l">In Delivery</div></div>
+        <div class="stat"><div class="n">49</div><div class="l">Completed</div></div>
+        <div class="stat"><div class="n">0</div><div class="l">Failed</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-weight:700">Semua pengiriman</div><button class="btn primary" onclick="openCreate()">+ Create Delivery</button></div>
+      <div class="card" style="overflow:hidden"><table class="dtable"><thead><tr><th>Delivery ID</th><th>Status</th><th>Sender</th><th>Recipient</th><th>Service</th></tr></thead><tbody id="npRows"></tbody></table></div>
+    </div>
+  </div>
+ </div>
+</div>
+
+<!-- ===== BACKOFFICE WIZARD (full page) ===== -->
+<div class="wiz" id="wiz">
+  <div class="wiz-top"><span class="x" onclick="closeWizard()">✕</span><span class="sep"></span><span class="ttl">Pricing Rule</span></div>
+  <div class="wiz-steps">
+    <div class="wstep active" id="ws1"><span class="n">1</span> Basic</div><span class="arw">›</span>
+    <div class="wstep" id="ws2"><span class="n">2</span> Pricing</div><span class="arw">›</span>
+    <div class="wstep" id="ws3"><span class="n">3</span> Summary</div>
+  </div>
+  <div class="wiz-body" id="wizBody"></div>
+</div>
+
+<!-- ===== NEXT PORTAL: CREATE (full page) ===== -->
+<div class="cd-overlay" id="cdOverlay">
+  <div class="cd-top">
+    <span class="x" onclick="closeCreate()">✕</span><span class="ttl">Buat Pengiriman Manual</span>
+    <div class="r"><span class="avail"><span class="d"></span> Drivers Available</span>
+      <span class="lnk"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> Butuh Bantuan?</span>
+      <span class="lnk"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Panduan</span>
+    </div>
+  </div>
+  <div class="cd-scroll"><div class="cd-cols">
+    <div class="cd-card">
+      <h2>Detail Pengiriman</h2>
+      <div class="cd-langkah">Langkah 1 — Atur Rute Pengiriman</div>
+      <div class="rrow" id="rowPickup"></div>
+      <div class="rrow" id="rowDrop"></div>
+      <button class="addstop">+ Tambah Titik Pemberhentian</button>
+      <div class="cd-langkah">Langkah 2 — Pilih Opsi Pengiriman</div>
+      <div class="svc-row empty" id="svcRow" onclick="openOpsi()"><div class="oi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div><div style="flex:1"><div class="ot" id="svcTitle">Tipe Layanan</div><div class="os" id="svcSub">No service option selected yet.</div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-soft)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+      <div class="cd-langkah">Langkah 3 — Pilih Perlindungan Paket (Opsional)</div>
+      <div class="prot-row"><div style="flex:1"><div class="pt">Perlindungan Paket</div><div class="ps">Perlindungan tambahan untuk paket. Risiko kehilangan atau kerusakan, mulai Rp500.</div></div><label class="switch"><input type="checkbox"><span class="track"></span></label></div>
+      <div style="margin-top:18px" id="cdBuildNote"></div>
+    </div>
+    <div class="cd-card" style="align-self:start">
+      <h2>Detail Pembayaran</h2>
+      <div class="dr-sublabel">Pilih Metode Pembayaran</div>
+      <div class="pay-method"><div class="oi">🧾</div><div><div style="font-weight:700;font-size:13.5px">Tagihan</div><div style="font-size:12px;color:var(--text-sub)">Tambahkan ke tagihan bulanan Anda.</div></div><span class="r"></span></div>
+      <div id="priceZone"></div>
+      <button class="btn primary" id="bookBtn" style="width:100%;justify-content:center;margin-top:6px;padding:13px" onclick="bookDelivery()" disabled>Pesan Pengiriman</button>
+      <div style="text-align:center;font-size:12px;color:var(--text-soft);margin-top:10px">Butuh bantuan pembayaran? <b style="color:var(--primary-dark)">Pelajari Selengkapnya</b></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- Route / Opsi drawer -->
+<div class="scrim" id="drawerScrim" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="dr-head"><div><h3 id="drTitle">Titik Penjemputan</h3><p id="drSub">Isi detail lokasi penjemputan Anda.</p></div><button class="x" onclick="closeDrawer()">✕</button></div>
+  <div class="dr-body" id="drBody"></div>
+  <div class="dr-foot" id="drFoot"><button class="btn primary" style="width:100%;justify-content:center;padding:13px" id="drBtn" onclick="drawerConfirm()">Gunakan Alamat</button></div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const LOGO='<svg viewBox="0 0 129.7939 26" xmlns="http://www.w3.org/2000/svg"><path fill="#1e1e1e" fill-rule="evenodd" d="M50.157,16.8079c-1.052,1.0165-2.358,1.5247-3.916,1.5247h-1.974l2.277-11.1496h2.0651c1.397,0,2.399.286,3.006.858.6071.572.911,1.397.911,2.477,0,.615-.0811,1.324-.243,2.1287-.365,1.7365-1.073,3.1235-2.126,4.1612ZM49.246,1.656h-7.864l-4.4929,22.2037h8.198c3.704,0,6.7-.9318,8.9869-2.7953,2.308-1.8847,3.8461-4.6906,4.615-8.4177.162-.8467.243-1.6198.243-2.3187,0-1.673-.394-3.166-1.184-4.479-.7891-1.313-1.9231-2.34-3.401-3.081-1.457-.741-3.1571-1.112-5.1011-1.112ZM74.377,14.6479l-.7589-6.2259-3.3091,6.2259h4.068ZM71.675,1.656h6.042l3.9779,22.2037h-6.1329l-.729-4.2247h-6.953l-2.46,4.2247h-6.74L71.675,1.656ZM116.434,1.656h-6.2849l-4.494,22.2038h6.2849l1.701-8.513h7.074l-1.7,8.513h6.285l4.4939-22.2038h-6.2849l-1.67,8.164h-7.075l1.6699-8.164ZM87.8571,23.8915c1.3159.2964,2.662.4447,4.038.4447,3.0969,0,5.455-.5824,7.075-1.7471,1.619-1.1647,2.641-2.8165,3.066-4.9553.142-.6565.213-1.2812.213-1.8741,0-1.1224-.334-2.0541-1.0021-2.7953-.6479-.7624-1.761-1.5144-3.34-2.2554l-.577-.254c-1.012-.466-1.72-.836-2.125-1.112-.385-.275-.5769-.603-.5769-.984,0-.551.2729-.964.8199-1.239.566-.297,1.285-.445,2.155-.445,1.8419,0,3.543.508,5.101,1.525l1.1541-5.623c-.87-.487-1.801-.836-2.7931-1.048-.9919-.233-2.1559-.349-3.4919-.349-2.631,0-4.797.614-6.498,1.842-1.7,1.228-2.7629,2.869-3.188,4.924-.101.571-.152,1.048-.152,1.429,0,1.165.344,2.181,1.033,3.0494.708.8471,1.811,1.6412,3.3091,2.3823,1.235.6142,2.0549,1.08,2.46,1.3977.425.2965.637.6565.637,1.08,0,1.0588-.88,1.5882-2.641,1.5882-1.073,0-2.1969-.1588-3.371-.4764-1.153-.3177-2.2159-.7942-3.188-1.4295l-1.184,5.813c.7489.4659,1.771.8365,3.067,1.1118Z"/><path fill="#904fff" fill-rule="evenodd" d="M5.813,0h11.2581c2.3519,0,4.505.757,6.2689,1.614,1.7881.857,3.16,2.044,4.1161,3.562.955,1.5179,1.433,3.244,1.433,5.179,0,.808-.098,1.7012-.2941,2.6806-.931,4.3092-2.793,7.5534-5.5859,9.7325-2.7681,2.1546-6.394,3.2319-10.8771,3.2319H0l5.9091-13.197h5.9089v13.1313l6.238-13.1313h-6.238l-.043-12.475-5.866,12.475H.328L5.813,0Z"/></svg>';
+document.getElementById('logoBO').innerHTML=LOGO; document.getElementById('logoNP').innerHTML=LOGO;
+
+const S={ surface:'bo', wzStep:1, category:'', published:false,
+  flex:{ rate:'', otHour:'', otKm:'', payout:'', commission:'' },
+  client:'flex', route:{pickup:false,drop:false}, service:null, curDrawer:null, selSlot:'19:00 - 20:00' };
+
+function switchSurface(s){ S.surface=s;
+  document.getElementById('surface-bo').classList.toggle('active',s==='bo');
+  document.getElementById('surface-np').classList.toggle('active',s==='np');
+  document.getElementById('tab-bo').classList.toggle('active',s==='bo');
+  document.getElementById('tab-np').classList.toggle('active',s==='np'); }
+function boTab(t,el){ document.querySelectorAll('#surface-bo .botab').forEach(x=>x.classList.remove('active')); el.classList.add('active');
+  document.getElementById('bo-pricing').style.display=t==='pricing'?'':'none';
+  document.getElementById('bo-pengaturan').style.display=t==='pengaturan'?'':'none'; }
+
+/* seed existing rules (data lama tetap ada) */
+const BASE_RULES=[
+  {cat:'FLEET+',type:'INSTANT',d:'0 – 350km → Rp 250.000',w:'0 – 100kg → Rp 0'},
+  {cat:'EXPRESS',type:'INSTANT',d:'0 – 350km → Rp 250.000',w:'0 – 100kg → Rp 0'},
+  {cat:'FLEET+',type:'MULTI_STOP',d:'0 – 350km → Rp 250.000',w:'0 – 100kg → Rp 0'},
+];
+function renderRules(){
+  let rows=BASE_RULES.map((r,i)=>ruleRow(i+1,r,false));
+  if(S.published){ rows.push(ruleRow(BASE_RULES.length+1,{cat:'FLEX',type:'DEDICATED COURIER',
+    d:'Harian → Rp '+fmt(S.flex.rate)+' / shift', w:'Lembur → Rp '+fmt(S.flex.otHour)+' / jam'},true)); }
+  document.getElementById('ruleRows').innerHTML=rows.join('');
+}
+function ruleRow(n,r,isFlex){
+  return `<tr class="${isFlex?'rowflex':''}"><td>${n}</td><td style="font-weight:700">${r.cat}</td><td>${r.type}</td>
+   <td><div class="chips"><span class="chip">${r.d}</span><span class="chip">${r.w}</span></div></td>
+   <td><div class="acts"><span class="ic calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/></svg></span><span class="ic del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></span></div></td></tr>`;
+}
+function fmt(v){ v=(''+(v||'')).replace(/[^\d]/g,''); return v? parseInt(v,10).toLocaleString('id-ID'):'0'; }
+
+/* ===== wizard ===== */
+function openWizard(){ S.wzStep=1; S.category=''; document.getElementById('wiz').classList.add('show'); renderWizard(); }
+function closeWizard(){ document.getElementById('wiz').classList.remove('show'); }
+function setStep(n){ S.wzStep=n; [1,2,3].forEach(i=>{const e=document.getElementById('ws'+i); e.classList.toggle('active',i===n); e.classList.toggle('done',i<n);}); }
+function renderWizard(){ setStep(S.wzStep); const b=document.getElementById('wizBody');
+  if(S.wzStep===1) b.innerHTML=stepBasic();
+  else if(S.wzStep===2){ b.innerHTML=(S.category==='Flex')?stepFlex():stepTier(); if(S.category==='Flex') bindFlex(); }
+  else b.innerHTML=stepSummary();
+}
+function stepBasic(){
+  const locked = S.category==='Flex'?'Dedicated Courier':(S.category==='Express'?'':(S.category==='Logistic'?'':''));
+  const typeOpts = S.category==='Flex'?'<option selected>Dedicated Courier</option>'
+    : S.category==='Express'?'<option value="">Select Type</option><option>Instant</option><option>Sameday</option><option>Multi-stop</option>'
+    : S.category==='Logistic'?'<option value="">Select Type</option><option>Regular</option><option>Sameday</option><option>Next Day</option>'
+    : '<option value="">Select Type</option>';
+  return `<div class="basic-wrap"><div class="wcard basic-card">
+    <h2>Basic Configuration</h2><div class="basic-sub">BASIC</div>
+    <div class="bgrid">
+      <div class="fld"><label>Client</label><div class="ro">PT. MAP BOGA ADIPERKASA Tbk</div></div>
+      <div class="fld"><label>Client Code</label><div class="ro">PTI</div></div>
+      <div class="fld"><label>Service Category</label>
+        <select onchange="pickCat(this.value)">
+          <option value="" ${!S.category?'selected':''}>Select Category</option>
+          <option ${S.category==='Express'?'selected':''}>Express</option>
+          <option ${S.category==='Logistic'?'selected':''}>Logistic</option>
+          <option ${S.category==='Flex'?'selected':''}>Flex</option>
+        </select>
+        ${S.category==='Flex'?'<div class="hint" style="color:var(--state-feature-dark)">✦ Flex → Service Type otomatis <b>Dedicated Courier</b>, pricing memakai skema harian.</div>':''}
+      </div>
+      <div class="fld"><label>Service Type</label><select ${S.category==='Flex'?'disabled':''}>${typeOpts}</select>${S.category==='Flex'?'<div class="hint">🔒 Terkunci sesuai kategori.</div>':''}</div>
+    </div>
+    <div class="basic-foot"><button class="btn primary" ${S.category?'':'disabled'} onclick="wizNext()">Next</button></div>
+  </div></div>`;
+}
+function pickCat(v){ S.category=v; renderWizard(); }
+
+function stepTier(){
+  return `<div class="price-grid"><div>
+    <div class="wcard sect"><h3>Distance</h3><div class="sc">Configure pricing tiers based on delivery distance</div>
+      <div class="note info" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><div>Cara kerja: gunakan <b>Flat</b> untuk harga tetap, tambahkan <b>Tier</b> dengan Step untuk kenaikan bertahap.</div></div>
+      <table class="ptable"><tr><th>Variant</th><th>From (km)</th><th>To (km)</th><th>Base (Rp)</th><th>Step (km)</th><th>+Rp/Step</th></tr></table>
+      <div class="pt-empty"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17s2-6 8-6 8 6 8 6"/><circle cx="12" cy="7" r="2"/></svg></div><div class="t">Data Distance Belum Tersedia</div><div class="d">Gunakan Flat untuk harga tetap. Untuk kenaikan bertahap, klik Add Tier dan isi Step + harga per step.</div></div>
+      <div class="addrow"><span class="lnk">◇ Add Flat</span> OR <span class="lnk">▤ Add Tier</span></div>
+    </div>
+    <div class="wcard sect"><h3>Weight</h3><div class="sc">Configure pricing surcharges based on package weight</div>
+      <table class="ptable"><tr><th>Variant</th><th>From (kg)</th><th>To (kg)</th><th>Base (Rp)</th><th>Rate/kg</th></tr></table>
+      <div class="pt-empty"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l4 4H8zM6 22l6-14 6 14z"/></svg></div><div class="t">Data Weight Belum Tersedia</div><div class="d">Isi Base (Rp) bila ada. Untuk kenaikan bertahap, klik Add Tier & isi penambahan per kg.</div></div>
+      <div class="addrow"><span class="lnk">◇ Add Flat</span> OR <span class="lnk">▤ Add Tier</span></div>
+    </div>
+  </div>
+  <div class="wcard calc"><h3>Calculator Pricing</h3><div class="qc">Quick Calculator</div>
+    <div class="cin"><div><label>Distance (km)</label><input placeholder="0"></div><div><label>Weight (kg)</label><input placeholder="0"></div></div>
+    <div class="cin one"><div><label>Stop Count</label><input placeholder="2"></div></div>
+    <div class="brk"><div class="bh">Dash Price</div>
+      <div class="bl"><span>Distance Fare</span><span class="v">Rp 0</span></div>
+      <div class="bl"><span>Weight Surcharge</span><span class="v">Rp 0</span></div>
+      <div class="bl"><span>Price per Stop</span><span class="v">Rp 0</span></div>
+      <div class="bh" style="margin-top:12px">Other Price</div>
+      <div class="bl"><span>Logistics Tax (1.1%)</span><span class="v">Rp 0</span></div>
+      <div class="bl"><span>Insurance (Basic)</span><span class="v">Rp 0</span></div>
+      <div class="fin"><span class="k">Final Price</span><span class="v">Rp 0</span></div>
+    </div>
+    <div class="wiz-foot-inline"><button class="btn" onclick="setStep(1);renderWizard()">Back</button><button class="btn primary" onclick="wizNext()">Next</button></div>
+  </div></div>`;
+}
+
+function stepFlex(){
+  return `<div class="price-grid"><div>
+    <div class="wcard sect"><h3>Harga Harian</h3><div class="sc">Tarif dasar dedicated courier per shift</div>
+      <div class="ffield"><label>Tarif per shift (Revenue)</label>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div class="inpwrap" style="flex:1"><span class="pre">Rp</span><input id="fRate" placeholder="200.000" oninput="calcFlex()"></div>
+          <div class="unit-static">/ shift</div>
+        </div>
+        <div class="fhint">Minimum Rp 200.000 · 1 shift = 8 jam termasuk istirahat.</div>
+      </div>
+    </div>
+    <div class="wcard sect"><h3>Overtime</h3><div class="sc">Hanya dihitung bila ada kesepakatan dengan client di awal</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="ffield" style="margin-bottom:0"><label>Overtime per jam</label><div class="inpwrap"><span class="pre">Rp</span><input id="fOtHour" placeholder="35.000" oninput="calcFlex()"></div><div class="fhint">Umumnya berbasis waktu.</div></div>
+        <div class="ffield" style="margin-bottom:0"><label>Overtime per km <span style="color:var(--text-soft);font-weight:400">(opsional)</span></label><div class="inpwrap"><span class="pre">Rp</span><input id="fOtKm" placeholder="Kosongkan bila tak dipakai" oninput="calcFlex()"></div><div class="fhint">Isi hanya bila client dihitung berbasis jarak.</div></div>
+      </div>
+    </div>
+    <!-- payroll & komisi: master data, kalkulasi Phase 2 -->
+    <div class="wcard sect" style="border-style:dashed">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:2px"><h3 style="font-size:15px">Payroll &amp; Komisi</h3><span class="tag p2">Master data · kalkulasi Phase 2</span></div>
+      <div class="sc">Disimpan sebagai data rekon. Perhitungan invoice &amp; payroll otomatis menyusul di Phase 2.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="ffield" style="margin-bottom:0"><label>Payout rider / shift</label><div class="inpwrap"><span class="pre">Rp</span><input id="fPayout" placeholder="140.000"></div></div>
+        <div class="ffield" style="margin-bottom:0"><label>Komisi Dash</label><div class="inpwrap plain"><input id="fComm" placeholder="15" style="padding-right:34px"></div><div class="fhint">Flat per klien (umum 15–20%).</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="wcard calc"><h3>Kalkulator Flex</h3><div class="qc">Quick Calculator</div>
+    <div class="cin"><div><label>Jumlah shift</label><input id="cShift" placeholder="1" oninput="calcFlex()"></div><div><label>Jam lembur</label><input id="cJam" placeholder="0" oninput="calcFlex()"></div></div>
+    <div class="cin one"><div><label>Km lembur (opsional)</label><input id="cKm" placeholder="0" oninput="calcFlex()"></div></div>
+    <div class="brk"><div class="bh">Rincian</div>
+      <div class="bl"><span>Harga harian <span id="cShiftEcho" style="color:var(--text-soft)"></span></span><span class="v" id="cDaily">Rp 0</span></div>
+      <div class="bl"><span>Lembur waktu <span id="cJamEcho" style="color:var(--text-soft)"></span></span><span class="v" id="cOtT">Rp 0</span></div>
+      <div class="bl"><span>Lembur jarak <span id="cKmEcho" style="color:var(--text-soft)"></span></span><span class="v" id="cOtD">Rp 0</span></div>
+      <div class="fin"><span class="k">Total Revenue</span><span class="v" id="cTot">Rp 0</span></div>
+    </div>
+    <div class="wiz-foot-inline"><button class="btn" onclick="setStep(1);renderWizard()">Back</button><button class="btn primary" onclick="wizNext()">Next</button></div>
+  </div></div>`;
+}
+function num(id){ const e=document.getElementById(id); if(!e) return 0; return parseInt((e.value||'').replace(/[^\d]/g,'')||'0',10); }
+function bindFlex(){ calcFlex(); }
+function calcFlex(){
+  S.flex.rate=document.getElementById('fRate')?.value||'';
+  S.flex.otHour=document.getElementById('fOtHour')?.value||'';
+  S.flex.otKm=document.getElementById('fOtKm')?.value||'';
+  S.flex.payout=document.getElementById('fPayout')?.value||'';
+  S.flex.commission=document.getElementById('fComm')?.value||'';
+  const rate=num('fRate'), otH=num('fOtHour'), otK=num('fOtKm');
+  const shift=num('cShift')||0, jam=num('cJam')||0, km=num('cKm')||0;
+  const daily=rate*shift, ott=otH*jam, otd=otK*km;
+  const set=(id,v)=>{const e=document.getElementById(id); if(e)e.textContent=v;};
+  set('cDaily','Rp '+ (daily).toLocaleString('id-ID'));
+  set('cOtT','Rp '+ (ott).toLocaleString('id-ID'));
+  set('cOtD','Rp '+ (otd).toLocaleString('id-ID'));
+  set('cTot','Rp '+ (daily+ott+otd).toLocaleString('id-ID'));
+  set('cShiftEcho', shift?('× '+shift+' shift'):''); set('cJamEcho', jam?('× '+jam+' jam'):''); set('cKmEcho', km?('× '+km+' km'):'');
+}
+function wizNext(){ if(S.wzStep<3){ setStep(S.wzStep+1); renderWizard(); } else publish(); }
+function stepSummary(){
+  if(S.category==='Flex'){
+    return `<div class="wcard sum-card"><h2 style="font-size:18px;font-weight:800;margin-bottom:20px">Review &amp; Publish</h2>
+      <div class="sum-sec"><div class="sh">Basic</div><div class="sum-grid">
+        <div><div class="sk">Client</div><div class="sv">PT. MAP BOGA ADIPERKASA Tbk</div></div>
+        <div><div class="sk">Service Category</div><div class="sv">✦ Flex</div></div>
+        <div><div class="sk">Service Type</div><div class="sv">Dedicated Courier</div></div>
+        <div><div class="sk">Client Service (config)</div><div class="sv">Flex <span style="font-weight:500;color:var(--text-soft);font-size:12px">· otomatis disinkronkan setelah publish</span></div></div>
+      </div></div>
+      <div class="sum-sec"><div class="sh">Pricing Harian</div><div class="sum-grid">
+        <div><div class="sk">Tarif per shift</div><div class="sv">Rp ${fmt(S.flex.rate)} / shift</div></div>
+        <div><div class="sk">Overtime</div><div class="sv">Rp ${fmt(S.flex.otHour)}/jam${num('fOtKm')?(' · Rp '+fmt(S.flex.otKm)+'/km'):''}</div></div>
+        <div><div class="sk">Payout rider <span class="tag p2">Phase 2</span></div><div class="sv">Rp ${fmt(S.flex.payout)} / shift</div></div>
+        <div><div class="sk">Komisi Dash <span class="tag p2">Phase 2</span></div><div class="sv">${num('fComm')||fmt(S.flex.commission)||'—'}%</div></div>
+      </div></div>
+      ${buildNoteBlock()}
+      <div class="basic-foot" style="margin-top:20px"><button class="btn" onclick="setStep(2);renderWizard()" style="margin-right:auto">Back</button><button class="btn primary" onclick="publish()">Publish ✓</button></div>
+    </div>`;
+  }
+  return `<div class="wcard sum-card"><h2 style="font-size:18px;font-weight:800;margin-bottom:16px">Review &amp; Publish</h2>
+    <div class="sum-sec"><div class="sh">Basic</div><div class="sum-grid"><div><div class="sk">Client</div><div class="sv">PT. MAP BOGA ADIPERKASA Tbk</div></div><div><div class="sk">Service Category</div><div class="sv">${S.category}</div></div></div></div>
+    <div class="basic-foot"><button class="btn" onclick="setStep(2);renderWizard()" style="margin-right:auto">Back</button><button class="btn primary" onclick="publish()">Publish ✓</button></div></div>`;
+}
+function buildNoteBlock(){
+  return `<div class="buildnote"><div class="bh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> Catatan — informasi, di luar scope build Phase 1</div>
+    <ul>
+      <li>Phase 1 = <b>master data pricing</b> untuk rekon. Invoicing &amp; payroll masih <b>manual</b>.</li>
+      <li>Kalkulasi otomatis (invoice, payout, komisi) menyusul di <b>Phase 2 (Logistik/Mithril)</b>.</li>
+      <li>Setelah publish: klien Flex bisa <b>create delivery di Next Portal tanpa harga per-pengiriman</b>, dan tidak bisa memesan Express (Express-guard).</li>
+      <li>Aturan pricing historis (Fleet+/Express) tetap tersimpan — tidak dihapus.</li>
+    </ul></div>`;
+}
+function publish(){ closeWizard(); if(S.category==='Flex'){ S.published=true; document.getElementById('cfgClientService').value='Flex'; document.getElementById('clientBadge').style.display=''; }
+  renderRules(); toast('Pricing '+(S.category==='Flex'?'Flex · Dedicated Courier':S.category)+' berhasil di-publish','ok'); }
+
+/* ===== NEXT PORTAL ===== */
+const DELIV=[
+  ['DE-1765...932-1','Completed','Ima (SPUN)','Jane (HOPE)'],
+  ['DE-1763...036-1','Completed','Devita (SPUN)','Jane (HOPE)'],
+  ['DE-1763...407-1','Completed','Hans Sirot','Devita (SPUN)'],
+];
+function renderNp(){ document.getElementById('npRows').innerHTML=DELIV.map(d=>`<tr><td class="mono" style="font-size:12px">${d[0]}</td><td><span class="pill ok">${d[1]}</span></td><td>${d[2]}</td><td>${d[3]}</td><td>${S.client==='flex'?'Dedicated (harian)':'Dash Instant'}</td></tr>`).join(''); }
+function setClient(c){ S.client=c;
+  document.getElementById('cl-flex').classList.toggle('active',c==='flex'); document.getElementById('cl-exp').classList.toggle('active',c==='exp');
+  document.getElementById('npClientName').textContent=c==='flex'?'PT. MAP Boga':'Happy Fresh';
+  document.getElementById('npClientType').textContent=c==='flex'?'Flex · Dedicated Courier':'Express · Dash Instant';
+  renderNp(); }
+function openCreate(){ S.route={pickup:false,drop:false}; S.service=null;
+  drawRow('rowPickup','p','1','Titik Penjemputan'); drawRow('rowDrop','d','2','Titik Pengantaran');
+  document.getElementById('svcRow').classList.add('empty'); document.getElementById('svcTitle').textContent='Tipe Layanan'; document.getElementById('svcSub').textContent='No service option selected yet.';
+  document.getElementById('cdBuildNote').innerHTML = buildNoteNP();
+  renderPrice(); updateBook(); document.getElementById('cdOverlay').classList.add('show'); }
+function closeCreate(){ document.getElementById('cdOverlay').classList.remove('show'); }
+function drawRow(id,cls,num,title){ const el=document.getElementById(id);
+  el.innerHTML=`<div class="rh"><div class="pin ${cls}">${num}</div><div class="rc"><div class="rt">${title}</div></div><span class="ubah" onclick="openAddr('${cls==='p'?'pickup':'drop'}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>Ubah</span></div><div class="placeholder">Isi alamat lengkap dan info kontak.</div>`; }
+function fillRow(id,cls,num,title,name,addr,extra){ const el=document.getElementById(id);
+  el.innerHTML=`<div class="rh"><div class="pin ${cls}">${num}</div><div class="rc"><div class="rt">${title}</div></div><span class="ubah" onclick="openAddr('${cls==='p'?'pickup':'drop'}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>Ubah</span></div>
+   <div class="rmeta"><b style="color:var(--text-strong)">${name}</b><br>${addr}${extra?('<br>'+extra):''}</div>${cls==='p'?'<div class="inner-svc">🛵 Express Sekarang · Pengemudi kemungkinan siap<span class="gd"></span></div>':''}`; }
+
+/* address drawer */
+function openAddr(which){ S.curDrawer=which; const isP=which==='pickup';
+  document.getElementById('drTitle').textContent=isP?'Titik Penjemputan':'Titik Pengantaran';
+  document.getElementById('drSub').textContent=isP?'Isi detail lokasi penjemputan Anda.':'Isi detail yang diperlukan untuk pengantaran.';
+  document.getElementById('drFoot').style.display=''; document.getElementById('drBtn').textContent='Gunakan Alamat';
+  document.getElementById('drBody').innerHTML=`
+    <div class="dr-sublabel">Location</div>
+    <div class="dr-tabs"><button class="active">New Address</button><button>Saved Address</button></div>
+    <div class="dr-field"><label>Search Address (bisa drag &amp; drop pin di peta)</label><input value="${isP?'Pizza Marzano Lippo Mall Nusantara':'Subway Lippo Mall Nusantara'}"></div>
+    <div class="dr-field"><label>${isP?'Sender Name':'Recipient Name'}</label><input value="${isP?'Pizza Marzano Lippo Mall Nusantara':'Subway Lippo Mall Nusantara'}"></div>
+    <div class="dr-field"><label>Phone Number</label><input value="${isP?'081181332967':'0819111111'}"></div>
+    <div class="dr-field"><label>Notes (petunjuk akses)</label><input placeholder="RT/RW, lantai, patokan"></div>
+    ${isP?'':'<div class="dr-field"><label>Package</label><input value="Dokumen · 1 kg · S"></div>'}`;
+  openDrawer(); }
+/* opsi pengiriman drawer */
+function openOpsi(){ S.curDrawer='opsi'; const isFlex=S.client==='flex';
+  document.getElementById('drTitle').textContent='Opsi Pengiriman';
+  document.getElementById('drSub').textContent='Pilih waktu penjemputan yang paling sesuai untuk Anda.';
+  document.getElementById('drFoot').style.display=''; document.getElementById('drBtn').textContent='Konfirmasi';
+  const days=[['Sun','09'],['Mon','10'],['Tue','11'],['Wed','12'],['Thu','13']];
+  const slots=['19:00 - 20:00','20:00 - 21:00','21:00 - 22:00','22:00 - 23:00','23:00 - 23:59'];
+  const types = isFlex
+   ? `<div class="stype sel" onclick="pickType('Dedicated (harian)',this)"><div class="oi">✦</div><div style="flex:1"><div class="ot">Dedicated Courier (harian)</div><div class="os">Sesuai kontrak paket harian — tanpa biaya per pengiriman</div></div><span class="r"></span></div>
+      <div class="stype locked" onclick="toast('Klien Flex tidak dapat memesan Express (Express-guard)','err')"><div class="oi">⚡</div><div style="flex:1"><div class="ot">Dash Instant / Express</div><div class="os" style="color:var(--state-error-dark)">🔒 Tidak tersedia untuk klien Flex</div></div><span class="r"></span></div>`
+   : `<div class="stype sel" onclick="pickType('Dash Instant',this)"><div class="oi">⚡</div><div style="flex:1"><div class="ot">Dash Instant</div><div class="os">Delivered right after pickup</div></div><span class="r"></span></div>
+      <div class="stype" onclick="pickType('Dash Sameday',this)"><div class="oi">📦</div><div style="flex:1"><div class="ot">Dash Sameday</div><div class="os">Same-day delivery</div></div><span class="r"></span></div>`;
+  S._pendingType = isFlex?'Dedicated (harian)':'Dash Instant';
+  document.getElementById('drBody').innerHTML=`
+    <div class="dr-sublabel">Pilih Waktu Penjemputan</div>
+    <div class="days"><span class="nav">‹</span>${days.map((d,i)=>`<div class="day ${i===2?'active':''}"><div class="dn">${d[0]}</div><div class="dd">${d[1]}</div></div>`).join('')}<span class="nav">›</span></div>
+    <div class="express-now"><span style="font-size:18px">🛵</span><div><div class="et">Express Now</div><div class="es">Prioritaskan slot</div></div></div>
+    <div class="busy"><span>Pengemudi kami sedang sibuk saat ini</span><a>Perbarui Ketersediaan</a></div>
+    ${slots.map((s,i)=>`<div class="slot ${i===0?'sel':''}" onclick="pickSlot('${s}',this)">${s}<span class="r"></span></div>`).join('')}
+    <div class="dr-sublabel" style="margin-top:18px">Pilih Tipe Layanan</div>${types}`;
+  openDrawer(); }
+function pickSlot(s,el){ document.querySelectorAll('#drBody .slot').forEach(x=>x.classList.remove('sel')); el.classList.add('sel'); S.selSlot=s; }
+function pickType(name,el){ document.querySelectorAll('#drBody .stype').forEach(x=>x.classList.remove('sel')); if(el&&!el.classList.contains('locked')) el.classList.add('sel'); S._pendingType=name; }
+function openDrawer(){ document.getElementById('drawer').classList.add('show'); document.getElementById('drawerScrim').classList.add('show'); }
+function closeDrawer(){ document.getElementById('drawer').classList.remove('show'); document.getElementById('drawerScrim').classList.remove('show'); }
+function drawerConfirm(){
+  if(S.curDrawer==='pickup'){ S.route.pickup=true; fillRow('rowPickup','p','1','Titik Penjemputan','Pizza Marzano Lippo Mall Nusantara — 081181332967','Jalan Jendral Sudirman, RT.14/RW.1, Bendungan Hilir, Jakarta Pusat',''); }
+  else if(S.curDrawer==='drop'){ S.route.drop=true; fillRow('rowDrop','d','2','Titik Pengantaran','Subway Lippo Mall Nusantara — 0819111111','Jalan Jendral Sudirman, RT.1/RW.4, Karet Semanggi, Jakarta Selatan','Paket: Dokumen'); }
+  else if(S.curDrawer==='opsi'){ S.service=S._pendingType; const el=document.getElementById('svcRow'); el.classList.remove('empty');
+    document.getElementById('svcTitle').textContent=S.service; document.getElementById('svcSub').textContent='Waktu Penjemputan: '+S.selSlot+', Selasa'; }
+  closeDrawer(); renderPrice(); updateBook();
+}
+function renderPrice(){ const isFlex=S.client==='flex'; const z=document.getElementById('priceZone');
+  z.innerHTML = isFlex
+   ? `<div class="pricebox" style="border-style:dashed;border-color:var(--state-feature-base);background:var(--state-feature-lighter)"><div style="font-weight:700;font-size:12.5px;color:var(--state-feature-dark);margin-bottom:4px">Termasuk paket harian</div><div style="font-size:12px;color:var(--state-feature-dark)">Tidak ada biaya per pengiriman. Tagihan mengikuti kontrak harian (Flex). Ringkasan harga dapat disembunyikan via <kbd>Portal Allow Invoicing Summary</kbd>.</div></div>`
+   : `<div class="pricebox"><div class="pl"><span>Distance Fare</span><span class="v">Rp 14.000</span></div><div class="pl"><span>Logistics Tax 1.1%</span><span class="v">Rp 156</span></div><div class="pl"><span>Insurance</span><span class="v">Rp 500</span></div><div class="pt"><span class="k">Final Price</span><span class="v">Rp 15.000</span></div></div>`;
+}
+function updateBook(){ const isFlex=S.client==='flex'; const routeOk=S.route.pickup&&S.route.drop; const ok=isFlex?routeOk:(routeOk&&!!S.service); document.getElementById('bookBtn').disabled=!ok; }
+function bookDelivery(){ toast('Delivery berhasil dibuat ✓','ok'); DELIV.unshift(['DE-'+Math.floor(Math.random()*1e6)+'-1','Pending',S.client==='flex'?'Pizza Marzano':'Ima (SPUN)','Subway LMN']); renderNp(); closeCreate(); }
+function buildNoteNP(){ return `<div class="buildnote"><div class="bh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> Catatan — informasi, di luar scope build Phase 1</div><ul>
+  <li>Untuk klien <b>Flex (harian)</b>: order tetap bisa dibuat <b>tanpa harga per-pengiriman</b> — tidak divalidasi jarak/coverage.</li>
+  <li>Layanan <b>Express/Instant tidak tersedia</b> untuk klien Flex (Express-guard).</li>
+  <li>Tagihan mengikuti skema harian; invoicing tetap di akhir periode.</li>
+</ul></div>`; }
+
+function toast(msg,type){ const w=document.getElementById('toasts');const t=document.createElement('div');t.className='toast '+(type||'');
+  const ic=type==='err'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>';
+  t.innerHTML=ic+'<span>'+msg+'</span>';w.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='.3s';setTimeout(()=>t.remove(),300);},2600); }
+
+renderRules(); renderNp();
+</script>
+</body>
+</html>
