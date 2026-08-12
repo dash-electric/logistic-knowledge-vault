@@ -374,10 +374,12 @@ Business weeks (Aug 2026): W2 = 11–15 Aug · W3 = 18–22 Aug · W4 = 25–29 
 
 #### T2.3.3 — Batch overtime (multiple riders) · `Frontend` · `P1`
 **Acceptance criteria.**
-**AC-2.3.3.1 — One action, many riders**
+**AC-2.3.3.1 — One action, many riders (validated)**
 - **GIVEN** several riders of the **same client & day** have client-approved overtime
 - **WHEN** Ops selects them (row checkboxes) and records OT
-- **THEN** one **shared approval + evidence + duration** applies to all selected — no per-rider repetition; mixed-client selections are warned.
+- **THEN** one **shared approval + evidence + duration** applies to all selected — no per-rider repetition
+- **AND** the action is **blocked** (clear message, not just a warning) if the selection spans **more than one client** (approval/evidence differ per client), or includes a rider **not attendance-validated**, or a **non-Flex / no-overtime** client
+- *Tech:* enforce at the batch trigger **and** at save (defense in depth); same-day is implied by the day-scoped board.
 
 ## Epic 2.4 — Import Slot Massal + Recon export
 
