@@ -24,7 +24,9 @@ erDiagram
     %% One route = one rider journey; ordered stops typed PICKUP|DROP_OFF; a stop
     %% serves 1+ shipments. Additive to dispatch/batches, which stay unchanged.
     %% The rider executes the route natively (logistic-service /v1/routes, rider JWT):
-    %% start → DIRECT_4W checklist + 8-item vehicle check → stops → end + end check.
+    %% DIRECT_4W 8-item vehicle check (before start) → start + checklist → stops → end.
+    %% The check gates start, so a started route is always a workable route.
+    %% There is no end check — the journey is evidenced on departure only.
     %% ROUTES has NO status column: status is derived from started_at/completed_at
     %% (null→PLANNED, started→IN_PROGRESS, completed→COMPLETED). There is no
     %% CANCELLED state — routes cannot be cancelled (decided 2026-08-06).
@@ -257,8 +259,7 @@ erDiagram
         numeric total_weight_kg
         numeric total_volume_m3
         jsonb pre_checklist_agreement "nullable — DIRECT_4W only: {agreed,checklistVersion,agreedAt} set at route start"
-        jsonb start_check "nullable — DIRECT_4W only: {selfie,vehicleFront,vehicleBack,vehicleLeft,vehicleRight,vehicleBox,odometerPhoto,odometerReading,submittedAt}"
-        jsonb end_check "nullable — DIRECT_4W only, same shape, SEPARATE column (never merged with start_check); odometerReading >= start_check's"
+        jsonb start_check "nullable — DIRECT_4W only, written once BEFORE start: {selfie,vehicleFront,vehicleBack,vehicleLeft,vehicleRight,vehicleBox,odometerPhoto,odometerReading,submittedAt}"
         text route_polyline "provider snapshot — ONE geometry for the whole journey (matches batches.route_polyline); stops carry distance/duration per leg, never their own polyline"
         integer route_distance_m
         integer route_duration_sec
