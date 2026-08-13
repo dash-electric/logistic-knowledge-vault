@@ -452,6 +452,7 @@ window.DASH_SAMPLES={"gate": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD
     <div class="scroll"><div class="sec">
       <div class="instr"><div class="n">📷</div><div class="tx"><b id="vc-ihead">Foto kondisi awal kendaraan</b><p id="vc-instr"></p></div></div>
       <div class="vgrid" id="vc-grid" style="margin-top:14px"></div>
+      <div id="vc-doccheck"></div>
     </div></div>
     <div class="footer"><button class="btn" id="vc-btn" disabled onclick="vehcondDone()">Lengkapi foto dulu</button></div>
   </section>
@@ -661,7 +662,7 @@ function openCsDash(){document.getElementById('csdash').classList.add('on');}
 function skipDemo(){const s=currentScreen();
   if(s==='s-ship'){startTrip();return;}
   if(s==='s-checklist'){CHECKLIST.docs.map(i=>'d-'+i.k).concat(CHECKLIST.tools.map(i=>'t-'+i.k),CHECKLIST.hse.map(i=>'h-'+i.k)).forEach(k=>{ckState[k]=true;const el=document.querySelector(`.ckitem[data-k="${k}"]`);if(el)el.classList.add('on');});updateChecklist();checklistDone();return;}
-  if(s==='s-vehcond'){(vehMode==='start'?VEH_START:VEH_END).forEach(t=>vehShots[t.k]=true);vehKm='184320';renderVehGrid();vehcondDone();return;}
+  if(s==='s-vehcond'){(vehMode==='start'?VEH_START:VEH_END).forEach(t=>vehShots[t.k]=true);vehKm='184320';if(vehMode==='end')DOC_CHECKLIST.forEach(it=>docState[it.k]=true);renderVehGrid();renderDocCheck();vehcondDone();return;}
   if(s==='s-run'){advanceStatus();return;}
   if(s==='s-pod'){document.querySelectorAll('#podgrid .podslot').forEach(el=>{el.classList.add('filled');if(el.classList.contains('inputslot')){el.dataset.filled='1';const inp=el.querySelector('input');if(inp)inp.value='INV-2026-07-DEMO';}});updatePod();confirmPod();return;}
   if(s==='s-return'){finishRun();return;}
@@ -1099,6 +1100,24 @@ function startTrip(){
 }
 function ckRow(g,it){return `<div class="ckitem" data-k="${g}-${it.k}" onclick="toggleCk('${g}-${it.k}')"><div class="box">✓</div><div><div class="lbl">${it.l}</div>${it.s?'<div class="sub">'+it.s+'</div>':''}</div></div>`;}
 function toggleCk(k){ckState[k]=!ckState[k];const el=document.querySelector(`.ckitem[data-k="${k}"]`);el.classList.toggle('on',ckState[k]);updateChecklist();}
+/* ---- Close-out document checklist (akhir trip) — biar dokumen tak tertinggal di kendaraan ---- */
+let docState={};
+const DOC_CHECKLIST=[
+  {k:'sj',l:'Surat jalan asli — semua lembar',s:'Depan + lampiran. Serahkan ke customer, jangan tertinggal di kabin.'},
+  {k:'pass',l:'Bukti gate pass, tiket & struk',s:'Parkir / timbang / e-money.'},
+  {k:'stnk',l:'Dokumen kendaraan (STNK & KIR)',s:'Terbawa, tidak tertinggal.'},
+  {k:'kunci',l:'Kendaraan terkunci & aman',s:'Kunci ganda, kaca & pintu tertutup.'},
+  {k:'pribadi',l:'HP & barang pribadi',s:'Cek dashboard & kolong kursi.'},
+];
+function docRow(it){return `<div class="ckitem ${docState[it.k]?'on':''}" data-dk="${it.k}" onclick="toggleDoc('${it.k}')"><div class="box">✓</div><div><div class="lbl">${it.l}</div><div class="sub">${it.s}</div></div></div>`;}
+function toggleDoc(k){docState[k]=!docState[k];const el=document.querySelector(`.ckitem[data-dk="${k}"]`);if(el)el.classList.toggle('on',docState[k]);updateVehcond();}
+function renderDocCheck(){const el=document.getElementById('vc-doccheck');if(!el)return;
+  if(vehMode!=='end'){el.innerHTML='';return;}
+  el.innerHTML=`<div class="seclabel" style="margin-top:20px"><span class="gsm">Sebelum turun dari kendaraan</span></div>
+    <div class="note" style="margin-bottom:10px"><span class="i">🧾</span><div class="tx">Cek cepat biar tidak ada yang tertinggal & kendaraan aman. <b>Surat jalan asli wajib diserahkan ke customer.</b></div></div>
+    ${DOC_CHECKLIST.map(docRow).join('')}
+    <div style="font-size:11px;color:var(--g500);margin-top:2px">Centang tiap poin yang sudah beres — tombol Selesai aktif setelah semua dicek.</div>`;
+}
 function updateChecklist(){
   const total=CHECKLIST.docs.length+CHECKLIST.tools.length+CHECKLIST.hse.length;
   const on=Object.values(ckState).filter(Boolean).length;
@@ -1110,7 +1129,7 @@ function checklistDone(){toast('Checklist pra-trip lengkap');openVehcond('start'
 
 // ---------- SPINE: VEHICLE CONDITION (bookends) ----------
 function openVehcond(mode){
-  vehMode=mode;vehShots={};vehKm='';
+  vehMode=mode;vehShots={};vehKm='';docState={};
   const start=mode==='start';
   document.getElementById('vc-title').firstChild.textContent=(start?'Kondisi kendaraan · awal ':'Kondisi kendaraan · akhir ');
   document.getElementById('vc-sub').textContent=`${CUR.client} · ${CUR.vehicle}`;
@@ -1118,7 +1137,7 @@ function openVehcond(mode){
   document.getElementById('vc-instr').textContent=start
     ?'Selfie + 4 sisi + kondisi bak muatan + KM awal. Jadi baseline — dibandingkan dengan kondisi akhir untuk deteksi kerusakan.'
     :'Foto ulang 4 sisi + kondisi bak muatan + KM akhir. Dibandingkan dengan foto awal untuk deteksi kerusakan/perubahan selama perjalanan.';
-  renderVehGrid();go('s-vehcond');
+  renderVehGrid();renderDocCheck();go('s-vehcond');
 }
 function renderVehGrid(){
   const list=vehMode==='start'?VEH_START:VEH_END;
@@ -1161,11 +1180,14 @@ function updateVehcond(){
   const list=vehMode==='start'?VEH_START:VEH_END; // odometer = foto WAJIB + angka KM WAJIB (antisipasi blur)
   const numOk=vehKm.trim().length>=3;
   // Akhir trip: foto awal = ACUAN (tak diambil ulang). Yang WAJIB di akhir hanya odometer akhir; foto sisi = opsional (bila ada kerusakan).
-  const ok = vehMode==='start' ? (list.every(t=>vehShots[t.k]) && numOk) : (!!vehShots['km'] && numOk);
+  const docsOk = DOC_CHECKLIST.every(it=>docState[it.k]);
+  const ok = vehMode==='start' ? (list.every(t=>vehShots[t.k]) && numOk) : (!!vehShots['km'] && numOk && docsOk);
   const b=document.getElementById('vc-btn');
   const have=list.filter(t=>vehShots[t.k]).length;
+  const docHave=DOC_CHECKLIST.filter(it=>docState[it.k]).length;
   if(ok){b.disabled=false;b.textContent=vehMode==='start'?'Mulai pengiriman':'Selesai trip & lihat ringkasan';}
-  else{b.disabled=true;b.textContent=vehMode==='start'?`Lengkapi foto & angka KM dulu (${have}/${list.length}${numOk?'':' · KM'})`:`Foto + angka odometer akhir dulu${numOk?'':' · KM'}`;}
+  else if(vehMode==='start'){b.disabled=true;b.textContent=`Lengkapi foto & angka KM dulu (${have}/${list.length}${numOk?'':' · KM'})`;}
+  else{b.disabled=true;b.textContent=(!vehShots['km']||!numOk)?`Foto + angka odometer akhir dulu${numOk?'':' · KM'}`:`Centang cek dokumen dulu (${docHave}/${DOC_CHECKLIST.length})`;}
 }
 function vehcondBack(){ if(vehMode==='start') go('s-checklist'); else { openStop(); } }
 function vehcondDone(){
