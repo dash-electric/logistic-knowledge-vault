@@ -503,3 +503,155 @@ erDiagram
         string override_note
         datetime created_at
     }
+
+    %% ── Warehouse management (see docs/modules/warehouse-management — prd-trd v1 DRAFT) ──
+    %% MVP WMS: hubs are the warehouses (external core-service pitstops, no local master).
+    %% Storage is a 3-level hierarchy per hub — LOCATION → SECTION → BIN — stored as a
+    %% Postgres ltree `path` on wh_storages (self-reference via path, no parent_id;
+    %% nlevel(path) 1|2|3 = category). Stock lives ONLY at BIN level. Granularity:
+    %% bin × client × SKU × lot, with qty_on_hand >= qty_reserved >= 0 enforced by check
+    %% constraints. Every quantity change appends one WH_STOCK_MOVEMENTS row (polymorphic
+    %% ref to the causing doc, no FK). Reserve at GI creation (FEFO by expiry, lot age
+    %% tiebreak), deduct at ship. Documents are never deleted — status transitions only.
+    %% No stock opname / count adjustment in MVP (decided 2026-08-12). All quantities numeric(12,2).
+    WH_STORAGES ||--o{ WH_STORAGES : "path (ltree, self-ref)"
+    WH_STORAGES ||--o{ WH_STOCKS : "holds (BIN only)"
+    WH_STORAGES ||--o{ WH_GOODS_RECEIPT_LINES : "receives into"
+    WH_STORAGES ||--o{ WH_GOODS_ISSUE_LINES : "picked from"
+    WH_GOODS_RECEIPTS ||--o{ WH_GOODS_RECEIPT_LINES : contains
+    WH_GOODS_ISSUES ||--o{ WH_GOODS_ISSUE_LINES : contains
+    WH_STOCKS ||--o{ WH_GOODS_ISSUE_LINES : "reserved against"
+    WH_TRANSFERS ||--o{ WH_TRANSFER_LINES : contains
+
+    WH_STORAGES {
+        uuid id PK
+        bigint hub_id "external core-service pitstop id"
+        jsonb hub "HubSnapshot {id,name}"
+        text code "unique per hub"
+        text name
+        text category "LOCATION|SECTION|BIN — derived from nlevel(path); stock/documents attach to BIN only"
+        text type "on LOCATION: STORAGE|QUARANTINE|STAGING (inherited by children — only STORAGE lineage is FEFO-allocatable); null on SECTION/BIN"
+        ltree path "hierarchy — parent = subpath(path, 0, nlevel(path)-1)"
+        text status "ACTIVE|INACTIVE default ACTIVE — inactive rejects new stock, keeps existing"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WH_STOCKS {
+        uuid id PK
+        uuid storage_id FK "→ wh_storages.id"
+        bigint hub_id "denormalized for hub-level queries"
+        integer client_id "external core-service.clients.id"
+        jsonb client "ClientSnapshot {id,name}"
+        text sku "client-declared string — no product master in MVP"
+        text item_name "denormalized from GR line"
+        text uom_name
+        text lot_number "LOT{yymmdd}{seq} — stamped at GR post; never BTH (taken by batches)"
+        date expired_date "nullable — FEFO sort key"
+        numeric qty_on_hand "check >= 0 and >= qty_reserved"
+        numeric qty_reserved "check >= 0"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WH_GOODS_RECEIPTS {
+        uuid id PK
+        text code "unique — GR{yymmdd}{seq5}"
+        bigint hub_id
+        jsonb hub "HubSnapshot"
+        integer client_id
+        jsonb client "ClientSnapshot"
+        text supplier_name "free text — no vendor master in MVP"
+        text notes
+        text status "DRAFT|POSTED — post commits stock, irreversible (no adjustment feature in MVP; correction = compensating GR or GI/transfer out)"
+        timestamptz posted_at
+        text posted_by
+        text created_by
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WH_GOODS_RECEIPT_LINES {
+        uuid id PK
+        uuid goods_receipt_id FK "→ wh_goods_receipts.id CASCADE"
+        uuid storage_id FK "→ wh_storages.id — destination bin, must be ACTIVE at post"
+        text sku
+        text item_name
+        text uom_name
+        numeric qty "check > 0"
+        date expired_date "nullable"
+        text lot_number "null while DRAFT; stamped at post"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WH_GOODS_ISSUES {
+        uuid id PK
+        text code "unique — GI{yymmdd}{seq5}"
+        bigint hub_id
+        jsonb hub "HubSnapshot"
+        integer client_id
+        jsonb client "ClientSnapshot"
+        text reference "free text — external order/waybill link (soft)"
+        text status "RESERVED|PICKED|SHIPPED|CANCELLED — reserve at create, deduct at ship; shipped cannot cancel"
+        text picker_name
+        timestamptz picked_at
+        timestamptz shipped_at
+        text shipped_by
+        timestamptz cancelled_at
+        text cancelled_by
+        text created_by
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WH_GOODS_ISSUE_LINES {
+        uuid id PK
+        uuid goods_issue_id FK "→ wh_goods_issues.id CASCADE"
+        uuid stock_id FK "→ wh_stocks.id — the reserved lot row"
+        uuid storage_id FK "→ wh_storages.id — source bin (denormalized)"
+        text sku
+        text item_name
+        text uom_name
+        text lot_number
+        numeric qty_reserved "check > 0"
+        timestamptz created_at
+    }
+
+    WH_TRANSFERS {
+        uuid id PK
+        text code "unique — TRF{yymmdd}{seq5}"
+        bigint hub_id
+        jsonb hub "HubSnapshot"
+        uuid source_storage_id FK "→ wh_storages.id"
+        uuid dest_storage_id FK "→ wh_storages.id — same hub as source"
+        text notes
+        text created_by
+        timestamptz created_at "transfer executes atomically at create — no status column"
+    }
+
+    WH_TRANSFER_LINES {
+        uuid id PK
+        uuid transfer_id FK "→ wh_transfers.id CASCADE"
+        text sku
+        text lot_number
+        numeric qty "check > 0 — source available must cover it"
+        timestamptz created_at
+    }
+
+    WH_STOCK_MOVEMENTS {
+        uuid id PK
+        bigint hub_id
+        integer client_id
+        text sku
+        text lot_number
+        text type "INBOUND|OUTBOUND|TRANSFER"
+        text ref_type "GOODS_RECEIPT|GOODS_ISSUE|TRANSFER — polymorphic, no FK"
+        uuid ref_id "id of the causing document"
+        text ref_code "denormalized document code"
+        uuid storage_from_id "nullable — null for INBOUND"
+        uuid storage_to_id "nullable — null for OUTBOUND"
+        numeric qty_delta "signed; append-only — ledger sum per stock row == qty_on_hand"
+        text created_by
+        timestamptz created_at
+    }
