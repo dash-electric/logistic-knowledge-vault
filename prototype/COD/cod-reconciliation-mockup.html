@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>COD Reconciliation — Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --purple:#5E2AAC;
+    --purple-light:#F1ECFB;
+    --ink:#111111;
+    --muted:#7A7876;
+    --border:#E7E5E1;
+    --surface:#FFFFFF;
+    --bg:#FAFAF8;
+    --amber-bg:#FDF1E4;
+    --amber-text:#B4650C;
+    --amber-border:#F6D9B0;
+    --red-bg:#FCEAEA;
+    --red-text:#B03A3A;
+    --red-border:#F3C9C9;
+    --green-dot:#1E9E5A;
+    --green-bg:#E7F6ED;
+    --green-text:#1E7A44;
+    --amber-dot:#E08A22;
+    --red-dot:#D64545;
+    --gray-dot:#A6A3A0;
+  }
+  html,body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);}
+  body{display:flex;min-height:100vh;}
+
+  /* ── Sidebar ── */
+  aside{width:248px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:24px 0;height:100vh;position:sticky;top:0;overflow-y:auto;}
+  .brand{display:flex;align-items:center;gap:10px;padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:18px;}
+  .brand-mark{width:30px;height:30px;border-radius:8px;background:var(--ink);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .brand-mark svg{width:16px;height:16px;}
+  .brand-name{font-size:14.5px;font-weight:800;letter-spacing:-0.01em;line-height:1.2;}
+  .brand-sub{font-size:10px;color:var(--muted);letter-spacing:.14em;font-weight:600;margin-top:1px;}
+  .nav-label{font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--muted);padding:16px 20px 6px;text-transform:uppercase;}
+  .nav-item{display:flex;align-items:center;gap:11px;padding:9px 20px;font-size:13.5px;color:#3D3B39;text-decoration:none;border-left:2.5px solid transparent;font-weight:500;}
+  .nav-item svg{width:16px;height:16px;flex-shrink:0;color:var(--muted);}
+  .nav-item:hover{background:#F5F4F2;}
+  .nav-item.active{color:var(--purple);background:var(--purple-light);border-left-color:var(--purple);font-weight:700;}
+  .nav-item.active svg{color:var(--purple);}
+  .nav-item.new-badge::after{content:'NEW';font-size:8.5px;font-weight:800;letter-spacing:.04em;color:var(--purple);background:var(--purple-light);border:1px solid #D9CBEF;border-radius:20px;padding:1.5px 6px;margin-left:auto;}
+  .sidebar-user{display:flex;align-items:center;gap:10px;padding:14px 20px;margin-top:24px;border-top:1px solid var(--border);}
+  .avatar{width:32px;height:32px;border-radius:50%;background:var(--purple);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .user-name{font-size:13px;font-weight:700;}
+  .user-email{font-size:11px;color:var(--muted);}
+
+  /* ── Main ── */
+  main{flex:1;min-width:0;padding:40px 56px 80px;display:flex;flex-direction:column;}
+  #mapView{display:flex;flex-direction:column;flex:1;min-height:0;}
+  #mapView .card{flex:1;display:flex;flex-direction:column;min-height:0;}
+  .crumb{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:18px;}
+  .eyebrow{font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--purple);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  h1{font-size:38px;font-weight:800;letter-spacing:-0.02em;line-height:1.1;margin-bottom:12px;}
+  .page-sub{font-size:15px;color:var(--muted);max-width:none;line-height:1.55;margin-bottom:22px;}
+
+  .controls-row{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:28px;flex-wrap:wrap;}
+  .left-controls{display:flex;gap:10px;align-items:center;}
+  .tabs{display:inline-flex;background:#F1F0EE;border-radius:8px;padding:3px;gap:2px;}
+  .tabs button{border:none;background:transparent;font-size:13px;font-weight:600;color:var(--muted);padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit;}
+  .tabs button.active{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06);}
+  .view-toggle{display:inline-flex;gap:2px;background:#F1F0EE;border-radius:9px;padding:3px;margin-bottom:22px;align-self:flex-start;}
+  .view-toggle button{display:flex;align-items:center;gap:7px;border:none;background:transparent;font-size:13.5px;font-weight:600;color:var(--muted);padding:8px 16px;border-radius:7px;cursor:pointer;font-family:inherit;}
+  .view-toggle button svg{width:15px;height:15px;}
+  .view-toggle button.active{background:#fff;color:var(--purple);box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  /* ── Control Tower (map view) ── */
+  .ct-body{display:flex;gap:0;flex:1;min-height:0;}
+  .ct-map{position:relative;flex:1;min-height:420px;overflow:hidden;border-right:1px solid var(--border);background:#EAF2ED;}
+  .ct-map-bg{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  #ctPins{position:absolute;inset:0;}
+  .ct-pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;transition:transform .2s;}
+  .ct-pin:hover{transform:translate(-50%,-100%) scale(1.12);}
+  .ct-pin-dot{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.25);border:2px solid #fff;}
+  .ct-pin-dot svg{transform:rotate(45deg);width:14px;height:14px;color:#fff;}
+  .ct-pin.status-unreachable .ct-pin-dot{background:var(--red-text);}
+  .ct-pin.status-needs_attention .ct-pin-dot{background:var(--amber-dot);}
+  .ct-pin.selected .ct-pin-dot{box-shadow:0 0 0 5px rgba(94,42,172,.22),0 2px 6px rgba(0,0,0,.25);}
+  .ct-pin-pulse{position:absolute;top:50%;left:50%;width:14px;height:14px;border-radius:50%;background:rgba(214,69,69,.35);transform:translate(-50%,-50%);animation:ctpulse 1.8s ease-out infinite;}
+  @keyframes ctpulse{0%{transform:translate(-50%,-50%) scale(1);opacity:.8;}100%{transform:translate(-50%,-50%) scale(3.2);opacity:0;}}
+  .ct-pin-label{position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;}
+  .ct-pin:hover .ct-pin-label, .ct-pin.selected .ct-pin-label{opacity:1;}
+
+  .ct-list{width:340px;flex-shrink:0;min-height:420px;overflow-y:auto;padding:14px;}
+  .ct-card{border:1px solid var(--border);border-radius:10px;padding:13px 14px;margin-bottom:10px;cursor:pointer;transition:border-color .12s;}
+  .ct-card:hover{border-color:#C9C6C2;}
+  .ct-card.selected{border-color:var(--purple);background:var(--purple-light);}
+  .ct-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+  .ct-card-name{font-size:13.5px;font-weight:700;}
+  .ct-card-code{font-size:11px;color:var(--muted);}
+  .ct-live-tag{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+  .ct-live-tag.live{background:var(--green-bg);color:var(--green-text);}
+  .ct-live-tag.stale{background:#F1F0EE;color:var(--muted);}
+  .ct-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green-dot);animation:ctblink 1.6s ease-in-out infinite;}
+  @keyframes ctblink{0%,100%{opacity:1;}50%{opacity:.3;}}
+  .ct-card-section{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+  .ct-elapsed{font-size:12px;font-weight:600;color:var(--muted);}
+  .ct-hub{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .ct-id-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:9px 10px;background:#FBFBFA;border-radius:8px;margin-bottom:10px;}
+  .ct-id-label{font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+  .ct-id-grid .order-link{font-size:11.5px;word-break:break-all;}
+  .ct-amount{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:10px;}
+  .ct-card-actions{display:flex;gap:6px;padding-top:10px;border-top:1px solid var(--border);}
+  .ct-card-actions button{flex:1;font-size:11.5px;padding:6px 8px;}
+
+  .right-controls{display:flex;gap:10px;align-items:center;}
+  select{font-family:inherit;font-size:13px;font-weight:600;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--ink);}
+  .btn-refresh, .btn-export{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-family:inherit;}
+  .btn-refresh.active{border-color:var(--purple);color:var(--purple);background:var(--purple-light);}
+  .btn-refresh svg, .btn-export svg{width:14px;height:14px;}
+
+  /* ── Custom range popover ── */
+  .custom-range-popover{display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.12);padding:18px 20px;width:280px;z-index:150;}
+  .filter-panel{display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.12);padding:18px 20px;width:300px;z-index:150;}
+  .columns-panel{display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.12);padding:16px 18px;width:290px;z-index:150;}
+  .columns-panel.open{display:block;}
+  .col-select-all{font-size:12.5px;font-weight:700;color:var(--purple);cursor:pointer;}
+  .col-list{max-height:280px;overflow-y:auto;margin:10px 0;}
+  .col-item{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;}
+  .col-item:last-child{border-bottom:none;}
+  .col-item input[type=checkbox]{width:16px;height:16px;flex-shrink:0;accent-color:var(--purple);cursor:pointer;}
+  .col-item input[type=checkbox]:disabled{cursor:not-allowed;opacity:.5;}
+  .col-item .col-drag{margin-left:auto;color:var(--muted);font-size:14px;cursor:grab;user-select:none;}
+  .col-item.locked{color:var(--muted);}
+  .filter-panel.open{display:block;}
+  .filter-panel .field select, .filter-panel .field input[type=text]{width:100%;font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#FBFBFA;}
+  .filter-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;background:var(--purple);color:#fff;font-size:10px;font-weight:700;border-radius:20px;margin-left:2px;}
+  .custom-range-popover.open{display:block;}
+  .crp-head{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;margin-bottom:14px;}
+  .crp-close{border:none;background:none;color:var(--muted);cursor:pointer;font-size:13px;font-family:inherit;}
+  .custom-range-popover .field{margin-bottom:12px;}
+  .custom-range-popover .field input[type=date]{width:100%;font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#FBFBFA;}
+
+  /* ── Stat cards ── */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+  .stage-groups{display:flex;gap:18px;margin-bottom:22px;align-items:stretch;}
+  .stage-group{display:flex;flex-direction:column;}
+  .stage-group-label{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding-left:2px;}
+  .stage-group-cards{display:flex;gap:12px;flex:1;}
+  .stage-group-cards .stat-card{flex:1;min-width:0;}
+  .stage-divider{width:1px;background:var(--border);margin:26px 0 0;}
+  .stat-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+  .stat-card.danger{background:var(--red-bg);border-color:var(--red-border);}
+  .stat-label{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+  .stat-card.danger .stat-label{color:var(--red-text);}
+  .stat-label .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .stat-num{font-size:32px;font-weight:800;letter-spacing:-0.02em;line-height:1;margin-bottom:6px;}
+  .stat-card.danger .stat-num{color:var(--red-text);}
+  .stat-amount{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px;}
+  .stat-card.danger .stat-amount{color:var(--red-text);opacity:.85;}
+  .stat-context{font-size:12px;color:var(--muted);padding-top:8px;border-top:1px solid var(--border);}
+  .stat-card.danger .stat-context{border-top-color:var(--red-border);color:var(--red-text);}
+
+  /* ── Segment tabs row ── */
+  .segment-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:12px;}
+  .segments{display:flex;gap:22px;border-bottom:1px solid var(--border);flex:1;flex-wrap:wrap;}
+  .segment{font-size:13.5px;font-weight:600;color:var(--muted);padding:10px 0;border-bottom:2px solid transparent;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;}
+  .segment.active{color:var(--ink);border-bottom-color:var(--purple);font-weight:700;}
+  .segment .count{font-size:11px;font-weight:700;background:#F1F0EE;color:#5C5A57;border-radius:20px;padding:1.5px 8px;}
+  .segment.active .count{background:var(--purple-light);color:var(--purple);}
+  .segment.danger-count .count{background:var(--red-bg);color:var(--red-text);}
+  .search-filter{display:flex;gap:8px;}
+  .search-box{display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:#fff;font-size:13px;color:var(--muted);min-width:220px;}
+  .search-box svg{width:14px;height:14px;flex-shrink:0;}
+  .btn-filter{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-family:inherit;}
+  .btn-filter svg{width:14px;height:14px;}
+
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;padding:22px 24px 18px;border-bottom:1px solid var(--border);gap:24px;}
+  .card-head > div:first-child{flex:1;min-width:0;}
+  .card-head .date-range{flex-shrink:0;}
+  .card-head h3{font-size:17px;font-weight:800;margin-bottom:4px;}
+  .card-head p{font-size:13px;color:var(--muted);max-width:none;}
+  .card-head .date-range{font-size:11.5px;color:var(--muted);font-weight:600;letter-spacing:.02em;white-space:nowrap;}
+
+  /* ── Status legend (written definitions, no icons) ── */
+  .status-legend{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 32px;padding:16px 24px;border-bottom:1px solid var(--border);background:#FBFBFA;}
+  .status-legend .legend-item{font-size:12.5px;color:var(--muted);line-height:1.5;display:flex;gap:8px;align-items:flex-start;}
+  .status-legend .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+  .status-legend strong{color:var(--ink);font-weight:700;}
+
+  table{width:100%;border-collapse:collapse;min-width:1900px;}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  thead th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:12px 24px;background:#FBFBFA;border-bottom:1px solid var(--border);}
+  tbody td{padding:16px 24px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#FBFBFA;}
+  .rider-name{font-weight:700;font-size:14px;}
+  .rider-code{font-size:11.5px;color:var(--muted);margin-top:1px;}
+  .client-tag{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;background:#F1F0EE;color:#5C5A57;}
+  .order-link{font-size:12.5px;font-weight:700;color:var(--purple);text-decoration:none;font-family:'SF Mono',Consolas,monospace;}
+  .order-link:hover{text-decoration:underline;}
+  .stage-dash{color:#D9D7D3;font-weight:700;}
+
+  /* ── Interim sync indicator (Sayurbox rows) ── */
+  .sync-flag{position:relative;display:inline-flex;margin-left:6px;color:var(--amber-dot);cursor:help;vertical-align:middle;}
+  .sync-flag svg{width:13px;height:13px;display:block;}
+  .sync-tooltip{display:none;position:absolute;bottom:calc(100% + 9px);left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;font-size:11.5px;font-weight:500;line-height:1.5;padding:9px 11px;border-radius:8px;width:225px;text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.28);z-index:60;}
+  .sync-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1A1A1A;}
+  .sync-flag:hover .sync-tooltip, .sync-flag:focus .sync-tooltip{display:block;}
+  .age-cell{display:flex;align-items:center;gap:7px;font-weight:600;}
+  .dot.green{background:var(--green-dot);}
+  .dot.amber{background:var(--amber-dot);}
+  .dot.red{background:var(--red-dot);}
+  .dot.gray{background:var(--gray-dot);}
+  .dot.purple{background:var(--purple);}
+  .owner{font-weight:600;font-size:13px;white-space:nowrap;}
+  .hub-sub{font-weight:500;font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap;}
+  .amount{font-weight:700;font-variant-numeric:tabular-nums;}
+  .status-pill{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;}
+  .status-pill.outstanding{background:var(--amber-bg);color:var(--amber-text);}
+  .status-pill.escalated{background:var(--red-bg);color:var(--red-text);}
+  .status-pill.confirmed{background:var(--green-bg);color:var(--green-text);}
+  .btn-confirm{font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:7px;background:var(--purple);color:#fff;border:none;cursor:pointer;font-family:inherit;}
+  .btn-detail{font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:7px;background:#fff;color:var(--purple);border:1px solid #D9CBEF;cursor:pointer;font-family:inherit;}
+  .btn-whatsapp{font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:7px;background:#fff;color:var(--purple);border:1px solid #D9CBEF;cursor:pointer;font-family:inherit;}
+  .btn-whatsapp:hover{background:var(--purple-light);}
+  .btn-whatsapp.retry{color:var(--red-text);border-color:var(--red-border);}
+  .btn-whatsapp.retry:hover{background:var(--red-bg);}
+  .action-group{display:flex;gap:6px;}
+  .btn-action-disabled{font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:7px;background:#F5F4F2;color:var(--muted);border:1px solid var(--border);cursor:not-allowed;font-family:inherit;}
+  .wa-countdown{margin-top:7px;font-size:11.5px;color:var(--amber-text);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .wa-countdown svg{width:12px;height:12px;flex-shrink:0;}
+  .wa-link{background:none;border:none;color:var(--purple);font-weight:700;font-size:11.5px;cursor:pointer;padding:0;font-family:inherit;text-decoration:underline;}
+  .wa-link.demo{color:var(--muted);text-decoration:none;font-weight:600;}
+
+  /* ── Modal ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(17,17,17,.42);display:none;align-items:center;justify-content:center;z-index:200;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:14px;width:460px;max-width:92vw;padding:26px 26px 22px;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:88vh;overflow-y:auto;}
+  .modal h4{font-size:17px;font-weight:800;margin-bottom:4px;}
+  .modal .modal-sub{font-size:12.5px;color:var(--muted);margin-bottom:18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:11.5px;font-weight:700;color:#5C5A57;margin-bottom:6px;letter-spacing:.02em;}
+  .field select, .field input[type=text], .field textarea{width:100%;font-family:inherit;font-size:13.5px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:#FBFBFA;}
+  .field textarea{resize:vertical;min-height:56px;}
+  .discrepancy-note{display:none;}
+  .discrepancy-note.show{display:block;}
+  .field-flag{font-size:12px;color:var(--red-dot);font-weight:600;margin-top:5px;display:none;}
+  .field-flag.show{display:block;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .btn-cancel{font-size:13px;font-weight:600;padding:9px 16px;border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;}
+  .btn-submit{font-size:13px;font-weight:700;padding:9px 18px;border:none;background:var(--purple);color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;}
+
+  /* ── Proof of payment dropzone ── */
+  .dropzone{border:1.5px dashed var(--border);border-radius:10px;padding:18px;text-align:center;background:#FBFBFA;cursor:pointer;position:relative;}
+  .dropzone:hover{border-color:var(--purple);background:var(--purple-light);}
+  .dropzone svg{width:22px;height:22px;color:var(--muted);margin-bottom:6px;}
+  .dropzone .dz-title{font-size:13px;font-weight:600;color:var(--ink);}
+  .dropzone .dz-hint{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .file-chip{display:none;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:7px 10px;}
+  .file-chip.show{display:flex;}
+  .file-chip svg{width:14px;height:14px;color:var(--purple);flex-shrink:0;}
+  .file-chip span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .file-chip button{border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px;font-family:inherit;}
+
+  /* ── Detail (read-only) view ── */
+  .detail-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13.5px;}
+  .leg-label{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--purple);margin:16px 0 4px;padding-top:8px;border-top:2px solid var(--purple-light);}
+  .detail-row:last-child{border-bottom:none;}
+  .detail-row .k{color:var(--muted);font-weight:500;}
+  .detail-row .v{font-weight:700;text-align:right;}
+  .proof-link{display:flex;align-items:center;gap:7px;color:var(--purple);font-weight:700;text-decoration:none;}
+  .proof-link svg{width:15px;height:15px;}
+
+  /* ── Proof thumbnail (opens lightbox, not a new page) ── */
+  /* ── Proof preview: rendered directly, click to open lightbox ── */
+  .proof-preview{position:relative;border:1px solid var(--border);border-radius:12px;background:#2A2A2A;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;}
+  .proof-preview:hover{border-color:var(--purple);}
+  .proof-preview svg{width:44px;height:44px;color:rgba(255,255,255,.45);}
+  .proof-geotag{position:absolute;top:12px;left:14px;color:#fff;font-size:11.5px;line-height:1.5;text-shadow:0 1px 3px rgba(0,0,0,.6);font-weight:600;}
+
+  /* ── Lightbox ── */
+  .lightbox-frame{max-width:520px;width:92vw;position:relative;}
+  .lightbox-close{position:absolute;top:-40px;right:0;background:none;border:none;color:#fff;font-size:20px;cursor:pointer;}
+  .lightbox-img{position:relative;background:#2A2A2A;border-radius:10px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;color:#fff;overflow:hidden;}
+  .lightbox-geotag{position:absolute;top:14px;left:14px;color:#fff;font-size:12px;line-height:1.5;text-shadow:0 1px 3px rgba(0,0,0,.6);font-weight:600;}
+  .lightbox-caption{color:#D8D6D3;font-size:12.5px;margin-top:12px;text-align:center;}
+  /* ── Interactive additions ── */
+  .stat-card{cursor:pointer;transition:border-color .12s, box-shadow .12s;}
+  .stat-card:hover{border-color:#C9C6C2;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+  .stat-card.selected{border-color:var(--purple);box-shadow:0 0 0 2px var(--purple-light);}
+  .search-box input{border:none;background:transparent;font-family:inherit;font-size:13px;color:var(--ink);outline:none;width:100%;}
+  .search-box input::placeholder{color:var(--muted);}
+  thead th.sortable{cursor:pointer;user-select:none;white-space:nowrap;}
+  thead th.sortable:hover{color:var(--ink);}
+  thead th .arrow{opacity:.35;margin-left:4px;font-size:9px;}
+  thead th.sorted .arrow{opacity:1;color:var(--purple);}
+  .empty-row td{text-align:center;color:var(--muted);padding:34px 24px;font-size:13.5px;}
+  .pagination-bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 24px;border-top:1px solid var(--border);background:#FBFBFA;gap:12px;}
+  .pagination-controls{display:flex;align-items:center;gap:4px;justify-self:center;}
+  .page-showing{font-size:12.5px;color:var(--ink);justify-self:start;}
+  .page-showing strong{font-weight:700;}
+  .page-size-label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);font-weight:600;justify-self:end;}
+  .page-size-label select{font-family:inherit;font-size:12.5px;font-weight:600;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);}
+  .page-nav-btn{width:28px;height:28px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--ink);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .page-nav-btn:disabled{color:var(--muted);cursor:not-allowed;opacity:.5;}
+  .page-nav-btn:not(:disabled):hover{background:var(--purple-light);border-color:#D9CBEF;}
+  .page-numbers{display:flex;align-items:center;gap:4px;}
+  .page-num-btn{width:28px;height:28px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--ink);font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;}
+  .page-num-btn:hover{background:var(--purple-light);border-color:#D9CBEF;}
+  .page-num-btn.active{background:var(--purple);color:#fff;border-color:var(--purple);cursor:default;}
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:#1A1A1A;color:#fff;font-size:13px;font-weight:600;padding:12px 20px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.28);opacity:0;transition:all .25s;z-index:300;pointer-events:none;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .contact-log{margin:2px 0 14px;}
+  .cl-item{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .cl-item:last-child{border-bottom:none;}
+  .cl-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+  .cl-body .cl-title{font-size:12.5px;font-weight:700;}
+  .cl-body .cl-meta{font-size:11.5px;color:var(--muted);margin-top:1px;}
+  .cl-empty{font-size:12.5px;color:var(--muted);font-style:italic;}
+
+  /* ── Sidebar collapse ── */
+  .brand{justify-content:space-between;}
+  .collapse-btn{width:26px;height:26px;border:1px solid var(--border);border-radius:7px;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);flex-shrink:0;padding:0;}
+  .collapse-btn:hover{background:#F5F4F2;color:var(--ink);}
+  .collapse-btn svg{width:15px;height:15px;}
+  aside{transition:width .18s ease;}
+  aside.collapsed{width:68px;}
+  aside.collapsed .brand{justify-content:center;padding:0 0 20px;}
+  aside.collapsed .brand-text,
+  aside.collapsed .nav-label,
+  aside.collapsed .nav-item span.nav-text,
+  aside.collapsed .user-name,
+  aside.collapsed .user-email,
+  aside.collapsed .nav-item.new-badge::after{display:none;}
+  aside.collapsed .collapse-btn{display:none;}
+  aside.collapsed .nav-item{justify-content:center;padding:9px 0;}
+  aside.collapsed .sidebar-user{justify-content:center;padding:14px 0;}
+  aside.collapsed::after{content:'';}
+  .sidebar-expand-btn{display:none;width:26px;height:26px;border:1px solid var(--border);border-radius:7px;background:#fff;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);margin:0 auto 18px;}
+  aside.collapsed .sidebar-expand-btn{display:flex;}
+  aside.collapsed .sidebar-expand-btn svg{width:15px;height:15px;transform:scaleX(-1);}
+
+</style>
+</head>
+<body>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside>
+  <div class="brand">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4h9a7 7 0 010 14H4V4z" stroke="#fff" stroke-width="2"/></svg></div>
+      <div class="brand-text">
+        <div class="brand-name">Dash Electric</div>
+        <div class="brand-sub">MITHRIL</div>
+      </div>
+    </div>
+    <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()" title="Collapse sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><path d="M14 9l-2 3 2 3"/></svg>
+    </button>
+  </div>
+  <button class="sidebar-expand-btn" onclick="toggleSidebar()" title="Expand sidebar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><path d="M14 9l-2 3 2 3"/></svg>
+  </button>
+
+  <div class="nav-label">Analytics</div>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="nav-text">Docking Dashboard</span></a>
+
+  <div class="nav-label">Hub Ops</div>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><circle cx="12" cy="16" r="3"/></svg><span class="nav-text">Shipments</span></a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg><span class="nav-text">Packages</span></a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l4-5h10l4 5"/><rect x="3" y="8" width="18" height="12" rx="1.5"/></svg><span class="nav-text">Inbound</span></a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg><span class="nav-text">Dispatches</span></a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="8" width="14" height="8" rx="1.5"/><path d="M16 11h3l3 3v2h-6z"/><circle cx="6.5" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg><span class="nav-text">Delivery</span></a>
+  <a class="nav-item active new-badge" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6M12 16v6M4.9 4.9l4.2 4.2M14.9 14.9l4.2 4.2M2 12h6M16 12h6M4.9 19.1l4.2-4.2M14.9 9.1l4.2-4.2"/></svg><span class="nav-text">COD Reconciliation</span></a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="18" rx="1.5"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><span class="nav-text">Invoices</span></a>
+
+  <div class="nav-label">Scheduled Instant</div>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="1.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="nav-text">Schedule</span></a>
+
+  <div class="nav-label">Master</div>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-6h6v6"/></svg><span class="nav-text">Hubs</span></a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a13 13 0 010 18a13 13 0 010-18z"/></svg><span class="nav-text">Zones</span></a>
+  <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.5 7-11.5A7 7 0 005 9.5C5 14.5 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg><span class="nav-text">Addresses</span></a>
+
+  <div class="sidebar-user">
+    <div class="avatar">A</div>
+    <div>
+      <div class="user-name">Albert Ernesto</div>
+      <div class="user-email">albert.ernesto&hellip;</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════ MAIN ══════════ -->
+<main>
+  <div class="crumb">· DASH · LOGISTIC</div>
+  <h1>COD Reconciliation</h1>
+  <p class="page-sub">Setiap pesanan Cash on Delivery (COD), sepanjang siklus hidupnya — mulai dari pengiriman hingga penyerahan oleh rider — dilacak usia dan pemiliknya, mencakup Sayurbox dan Zalora. Cakupan hanya untuk <strong>metode pembayaran = COD</strong>, bukan pemantauan pengiriman secara umum. Menggantikan pengecekan spreadsheet manual harian dan daftar konfirmasi statis yang lama.</p>
+
+  <div class="view-toggle" id="viewToggle">
+    <button class="active" onclick="setView('list')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>List</button>
+    <button onclick="setView('map')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.5 7-11.5A7 7 0 005 9.5C5 14.5 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg>Control Tower</button>
+  </div>
+
+  <div class="controls-row">
+    <div class="left-controls" style="position:relative;">
+      <div class="tabs" id="timeTabs">
+        <button class="active" onclick="selectTimeTab(this)" id="tab1d">1d</button><button onclick="selectTimeTab(this)">7d</button><button onclick="selectTimeTab(this)">30d</button><button onclick="selectTimeTab(this)">90d</button>
+      </div>
+      <button class="btn-refresh active" id="todayBtn" onclick="selectToday()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Today</button>
+      <button class="btn-refresh" id="customRangeBtn" onclick="toggleCustomRange()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="1.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Custom Range</button>
+      <div class="custom-range-popover" id="customRangePopover">
+        <div class="crp-head">Select Date Range<button class="crp-close" onclick="toggleCustomRange()">✕</button></div>
+        <div class="field">
+          <label>Start Date</label>
+          <input type="date" id="crpStart" value="2026-07-28">
+        </div>
+        <div class="field">
+          <label>End Date</label>
+          <input type="date" id="crpEnd" value="2026-08-04">
+        </div>
+        <p style="font-size:11.5px;color:var(--muted);margin:-4px 0 4px;">Max range: 3 months from start date</p>
+        <div class="modal-actions" style="margin-top:10px;">
+          <button class="btn-cancel" onclick="clearCustomRange()">Clear</button>
+          <button class="btn-submit" onclick="applyCustomRange()">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="right-controls">
+      <select id="clientFilter" onchange="STATE.page=1;render()">
+        <option value="all">All clients</option>
+        <option value="Zalora">Zalora</option>
+        <option value="Sayurbox">Sayurbox</option>
+      </select>
+      <button class="btn-export" onclick="doExport()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Export</button>
+      <button class="btn-refresh" onclick="doRefresh()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7M21 3v6h-6"/></svg>Refresh</button>
+    </div>
+  </div>
+
+  <!-- ── Stat cards (clickable) ── -->
+  <div id="listView"><div class="stage-groups">
+    <div class="stage-group" style="flex:0.6;">
+      <div class="stage-group-label">Total</div>
+      <div class="stage-group-cards">
+        <div class="stat-card" data-seg="all" onclick="setSegment('all')" style="border-color:#D9CBEF;">
+          <div class="stat-label"><span class="dot" style="display:inline-block;background:var(--purple);"></span>Total COD</div>
+          <div class="stat-num" id="stat-all">0</div>
+          <div class="stat-amount" id="stat-amt-all">Rp 0</div>
+          <div class="stat-context">Across Zalora &amp; Sayurbox</div>
+        </div>
+      </div>
+    </div>
+    <div class="stage-divider"></div>
+    <div class="stage-group" style="flex:2;">
+      <div class="stage-group-label">Stage 1 · In Delivery</div>
+      <div class="stage-group-cards">
+        <div class="stat-card" data-seg="ontrack" onclick="setSegment('ontrack')">
+          <div class="stat-label"><span class="dot green" style="display:inline-block;"></span>On Track</div>
+          <div class="stat-num" id="stat-ontrack">0</div>
+          <div class="stat-amount" id="stat-amt-ontrack">Rp 0</div>
+          <div class="stat-context">Within expected duration</div>
+        </div>
+        <div class="stat-card" data-seg="needs_attention" onclick="setSegment('needs_attention')">
+          <div class="stat-label"><span class="dot amber" style="display:inline-block;"></span>Needs Attention</div>
+          <div class="stat-num" id="stat-needs_attention">0</div>
+          <div class="stat-amount" id="stat-amt-needs_attention">Rp 0</div>
+          <div class="stat-context">Past expected duration</div>
+        </div>
+        <div class="stat-card danger" data-seg="unreachable" onclick="setSegment('unreachable')">
+          <div class="stat-label"><span class="dot red" style="display:inline-block;"></span>Unreachable</div>
+          <div class="stat-num" id="stat-unreachable">0</div>
+          <div class="stat-amount" id="stat-amt-unreachable">Rp 0</div>
+          <div class="stat-context">Contact failed</div>
+        </div>
+      </div>
+    </div>
+    <div class="stage-divider"></div>
+    <div class="stage-group" style="flex:1.4;">
+      <div class="stage-group-label">Stage 2 · Awaiting Confirmation (Rider → PIC)</div>
+      <div class="stage-group-cards">
+        <div class="stat-card" data-seg="outstanding" onclick="setSegment('outstanding')">
+          <div class="stat-label"><span class="dot amber" style="display:inline-block;"></span>Awaiting Confirmation</div>
+          <div class="stat-num" id="stat-outstanding">0</div>
+          <div class="stat-amount" id="stat-amt-outstanding">Rp 0</div>
+          <div class="stat-context">Within 24h threshold</div>
+        </div>
+        <div class="stat-card danger" data-seg="escalated" onclick="setSegment('escalated')">
+          <div class="stat-label"><span class="dot red" style="display:inline-block;"></span>Overdue Confirmation</div>
+          <div class="stat-num" id="stat-escalated">0</div>
+          <div class="stat-amount" id="stat-amt-escalated">Rp 0</div>
+          <div class="stat-context">&gt; 24h — named owner notified</div>
+        </div>
+      </div>
+    </div>
+    <div class="stage-divider"></div>
+    <div class="stage-group" style="flex:1.4;">
+      <div class="stage-group-label">Stage 3 · Awaiting Deposit (PIC → Finance)</div>
+      <div class="stage-group-cards">
+        <div class="stat-card" data-seg="pending_deposit" onclick="setSegment('pending_deposit')">
+          <div class="stat-label"><span class="dot amber" style="display:inline-block;"></span>Awaiting Deposit</div>
+          <div class="stat-num" id="stat-pending_deposit">0</div>
+          <div class="stat-amount" id="stat-amt-pending_deposit">Rp 0</div>
+          <div class="stat-context">PIC holding cash, within 24h</div>
+        </div>
+        <div class="stat-card danger" data-seg="deposit_overdue" onclick="setSegment('deposit_overdue')">
+          <div class="stat-label"><span class="dot red" style="display:inline-block;"></span>Deposit Overdue</div>
+          <div class="stat-num" id="stat-deposit_overdue">0</div>
+          <div class="stat-amount" id="stat-amt-deposit_overdue">Rp 0</div>
+          <div class="stat-context">&gt; 24h — PIC still holding cash</div>
+        </div>
+      </div>
+    </div>
+    <div class="stage-divider"></div>
+    <div class="stage-group" style="flex:0.7;">
+      <div class="stage-group-label">Stage 4 · Resolved</div>
+      <div class="stage-group-cards">
+        <div class="stat-card" data-seg="confirmed" onclick="setSegment('confirmed')">
+          <div class="stat-label"><span class="dot purple" style="display:inline-block;"></span>Confirmed</div>
+          <div class="stat-num" id="stat-confirmed">0</div>
+          <div class="stat-amount" id="stat-amt-confirmed">Rp 0</div>
+          <div class="stat-context">Deposited to Finance</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Segments + search ── -->
+  <div class="segment-row">
+    <div class="segments" id="segments">
+      <div class="segment active" data-filter="all" onclick="setSegment('all')">All<span class="count" id="count-all">0</span></div>
+      <div class="segment" data-filter="ontrack" onclick="setSegment('ontrack')">On Track<span class="count" id="count-ontrack">0</span></div>
+      <div class="segment" data-filter="needs_attention" onclick="setSegment('needs_attention')">Needs Attention<span class="count" id="count-needs_attention">0</span></div>
+      <div class="segment danger-count" data-filter="unreachable" onclick="setSegment('unreachable')">Unreachable<span class="count" id="count-unreachable">0</span></div>
+      <div class="segment" data-filter="outstanding" onclick="setSegment('outstanding')">Awaiting Confirmation<span class="count" id="count-outstanding">0</span></div>
+      <div class="segment danger-count" data-filter="escalated" onclick="setSegment('escalated')">Overdue Confirmation<span class="count" id="count-escalated">0</span></div>
+      <div class="segment" data-filter="pending_deposit" onclick="setSegment('pending_deposit')">Awaiting Deposit<span class="count" id="count-pending_deposit">0</span></div>
+      <div class="segment danger-count" data-filter="deposit_overdue" onclick="setSegment('deposit_overdue')">Deposit Overdue<span class="count" id="count-deposit_overdue">0</span></div>
+      <div class="segment" data-filter="confirmed" onclick="setSegment('confirmed')">Confirmed<span class="count" id="count-confirmed">0</span></div>
+    </div>
+    <div class="search-filter" style="position:relative;">
+      <div class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input type="text" id="searchInput" placeholder="Search rider, mitra code…" oninput="STATE.page=1;render()"></div>
+      <button class="btn-filter" id="filterBtn" onclick="toggleFilterPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filter<span class="filter-badge" id="filterBadge" style="display:none;">0</span></button>
+      <button class="btn-filter" onclick="clearFilters()">Clear</button>
+      <button class="btn-filter" id="columnsBtn" onclick="toggleColumnsPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Edit Columns</button>
+      <div class="columns-panel" id="columnsPanel">
+        <div class="crp-head">Columns<span class="col-select-all" onclick="deselectAllColumns()">Deselect All</span></div>
+        <div class="col-list" id="colList"></div>
+        <div class="modal-actions" style="margin-top:10px;justify-content:space-between;">
+          <button class="btn-cancel" onclick="resetColumnsPanel()">Reset</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-cancel" onclick="clearColumnsPanel()">Clear</button>
+            <button class="btn-submit" onclick="applyColumnsPanel()">Apply</button>
+          </div>
+        </div>
+      </div>
+      <div class="filter-panel" id="filterPanel">
+        <div class="crp-head">Filter<button class="crp-close" onclick="toggleFilterPanel()">✕</button></div>
+        <div class="field">
+          <label>Client</label>
+          <select id="filterClient">
+            <option value="all">All clients</option>
+            <option value="Zalora">Zalora</option>
+            <option value="Sayurbox">Sayurbox</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="filterStatus">
+            <option value="all">All</option>
+            <option value="ontrack">On Track</option>
+            <option value="needs_attention">Needs Attention</option>
+            <option value="unreachable">Unreachable</option>
+            <option value="outstanding">Awaiting Confirmation</option>
+            <option value="escalated">Overdue Confirmation</option>
+            <option value="pending_deposit">Awaiting Deposit</option>
+            <option value="deposit_overdue">Deposit Overdue</option>
+            <option value="confirmed">Confirmed</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Hub</label>
+          <select id="filterHub">
+            <option value="all">All hubs</option>
+            <option value="Dash Hub Kota Bekasi - Pondok Ungu">Dash Hub Kota Bekasi - Pondok Ungu</option>
+            <option value="Dash Hub Kabupaten Bekasi">Dash Hub Kabupaten Bekasi</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Owner (PIC)</label>
+          <select id="filterOwner">
+            <option value="all">All owners</option>
+            <option value="rizki.hariawan@dashelectric.co">rizki.hariawan@dashelectric.co</option>
+            <option value="ops.lead.bekasi@dashelectric.co">ops.lead.bekasi@dashelectric.co</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Amount (Rp)</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="filterMinAmount" placeholder="Min">
+            <span style="color:var(--muted);font-size:12px;">to</span>
+            <input type="text" id="filterMaxAmount" placeholder="Max">
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:6px;">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;">
+            <input type="checkbox" id="filterDiscrepancy" style="width:auto;">
+            Only rows with a discrepancy
+          </label>
+        </div>
+        <div class="modal-actions" style="margin-top:10px;">
+          <button class="btn-cancel" onclick="clearFilterPanel()">Clear</button>
+          <button class="btn-submit" onclick="applyFilterPanel()">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3 id="cardTitle">Semua klien</h3>
+        <p>Diurutkan berdasarkan waktu-dalam-status, dari yang paling lama — satu jam berjalan yang berkelanjutan mulai dari pengiriman hingga konfirmasi COD. "Expected" adalah durasi normal untuk tahap yang sedang dijalani setiap baris — acuan yang digunakan untuk mengukur setiap baris.</p>
+      </div>
+      <div class="date-range" id="dateRangeLabel">2026-07-28 → 2026-08-04 WIB</div>
+    </div>
+
+    <div class="status-legend" style="grid-template-columns:1fr 1fr;padding-bottom:8px;">
+      <div>
+        <div class="stage-group-label" style="margin:0 0 8px;">Tahap 1 · Sedang Dikirim</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--green-dot);"></span><span><strong>On Track</strong> — masih dalam durasi yang diharapkan, tidak perlu tindakan.</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--amber-dot);"></span><span><strong>Needs Attention</strong> — sudah melewati durasi yang diharapkan. Perlu dicek oleh PIC.</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--red-dot);"></span><span><strong>Unreachable</strong> — sudah dicoba dihubungi namun gagal. Langkah selanjutnya adalah eskalasi ke Ops &amp; Risk / kunjungan PIC.</span></div>
+        <div class="stage-group-label" style="margin:14px 0 8px;">Tahap 2 · Menunggu Konfirmasi (Rider → PIC)</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--amber-dot);"></span><span><strong>Awaiting Confirmation</strong> — sudah terkirim dan COD sudah diterima, belum dikonfirmasi namun masih dalam batas waktu 24 jam.</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--red-dot);"></span><span><strong>Overdue Confirmation</strong> — sudah terkirim dan COD sudah diterima, namun belum dikonfirmasi lebih dari 24 jam.</span></div>
+      </div>
+      <div>
+        <div class="stage-group-label" style="margin:0 0 8px;">Tahap 3 · Menunggu Deposit (PIC → Finance)</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--amber-dot);"></span><span><strong>Awaiting Deposit</strong> — PIC sudah menerima uang dari rider, menunggu disetorkan ke Finance, masih dalam batas waktu 24 jam.</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--red-dot);"></span><span><strong>Deposit Overdue</strong> — uang sudah diterima PIC, namun belum disetorkan ke Finance lebih dari 24 jam.</span></div>
+        <div class="stage-group-label" style="margin:14px 0 8px;">Tahap 4 · Selesai</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--green-dot);"></span><span><strong>Confirmed</strong> — COD sudah direkonsiliasi penuh: diterima oleh PIC dan sudah disetorkan ke Finance, dengan bukti pembayaran dan bukti deposit tercatat.</span></div>
+      </div>
+    </div>
+    <div style="padding:11px 24px;border-bottom:1px solid var(--border);background:#fff;font-size:12px;color:var(--muted);">
+      Status bergerak maju secara otomatis begitu data pengiriman baru tersinkronisasi — Zalora hampir real-time, Sayurbox melalui sinkronisasi spreadsheet setiap jam. Tidak ada yang perlu menandai pengiriman "selesai" secara manual. PIC hanya perlu turun tangan untuk status <strong>Needs Attention</strong>, <strong>Unreachable</strong>, <strong>Awaiting Deposit</strong>, dan <strong>Deposit Overdue</strong>.
+    </div>
+
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th class="sortable" data-col="rider" onclick="setSort('rider')">Rider<span class="arrow" id="arrow-rider">▼</span></th>
+          <th data-col="providerId">Provider Order ID</th>
+          <th data-col="deliveryId">Delivery ID</th>
+          <th data-col="clientHub">Client / Hub</th>
+          <th data-col="owner">Owner</th>
+          <th class="sortable" data-col="time" onclick="setSort('time')">Time in Status<span class="arrow" id="arrow-time">▼</span></th>
+          <th data-col="expected">Expected</th>
+          <th class="sortable" data-col="amount" onclick="setSort('amount')">Amount<span class="arrow" id="arrow-amount">▼</span></th>
+          <th data-col="stage1">In Delivery</th>
+          <th data-col="stage2">Confirmation<br>(Rider &rarr; PIC)</th>
+          <th data-col="stage3">Deposit<br>(PIC &rarr; Finance)</th>
+          <th data-col="stage4">Resolved</th>
+          <th data-col="actions"></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    </div>
+    <div class="pagination-bar">
+      <div class="page-showing" id="pageShowing">Showing 0 – 0 of 0</div>
+      <div class="pagination-controls">
+        <button class="page-nav-btn" id="pageFirst" onclick="goToPageAbs(1)" disabled>&laquo;</button>
+        <button class="page-nav-btn" id="pagePrev" onclick="goToPage(-1)" disabled>&#8249;</button>
+        <div class="page-numbers" id="pageNumbers"></div>
+        <button class="page-nav-btn" id="pageNext" onclick="goToPage(1)" disabled>&#8250;</button>
+        <button class="page-nav-btn" id="pageLast" onclick="goToPageAbs(STATE.maxPage)" disabled>&raquo;</button>
+      </div>
+      <label class="page-size-label">Show:
+        <select id="pageSizeSelect" onchange="setPageSize(this.value)">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="30">30</option>
+          <option value="40">40</option>
+          <option value="50">50</option>
+        </select>
+        / page
+      </label>
+    </div>
+  </div>
+  </div><!-- /listView -->
+
+  <!-- ══════════ CONTROL TOWER (MAP VIEW) ══════════ -->
+  <div id="mapView" style="display:none;">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h3>Control Tower — At-Risk Riders</h3>
+          <p>Rider-side accountability only — In Delivery and Confirmation stage. Live location applies to In Delivery rows only; once a delivery completes, the rider's location stops being the thing that matters, so Confirmation-stage rows show up here with a Confirm action instead of a pin. Deposit and Resolved stages aren't shown — that's PIC-to-Finance, not rider-side.</p>
+          <p style="margin-top:6px;font-size:12px;color:var(--muted);">Scope: <strong>needs_attention</strong>, <strong>unreachable</strong>, <strong>outstanding</strong>, <strong>escalated</strong>. Excludes <strong>pending_deposit</strong>, <strong>deposit_overdue</strong>, <strong>confirmed</strong>.</p>
+        </div>
+        <div class="date-range">Live · Zalora only</div>
+      </div>
+
+      <div class="ct-body">
+        <div class="ct-map" id="ctMap">
+          <svg class="ct-map-bg" viewBox="0 0 760 480" preserveAspectRatio="none">
+            <rect width="760" height="480" fill="#EAF2ED"/>
+            <path d="M0 90 H760 M0 220 H760 M0 350 H760" stroke="#D7E3DC" stroke-width="10"/>
+            <path d="M120 0 V480 M330 0 V480 M540 0 V480 M660 0 V480" stroke="#D7E3DC" stroke-width="10"/>
+            <rect x="40" y="120" width="150" height="70" rx="4" fill="#DCE9E1"/>
+            <rect x="420" y="260" width="180" height="90" rx="4" fill="#DCE9E1"/>
+            <rect x="200" y="30" width="110" height="50" rx="4" fill="#DCE9E1"/>
+          </svg>
+          <div id="ctPins"></div>
+        </div>
+
+        <div class="ct-list" id="ctList"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══════════ CONFIRM MODAL ══════════ -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal">
+    <h4 id="cf-title">Confirm COD</h4>
+    <p class="modal-sub" id="cf-sub"></p>
+
+    <div class="field">
+      <label>Settlement Source</label>
+      <select id="settlementSource" onchange="cfClearFlag()">
+        <option value="">Select who settled this…</option>
+        <option value="rider">Rider Paid</option>
+        <option value="pic">PIC Covered (Talangan)</option>
+        <option value="tribe">Tribe Write-off</option>
+      </select>
+      <div class="field-flag" id="requiredFlag">Required — cannot confirm without a selection.</div>
+    </div>
+
+    <div class="field">
+      <label>Confirmed Amount</label>
+      <input type="text" id="confirmedAmount" oninput="checkDiscrepancy()">
+    </div>
+
+    <div class="field">
+      <label id="discLabel">Discrepancy vs. Expected</label>
+      <input type="text" id="discValue" value="Rp 0" disabled style="color:#7A7876;">
+    </div>
+
+    <div class="field discrepancy-note" id="discrepancyNote">
+      <label>Discrepancy Note</label>
+      <textarea id="discNoteText" placeholder="Required — explain the mismatch between expected and confirmed amount"></textarea>
+      <div class="field-flag" id="discNoteFlag">Required when the confirmed amount does not match.</div>
+    </div>
+
+    <div class="field">
+      <label>Proof of Payment</label>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="proofFile" accept=".pdf,.png,.jpg,.jpeg" onchange="handleFile(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+        <div class="dz-title">Click to upload or drag and drop</div>
+        <div class="dz-hint">PDF, PNG, or JPG — required to confirm</div>
+      </div>
+      <div class="file-chip" id="fileChip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+        <span id="fileName"></span>
+        <button onclick="clearFile(event)">✕</button>
+      </div>
+      <div class="field-flag" id="proofFlag">Required — upload proof of payment before confirming.</div>
+    </div>
+
+    <div class="field">
+      <label>Owner</label>
+      <select id="cf-owner"></select>
+    </div>
+
+    <div class="field">
+      <label>Notes <span style="color:var(--muted);font-weight:500;">(optional)</span></label>
+      <textarea id="cf-notes" placeholder="Any context worth keeping on record for this handover"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('confirmOverlay')">Cancel</button>
+      <button class="btn-submit" onclick="submitConfirm()">Confirm COD</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CONFIRM DEPOSIT MODAL (PIC → Finance) ══════════ -->
+<div class="modal-overlay" id="depositOverlay">
+  <div class="modal">
+    <h4 id="dep-title">Confirm Deposit to Finance</h4>
+    <p class="modal-sub" id="dep-sub"></p>
+
+    <div class="detail-row"><span class="k">Confirmed by Rider</span><span class="v" id="dep-riderinfo"></span></div>
+
+    <div class="field" style="margin-top:14px;">
+      <label>Deposit Method</label>
+      <input type="text" value="Bank Transfer" disabled style="color:#7A7876;">
+    </div>
+
+    <div class="field">
+      <label>Amount Deposited</label>
+      <input type="text" id="depositAmount" oninput="checkDepositDiscrepancy()">
+    </div>
+
+    <div class="field">
+      <label id="depDiscLabel">Discrepancy vs. Rider-Confirmed Amount</label>
+      <input type="text" id="depDiscValue" value="Rp 0" disabled style="color:#7A7876;">
+    </div>
+
+    <div class="field discrepancy-note" id="depDiscrepancyNote">
+      <label>Discrepancy Note</label>
+      <textarea id="depDiscNoteText" placeholder="Required — explain the mismatch between what the rider handed over and what was deposited"></textarea>
+      <div class="field-flag" id="depDiscNoteFlag">Required when the deposited amount does not match.</div>
+    </div>
+
+    <div class="field">
+      <label>Proof of Deposit</label>
+      <div class="dropzone" id="depDropzone">
+        <input type="file" id="depProofFile" accept=".pdf,.png,.jpg,.jpeg" onchange="handleDepFile(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+        <div class="dz-title">Click to upload or drag and drop</div>
+        <div class="dz-hint">Bank transfer receipt or ATM slip — required to confirm</div>
+      </div>
+      <div class="file-chip" id="depFileChip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+        <span id="depFileName"></span>
+        <button onclick="clearDepFile(event)">✕</button>
+      </div>
+      <div class="field-flag" id="depProofFlag">Required — upload proof of deposit before confirming.</div>
+    </div>
+
+    <div class="field">
+      <label>Notes <span style="color:var(--muted);font-weight:500;">(optional)</span></label>
+      <textarea id="dep-notes" placeholder="Any context worth keeping on record for this deposit"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('depositOverlay')">Cancel</button>
+      <button class="btn-submit" onclick="submitDeposit()">Confirm Deposit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ LOG CONTACT MODAL ══════════ -->
+<div class="modal-overlay" id="waOverlay">
+  <div class="modal">
+    <h4 id="wa-title">Message via WhatsApp</h4>
+    <p class="modal-sub" id="wa-sub"></p>
+
+    <label style="display:block;font-size:11.5px;font-weight:700;color:#5C5A57;margin-bottom:6px;letter-spacing:.02em;">Contact History</label>
+    <div class="contact-log" id="wa-log"></div>
+
+    <div class="field" style="margin-top:14px;">
+      <label>To</label>
+      <input type="text" id="wa-phone" disabled style="color:var(--muted);">
+    </div>
+
+    <div class="field">
+      <label>Message Template</label>
+      <textarea id="wa-template" style="min-height:96px;"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Notes <span style="color:var(--muted);font-weight:500;">(optional — so the next PIC doesn't ask the same thing twice)</span></label>
+      <textarea id="wa-notes" placeholder="Any context worth keeping on record"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('waOverlay')">Cancel</button>
+      <button class="btn-submit" onclick="submitWhatsApp()">Send via WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ RIDER RESPONDED MODAL ══════════ -->
+<div class="modal-overlay" id="responseOverlay">
+  <div class="modal">
+    <h4 id="resp-title">Rider Responded</h4>
+    <p class="modal-sub" id="resp-sub"></p>
+
+    <label style="display:block;font-size:11.5px;font-weight:700;color:#5C5A57;margin-bottom:6px;letter-spacing:.02em;">Contact History</label>
+    <div class="contact-log" id="resp-log"></div>
+
+    <div class="field" style="margin-top:14px;">
+      <label>What did the rider say? <span style="color:var(--muted);font-weight:500;">(optional, but this is the whole point — capture the actual issue)</span></label>
+      <textarea id="resp-notes" placeholder="e.g. stuck in traffic, customer not answering the door, package damaged, etc." style="min-height:90px;"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('responseOverlay')">Cancel</button>
+      <button class="btn-submit" onclick="submitRiderResponse()">Clear Response Window</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ DETAIL (READ-ONLY) MODAL ══════════ -->
+<div class="modal-overlay" id="detailOverlay">
+  <div class="modal">
+    <h4 id="dt-title">Confirmation Detail</h4>
+    <p class="modal-sub" id="dt-sub"></p>
+
+    <div class="detail-row"><span class="k">Hub</span><span class="v" id="dt-hub"></span></div>
+    <div class="detail-row"><span class="k">Provider Order ID</span><span class="v" id="dt-providerid"></span></div>
+    <div class="detail-row"><span class="k">Delivery ID</span><span class="v" id="dt-orderid"></span></div>
+
+    <div class="leg-label">Leg 1 · Rider → PIC</div>
+    <div class="detail-row"><span class="k">Settlement Source</span><span class="v" id="dt-settlement"></span></div>
+    <div class="detail-row"><span class="k">Expected Amount</span><span class="v" id="dt-expected"></span></div>
+    <div class="detail-row"><span class="k">Confirmed Amount</span><span class="v" id="dt-confirmed"></span></div>
+    <div class="detail-row"><span class="k">Discrepancy</span><span class="v" id="dt-disc"></span></div>
+    <div class="detail-row" id="dt-noteRow" style="display:none;"><span class="k">Discrepancy Note</span><span class="v" id="dt-note" style="max-width:60%;font-weight:500;"></span></div>
+    <div class="detail-row"><span class="k">Confirmed By (PIC)</span><span class="v" id="dt-by"></span></div>
+    <div class="field" style="margin-top:12px;">
+      <label>Proof of Payment (Rider → PIC)</label>
+      <div class="proof-preview" onclick="openLightbox('payment')">
+        <div class="proof-geotag" id="dt-geotag"></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </div>
+    </div>
+
+    <div class="leg-label">Leg 2 · PIC → Finance</div>
+    <div class="detail-row"><span class="k">Deposit Method</span><span class="v" id="dt-depmethod"></span></div>
+    <div class="detail-row"><span class="k">Amount Deposited</span><span class="v" id="dt-depamount"></span></div>
+    <div class="detail-row"><span class="k">Discrepancy</span><span class="v" id="dt-depdisc"></span></div>
+    <div class="detail-row" id="dt-depNoteRow" style="display:none;"><span class="k">Discrepancy Note</span><span class="v" id="dt-depnote" style="max-width:60%;font-weight:500;"></span></div>
+    <div class="detail-row"><span class="k">Deposited At</span><span class="v" id="dt-depat"></span></div>
+    <div class="field" style="margin-top:12px;">
+      <label>Proof of Deposit (PIC → Finance)</label>
+      <div class="proof-preview" onclick="openLightbox('deposit')">
+        <div class="proof-geotag" id="dt-depgeotag"></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('detailOverlay')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ LIGHTBOX ══════════ -->
+<div class="modal-overlay" id="lightboxOverlay" style="background:rgba(10,10,10,.86);">
+  <div class="lightbox-frame">
+    <button class="lightbox-close" onclick="closeModal('lightboxOverlay')">✕</button>
+    <div class="lightbox-img">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="width:64px;height:64px;opacity:.5;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      <div class="lightbox-geotag" id="lb-geotag"></div>
+    </div>
+    <div class="lightbox-caption" id="lb-caption"></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   DATA MODEL — single source of truth. Every action below
+   mutates this array; render() is the only thing that reads it.
+══════════════════════════════════════════════════════ */
+var ROWS = [
+  { id:1, rider:'Hendra Saputra', code:'MTR0004412', client:'Zalora', hub:'Dash Hub Kota Bekasi - Pondok Ungu', owner:'rizki.hariawan@dashelectric.co', status:'escalated', amount:482000, hoursAgo:61, minsAgo:5, thresholdH:24, sync:false, orderId:'DEZL260807X9K3M2', providerOrderId:'ZDE258193763-5939' },
+  { id:2, rider:'Yuli Rahmawati', code:'MTR0007190', client:'Sayurbox', hub:'Dash Hub Kabupaten Bekasi', owner:'ops.lead.bekasi@dashelectric.co', status:'escalated', amount:267300, hoursAgo:52, minsAgo:18, thresholdH:24, sync:true, orderId:'DESB260805A7P1Q4', providerOrderId:'SBX-2026-081902' },
+  { id:3, rider:'Deden Azhari Ansyah', code:'MTR0006150', client:'Zalora', hub:'Dash Hub Kota Bekasi - Pondok Ungu', owner:'rizki.hariawan@dashelectric.co', status:'escalated', amount:1271200, hoursAgo:29, minsAgo:42, thresholdH:24, sync:false, orderId:'DEZL260806B2N8R5', providerOrderId:'ZDE261847205-2216' },
+  { id:5, rider:'Wahyu Setiadi', code:'MTR0005821', client:'Zalora', hub:'Dash Hub Kota Bekasi - Pondok Ungu', owner:'rizki.hariawan@dashelectric.co', status:'unreachable', amount:315000, hoursAgo:26, minsAgo:40, thresholdH:2, sync:false, mapX:520, mapY:130, phone:'+62 812-3456-7801', orderId:'DEZL260807C4T6W1', providerOrderId:'ZDE249583017-8842',
+    contactLog:[{method:'Phone Call', result:'No answer', notes:'', ts:Date.now()-3600000*20}] },
+  { id:6, rider:'Fajar Nugroho', code:'SUP14', client:'Sayurbox', hub:'Dash Hub Kabupaten Bekasi', owner:'ops.lead.bekasi@dashelectric.co', status:'needs_attention', amount:189500, hoursAgo:9, minsAgo:5, thresholdH:3, sync:true, phone:'+62 813-9821-4453', contactLog:[], orderId:'DESB260809D8L3K7', providerOrderId:'SBX-2026-081455' },
+  { id:7, rider:'Yanto Prasetyo', code:'MTR0006903', client:'Zalora', hub:'Dash Hub Kota Bekasi - Pondok Ungu', owner:'rizki.hariawan@dashelectric.co', status:'needs_attention', amount:224000, hoursAgo:6, minsAgo:12, thresholdH:2, sync:false, mapX:270, mapY:310, phone:'+62 821-5567-3390', contactLog:[], orderId:'DEZL260809E1M5J2', providerOrderId:'ZDE267194832-1053' },
+  { id:10, rider:'Rendra Prakoso', code:'SUP22', client:'Sayurbox', hub:'Dash Hub Kabupaten Bekasi', owner:'ops.lead.bekasi@dashelectric.co', status:'needs_attention', amount:176000, hoursAgo:2, minsAgo:40, thresholdH:2, sync:true, phone:'+62 815-2231-9087', contactLog:[], orderId:'DESB260810F6H9V3', providerOrderId:'SBX-2026-081920' },
+  { id:4, rider:'Indra Muliono', code:'MTR0000804', client:'Zalora', hub:'Dash Hub Kota Bekasi - Pondok Ungu', owner:'rizki.hariawan@dashelectric.co', status:'outstanding', amount:2561600, hoursAgo:6, minsAgo:9, thresholdH:24, sync:false, orderId:'DEZL260809G3K7X4', providerOrderId:'ZDE253720194-6675' },
+  { id:8, rider:'Arief Jamaludin', code:'SUP7', client:'Sayurbox', hub:'Dash Hub Kabupaten Bekasi', owner:'ops.lead.bekasi@dashelectric.co', status:'confirmed', amount:148400, hoursAgo:3, minsAgo:0, thresholdH:24, sync:true, frozen:true, orderId:'DESB260804H5R2Y8', providerOrderId:'SBX-2026-080733',
+    riderConfirmData:{ settlement:'Rider Paid', confirmedAmount:148400, discNote:'', notes:'', confirmedBy:'ops.lead.bekasi@dashelectric.co', confirmedAt:'2026-08-04, 09:14 WIB', proofFile:'cod_proof_SUP7_0804.jpg' },
+    depositData:{ method:'Bank Transfer', depositedAmount:148400, discNote:'', depositedBy:'ops.lead.bekasi@dashelectric.co', depositedAt:'2026-08-04, 14:30 WIB', proofFile:'deposit_proof_SUP7_0804.jpg' } },
+  { id:9, rider:'Bima Ardiansyah', code:'MTR0007450', client:'Zalora', hub:'Dash Hub Kabupaten Bekasi', owner:'rizki.hariawan@dashelectric.co', status:'ontrack', amount:302000, hoursAgo:1, minsAgo:2, thresholdH:2, sync:false, orderId:'DEZL260810J8N4Q1', providerOrderId:'ZDE271059483-3391' }
+];
+
+ROWS.forEach(function(r){
+  r.completedAt = Date.now() - (r.hoursAgo*3600000 + r.minsAgo*60000);
+  r.expectedLabel = (r.status==='needs_attention'||r.status==='unreachable'||r.status==='ontrack') ? ('~' + r.thresholdH + 'h') : (r.thresholdH + 'h');
+});
+
+var STATE = { segment:'all', sortCol:'time', sortDir:'desc', currentRowId:null, page:1, pageSize:20, maxPage:1,
+  filterHub:'all', filterOwner:'all', filterMinAmount:null, filterMaxAmount:null, filterDiscrepancy:false };
+
+function fmt(n){ return 'Rp ' + n.toLocaleString('id-ID').replace(/\./g,','); }
+function unfmt(s){ return parseInt(String(s).replace(/[^0-9]/g,''),10) || 0; }
+function elapsedMs(r){ return Date.now() - r.completedAt; }
+function elapsedLabel(ms){
+  var totalMin = Math.floor(ms/60000);
+  var h = Math.floor(totalMin/60), m = totalMin % 60;
+  return h + 'h ' + m + 'm';
+}
+
+function dotClass(r){
+  if(r.frozen) return 'green';
+  if(r.status === 'unreachable') return 'red';
+  if(r.status === 'needs_attention') return 'amber';
+  if(r.status === 'ontrack'){
+    var hrs = elapsedMs(r)/3600000;
+    return hrs >= r.thresholdH ? 'amber' : 'green';
+  }
+  var hrs2 = elapsedMs(r)/3600000;
+  return hrs2 >= r.thresholdH ? 'red' : (hrs2 >= r.thresholdH*0.5 ? 'amber' : 'green');
+}
+function statusLabel(status){
+  return { escalated:'Overdue Confirmation', outstanding:'Awaiting Confirmation',
+           unreachable:'Unreachable', needs_attention:'Needs Attention', ontrack:'On Track',
+           pending_deposit:'Awaiting Deposit', deposit_overdue:'Deposit Overdue',
+           confirmed:'Deposited to Finance' }[status] || status;
+}
+function statusPillClass(status){
+  return { escalated:'escalated', unreachable:'escalated', outstanding:'outstanding',
+           needs_attention:'outstanding', confirmed:'confirmed', ontrack:'confirmed',
+           pending_deposit:'outstanding', deposit_overdue:'escalated' }[status];
+}
+function statusStage(status){
+  return { ontrack:'stage1', needs_attention:'stage1', unreachable:'stage1',
+           outstanding:'stage2', escalated:'stage2',
+           pending_deposit:'stage3', deposit_overdue:'stage3',
+           confirmed:'stage4' }[status];
+}
+function toast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+}
+
+/* ── Filtering + sorting ── */
+function hasDiscrepancy(r){
+  var d1 = r.riderConfirmData && r.riderConfirmData.discNote;
+  var d2 = r.depositData && r.depositData.discNote;
+  return !!(d1 || d2);
+}
+function getFiltered(){
+  var client = document.getElementById('clientFilter').value;
+  var q = document.getElementById('searchInput').value.trim().toLowerCase();
+  var seg = STATE.segment;
+  return ROWS.filter(function(r){
+    if(client !== 'all' && r.client !== client) return false;
+    if(q && !(r.rider.toLowerCase().indexOf(q) > -1 || r.code.toLowerCase().indexOf(q) > -1)) return false;
+    if(STATE.filterHub !== 'all' && r.hub !== STATE.filterHub) return false;
+    if(STATE.filterOwner !== 'all' && r.owner !== STATE.filterOwner) return false;
+    if(STATE.filterMinAmount != null && r.amount < STATE.filterMinAmount) return false;
+    if(STATE.filterMaxAmount != null && r.amount > STATE.filterMaxAmount) return false;
+    if(STATE.filterDiscrepancy && !hasDiscrepancy(r)) return false;
+    if(seg === 'all') return true;
+    return r.status === seg;
+  });
+}
+function sortRows(list){
+  var col = STATE.sortCol, dir = STATE.sortDir === 'asc' ? 1 : -1;
+  list.sort(function(a,b){
+    var av, bv;
+    if(col === 'rider'){ av = a.rider.toLowerCase(); bv = b.rider.toLowerCase(); }
+    else if(col === 'amount'){ av = a.amount; bv = b.amount; }
+    else { av = elapsedMs(a); bv = elapsedMs(b); }
+    if(av < bv) return -1*dir;
+    if(av > bv) return 1*dir;
+    return 0;
+  });
+  return list;
+}
+function setSort(col){
+  if(STATE.sortCol === col){ STATE.sortDir = STATE.sortDir === 'asc' ? 'desc' : 'asc'; }
+  else { STATE.sortCol = col; STATE.sortDir = 'desc'; }
+  render();
+}
+function setSegment(seg){
+  STATE.segment = seg;
+  STATE.page = 1;
+  document.querySelectorAll('.segment').forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('.stat-card').forEach(function(s){ s.classList.remove('selected'); });
+  var segEl = document.querySelector('.segment[data-filter="'+seg+'"]');
+  if(segEl) segEl.classList.add('active');
+  else document.querySelector('.segment[data-filter="all"]').classList.add('active');
+  var cardEl = document.querySelector('.stat-card[data-seg="'+seg+'"]');
+  if(cardEl) cardEl.classList.add('selected');
+  var titleMap = { all:'Semua klien', ontrack:'On Track', needs_attention:'Needs Attention', unreachable:'Unreachable',
+                   escalated:'Overdue Confirmation', outstanding:'Awaiting Confirmation',
+                   pending_deposit:'Awaiting Deposit', deposit_overdue:'Deposit Overdue', confirmed:'Confirmed' };
+  document.getElementById('cardTitle').textContent = titleMap[seg] || 'Semua klien';
+  render();
+}
+function clearFilters(){
+  document.getElementById('searchInput').value = '';
+  document.getElementById('clientFilter').value = 'all';
+  resetFilterPanelFields();
+  updateFilterBadge();
+  setSegment('all');
+}
+function toggleFilterPanel(){
+  var panel = document.getElementById('filterPanel');
+  if(!panel.classList.contains('open')){
+    document.getElementById('filterClient').value = document.getElementById('clientFilter').value;
+    document.getElementById('filterStatus').value = STATE.segment;
+  }
+  panel.classList.toggle('open');
+}
+function resetFilterPanelFields(){
+  document.getElementById('filterClient').value = 'all';
+  document.getElementById('filterStatus').value = 'all';
+  document.getElementById('filterHub').value = 'all';
+  document.getElementById('filterOwner').value = 'all';
+  document.getElementById('filterMinAmount').value = '';
+  document.getElementById('filterMaxAmount').value = '';
+  document.getElementById('filterDiscrepancy').checked = false;
+  STATE.filterHub = 'all'; STATE.filterOwner = 'all';
+  STATE.filterMinAmount = null; STATE.filterMaxAmount = null; STATE.filterDiscrepancy = false;
+}
+function clearFilterPanel(){
+  resetFilterPanelFields();
+  document.getElementById('clientFilter').value = 'all';
+  updateFilterBadge();
+  setSegment('all');
+}
+function applyFilterPanel(){
+  document.getElementById('clientFilter').value = document.getElementById('filterClient').value;
+  STATE.filterHub = document.getElementById('filterHub').value;
+  STATE.filterOwner = document.getElementById('filterOwner').value;
+  var minVal = document.getElementById('filterMinAmount').value.replace(/[^0-9]/g,'');
+  var maxVal = document.getElementById('filterMaxAmount').value.replace(/[^0-9]/g,'');
+  STATE.filterMinAmount = minVal ? parseInt(minVal,10) : null;
+  STATE.filterMaxAmount = maxVal ? parseInt(maxVal,10) : null;
+  STATE.filterDiscrepancy = document.getElementById('filterDiscrepancy').checked;
+  document.getElementById('filterPanel').classList.remove('open');
+  updateFilterBadge();
+  setSegment(document.getElementById('filterStatus').value);
+}
+function updateFilterBadge(){
+  var count = 0;
+  if(STATE.filterHub !== 'all') count++;
+  if(STATE.filterOwner !== 'all') count++;
+  if(STATE.filterMinAmount != null) count++;
+  if(STATE.filterMaxAmount != null) count++;
+  if(STATE.filterDiscrepancy) count++;
+  var badge = document.getElementById('filterBadge');
+  if(count > 0){ badge.textContent = count; badge.style.display = 'inline-flex'; }
+  else { badge.style.display = 'none'; }
+}
+document.addEventListener('click', function(e){
+  var panel = document.getElementById('filterPanel');
+  var btn = document.getElementById('filterBtn');
+  if(panel.classList.contains('open') && !panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)){
+    panel.classList.remove('open');
+  }
+});
+
+/* ══════════════════════════════════════════════════════
+   EDIT COLUMNS
+══════════════════════════════════════════════════════ */
+var COLUMN_DEFS = [
+  { key:'rider', label:'Rider', locked:true },
+  { key:'providerId', label:'Provider Order ID' },
+  { key:'deliveryId', label:'Delivery ID' },
+  { key:'clientHub', label:'Client / Hub' },
+  { key:'owner', label:'Owner' },
+  { key:'time', label:'Time in Status' },
+  { key:'expected', label:'Expected' },
+  { key:'amount', label:'Amount' },
+  { key:'stage1', label:'In Delivery' },
+  { key:'stage2', label:'Confirmation (Rider \u2192 PIC)' },
+  { key:'stage3', label:'Deposit (PIC \u2192 Finance)' },
+  { key:'stage4', label:'Resolved' },
+  { key:'actions', label:'Actions', locked:true }
+];
+STATE.hiddenColumns = new Set();
+function renderColumnsList(){
+  document.getElementById('colList').innerHTML = COLUMN_DEFS.map(function(c){
+    var checked = !STATE.hiddenColumns.has(c.key);
+    var disabled = c.locked ? 'disabled' : '';
+    return '<div class="col-item' + (c.locked ? ' locked' : '') + '">'
+      + '<input type="checkbox" data-colkey="' + c.key + '" ' + (checked ? 'checked' : '') + ' ' + disabled + '>'
+      + '<span>' + c.label + (c.locked ? ' (required)' : '') + '</span>'
+      + '<span class="col-drag">\u22ee\u22ee</span>'
+      + '</div>';
+  }).join('');
+}
+function toggleColumnsPanel(){
+  renderColumnsList();
+  document.getElementById('columnsPanel').classList.toggle('open');
+}
+function applyColumnVisibility(){
+  COLUMN_DEFS.forEach(function(c){
+    var hidden = !c.locked && STATE.hiddenColumns.has(c.key);
+    document.querySelectorAll('[data-col="' + c.key + '"]').forEach(function(el){
+      el.style.display = hidden ? 'none' : '';
+    });
+  });
+}
+function applyColumnsPanel(){
+  var hidden = new Set();
+  document.querySelectorAll('#colList input[type=checkbox]').forEach(function(cb){
+    if(!cb.checked) hidden.add(cb.getAttribute('data-colkey'));
+  });
+  STATE.hiddenColumns = hidden;
+  applyColumnVisibility();
+  document.getElementById('columnsPanel').classList.remove('open');
+}
+function resetColumnsPanel(){
+  STATE.hiddenColumns = new Set();
+  renderColumnsList();
+  applyColumnVisibility();
+}
+function clearColumnsPanel(){
+  deselectAllColumns();
+  var hidden = new Set();
+  COLUMN_DEFS.forEach(function(c){ if(!c.locked) hidden.add(c.key); });
+  STATE.hiddenColumns = hidden;
+  applyColumnVisibility();
+}
+function deselectAllColumns(){
+  document.querySelectorAll('#colList input[type=checkbox]:not(:disabled)').forEach(function(cb){ cb.checked = false; });
+}
+document.addEventListener('click', function(e){
+  var panel = document.getElementById('columnsPanel');
+  var btn = document.getElementById('columnsBtn');
+  if(panel.classList.contains('open') && !panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)){
+    panel.classList.remove('open');
+  }
+});
+
+/* ── Render ── */
+function render(){
+  var fullList = sortRows(getFiltered());
+  var total = fullList.length;
+  var maxPage = Math.max(1, Math.ceil(total / STATE.pageSize));
+  if(STATE.page > maxPage) STATE.page = maxPage;
+  var startIdx = (STATE.page - 1) * STATE.pageSize;
+  var list = fullList.slice(startIdx, startIdx + STATE.pageSize);
+  var tbody = document.getElementById('tableBody');
+
+  if(list.length === 0){
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="13">No orders match this filter.</td></tr>';
+  } else {
+    tbody.innerHTML = list.map(rowHtml).join('');
+  }
+
+  // Sort arrow indicators
+  ['rider','time','amount'].forEach(function(c){
+    var el = document.getElementById('arrow-' + c);
+    var th = el.parentElement;
+    th.classList.remove('sorted');
+    el.textContent = '▼';
+  });
+  var activeArrow = document.getElementById('arrow-' + STATE.sortCol);
+  if(activeArrow){
+    activeArrow.parentElement.classList.add('sorted');
+    activeArrow.textContent = STATE.sortDir === 'asc' ? '▲' : '▼';
+  }
+
+  renderPagination(total, startIdx, list.length);
+  refreshCounts();
+  applyColumnVisibility();
+}
+function renderPagination(total, startIdx, shownCount){
+  var from = total === 0 ? 0 : startIdx + 1;
+  var to = startIdx + shownCount;
+  var maxPage = Math.max(1, Math.ceil(total / STATE.pageSize));
+  STATE.maxPage = maxPage;
+
+  document.getElementById('pageShowing').innerHTML = 'Showing <strong>' + from + '</strong> \u2013 <strong>' + to + '</strong> of <strong>' + total.toLocaleString('id-ID') + '</strong>';
+
+  document.getElementById('pageFirst').disabled = STATE.page <= 1;
+  document.getElementById('pagePrev').disabled = STATE.page <= 1;
+  document.getElementById('pageNext').disabled = STATE.page >= maxPage;
+  document.getElementById('pageLast').disabled = STATE.page >= maxPage;
+
+  var windowSize = 5;
+  var startPage = Math.max(1, STATE.page - Math.floor(windowSize/2));
+  var endPage = Math.min(maxPage, startPage + windowSize - 1);
+  startPage = Math.max(1, endPage - windowSize + 1);
+  var numsHtml = '';
+  for(var p = startPage; p <= endPage; p++){
+    numsHtml += '<button class="page-num-btn' + (p === STATE.page ? ' active' : '') + '" onclick="goToPageAbs(' + p + ')">' + p + '</button>';
+  }
+  document.getElementById('pageNumbers').innerHTML = numsHtml;
+}
+function goToPage(delta){
+  STATE.page += delta;
+  render();
+}
+function goToPageAbs(p){
+  STATE.page = p;
+  render();
+}
+function setPageSize(val){
+  STATE.pageSize = parseInt(val, 10);
+  STATE.page = 1;
+  render();
+}
+
+function rowHtml(r){
+  var age = elapsedLabel(elapsedMs(r));
+  var ageSuffix = r.frozen ? ' <span style="color:var(--muted);font-weight:500;">(at confirm)</span>' : '';
+  var syncIcon = r.sync ? '<span class="sync-flag" tabindex="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2"/><path d="M3.5 9a9 9 0 1 1-.5 4"/><path d="M2.5 5v4h4"/></svg><span class="sync-tooltip">Interim data source: synced hourly from a spreadsheet, not a live feed like Zalora. Age shown here may lag up to ~1h behind the actual event.</span></span>' : '';
+  var orderLink = '<a class="order-link" href="https://back-office.dashelectric.co/deliveries/'+r.orderId+'" target="_blank" rel="noopener">'+r.orderId+'</a>';
+  var providerIdHtml = '<a class="order-link" href="https://back-office.dashelectric.co/deliveries?provider_order_id='+r.providerOrderId+'" target="_blank" rel="noopener">'+r.providerOrderId+'</a>';
+
+  var actionHtml;
+  if(r.status === 'confirmed'){
+    actionHtml = '<button class="btn-detail" onclick="openDetailModal('+r.id+')">Detail</button>';
+  } else if(r.status === 'pending_deposit' || r.status === 'deposit_overdue'){
+    // Second leg: PIC → Finance. Rider contact isn't relevant anymore at this stage.
+    var depositBtnClass = r.status === 'deposit_overdue' ? 'btn-confirm' : 'btn-confirm';
+    actionHtml = '<div class="action-group">'
+      + '<button class="'+depositBtnClass+'" onclick="openDepositModal('+r.id+')">Confirm Deposit</button>'
+      + '<button class="btn-action-disabled" disabled>WhatsApp</button>'
+      + '</div>';
+  } else {
+    var isStage1 = (r.status === 'ontrack' || r.status === 'needs_attention' || r.status === 'unreachable');
+    var confirmBtn = isStage1
+      ? '<button class="btn-action-disabled" disabled title="Delivery not yet completed — nothing to confirm">Confirm</button>'
+      : '<button class="btn-confirm" onclick="openConfirmModal('+r.id+')">Confirm</button>';
+    var waClass = r.status === 'unreachable' ? 'btn-whatsapp retry' : 'btn-whatsapp';
+    var waLabel = r.status === 'unreachable' ? 'WhatsApp (retry)' : 'WhatsApp';
+    var secondBtn = '<button class="'+waClass+'" onclick="openWhatsAppModal('+r.id+')">'+waLabel+'</button>';
+    actionHtml = '<div class="action-group">' + confirmBtn + secondBtn + '</div>';
+    if(r.waDeadline && r.waDeadline > Date.now()){
+      actionHtml += '<div class="wa-countdown" id="wacd-'+r.id+'">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>'
+        + '<span id="wacd-text-'+r.id+'">' + waCountdownLabel(r) + '</span>'
+        + ' \u00b7 <button class="wa-link" onclick="openResponseModal('+r.id+')">Rider Responded</button>'
+        + ' \u00b7 <button class="wa-link demo" onclick="simulateTimeout('+r.id+')">\u23e9 simulate timeout (demo)</button>'
+        + '</div>';
+    }
+  }
+
+  var rowStage = statusStage(r.status);
+  var pillHtml = '<span class="status-pill '+statusPillClass(r.status)+'">'+statusLabel(r.status)+'</span>';
+  var dash = '<span class="stage-dash">\u2014</span>';
+
+  return '<tr data-id="'+r.id+'" data-status="'+r.status+'">'
+    + '<td data-col="rider"><div class="rider-name">'+r.rider+'</div><div class="rider-code">'+r.code+'</div></td>'
+    + '<td data-col="providerId">'+providerIdHtml+'</td>'
+    + '<td data-col="deliveryId">'+orderLink+'</td>'
+    + '<td data-col="clientHub"><span class="client-tag">'+r.client+'</span>'+syncIcon+'<div class="hub-sub">'+r.hub+'</div></td>'
+    + '<td data-col="owner"><div class="owner">'+r.owner+'</div></td>'
+    + '<td data-col="time"><div class="age-cell"><span class="dot '+dotClass(r)+'" id="dot-'+r.id+'" style="width:8px;height:8px;border-radius:50%;display:inline-block;"></span><span id="age-'+r.id+'">'+age+'</span>'+ageSuffix+'</div></td>'
+    + '<td data-col="expected">'+r.expectedLabel+'</td>'
+    + '<td data-col="amount"><div class="amount">'+fmt(r.amount)+'</div></td>'
+    + '<td data-col="stage1">'+(rowStage==='stage1'?pillHtml:dash)+'</td>'
+    + '<td data-col="stage2">'+(rowStage==='stage2'?pillHtml:dash)+'</td>'
+    + '<td data-col="stage3">'+(rowStage==='stage3'?pillHtml:dash)+'</td>'
+    + '<td data-col="stage4">'+(rowStage==='stage4'?pillHtml:dash)+'</td>'
+    + '<td data-col="actions">'+actionHtml+'</td>'
+    + '</tr>';
+}
+
+function refreshCounts(){
+  var statuses = ['ontrack','needs_attention','unreachable','outstanding','escalated','pending_deposit','deposit_overdue','confirmed'];
+  var counts = {}, amounts = {};
+  statuses.forEach(function(s){ counts[s] = 0; amounts[s] = 0; });
+  var totalAmount = 0;
+  ROWS.forEach(function(r){
+    if(counts[r.status] !== undefined){ counts[r.status]++; amounts[r.status] += r.amount; }
+    totalAmount += r.amount;
+  });
+
+  document.getElementById('count-all').textContent = ROWS.length;
+  document.getElementById('stat-all').textContent = ROWS.length;
+  document.getElementById('stat-amt-all').textContent = fmt(totalAmount);
+  statuses.forEach(function(key){
+    var tabEl = document.getElementById('count-' + key);
+    var cardEl = document.getElementById('stat-' + key);
+    var amtEl = document.getElementById('stat-amt-' + key);
+    if(tabEl) tabEl.textContent = counts[key];
+    if(cardEl) cardEl.textContent = counts[key];
+    if(amtEl) amtEl.textContent = fmt(amounts[key]);
+  });
+}
+
+/* ── Live ticking: updates time text + dot color without a full re-render ── */
+function waCountdownLabel(r){
+  var msLeft = Math.max(0, r.waDeadline - Date.now());
+  var totalSec = Math.floor(msLeft/1000);
+  var m = Math.floor(totalSec/60), s = totalSec%60;
+  return 'Response window: ' + m + 'm ' + (s<10?'0':'') + s + 's';
+}
+function tickAges(){
+  var needsFullRender = false;
+  ROWS.forEach(function(r){
+    if(r.frozen) return;
+    var ageEl = document.getElementById('age-' + r.id);
+    var dotEl = document.getElementById('dot-' + r.id);
+    if(ageEl) ageEl.textContent = elapsedLabel(elapsedMs(r));
+    if(dotEl) dotEl.className = 'dot ' + dotClass(r);
+
+    if(r.waDeadline){
+      if(Date.now() >= r.waDeadline){
+        // Timeout reached — no reply, no completion. This is the signal, not a human's report.
+        if(!r.contactLog) r.contactLog = [];
+        r.contactLog.push({ method:'No response after 30m window', result:'', notes:'', ts:Date.now() });
+        r.status = 'unreachable';
+        delete r.waDeadline;
+        toast('No response from ' + r.rider + ' after 30 minutes — flagged Unreachable automatically.');
+        needsFullRender = true;
+      } else {
+        var cdEl = document.getElementById('wacd-text-' + r.id);
+        if(cdEl) cdEl.textContent = waCountdownLabel(r);
+      }
+    }
+  });
+  if(needsFullRender){
+    render();
+    if(document.getElementById('mapView').style.display !== 'none') renderControlTower();
+  }
+}
+function openResponseModal(id){
+  var r = findRow(id);
+  STATE.currentRowId = id;
+  document.getElementById('resp-title').textContent = 'Rider Responded — ' + r.rider;
+  document.getElementById('resp-sub').textContent = r.code + ' \u00b7 ' + r.client + ' \u00b7 ' + statusLabel(r.status) + ' \u00b7 window had ' + waCountdownLabel(r).replace('Response window: ','');
+  document.getElementById('resp-log').innerHTML = contactLogHtml(r);
+  document.getElementById('resp-notes').value = '';
+  document.getElementById('responseOverlay').classList.add('open');
+}
+function submitRiderResponse(){
+  var r = findRow(STATE.currentRowId);
+  var notes = document.getElementById('resp-notes').value.trim();
+  if(!r.contactLog) r.contactLog = [];
+  r.contactLog.push({ method:'Rider responded', result:'', notes: notes || 'No details given', ts:Date.now() });
+  delete r.waDeadline;
+  if(r.status === 'unreachable') r.status = 'needs_attention';
+  closeModal('responseOverlay');
+  toast(r.rider + ' responded \u2014 response window cleared.');
+  render();
+  if(document.getElementById('mapView').style.display !== 'none') renderControlTower();
+}
+function simulateTimeout(id){
+  var r = findRow(id);
+  r.waDeadline = Date.now() - 1000;
+  toast('(Demo) Fast-forwarding — simulating the 30-minute window expiring now.');
+  tickAges();
+}
+
+/* ══════════════════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════════════════ */
+function findRow(id){ return ROWS.find(function(r){ return r.id === id; }); }
+function ownerOptionsHtml(current){
+  var owners = ['rizki.hariawan@dashelectric.co','ops.lead.bekasi@dashelectric.co'];
+  return owners.map(function(o){
+    return '<option'+(o===current?' selected':'')+'>'+o+(o===current?' (current)':'')+'</option>';
+  }).join('') + '<option>Reassign…</option>';
+}
+
+/* Confirm modal */
+function openConfirmModal(id){
+  var r = findRow(id);
+  STATE.currentRowId = id;
+  document.getElementById('cf-title').textContent = 'Confirm COD — ' + r.rider;
+  document.getElementById('cf-sub').textContent = r.code + ' · ' + r.client + ' · ' + r.hub + ' · ' + statusLabel(r.status) + ' ' + elapsedLabel(elapsedMs(r));
+  document.getElementById('settlementSource').value = '';
+  document.getElementById('confirmedAmount').value = fmt(r.amount);
+  document.getElementById('discLabel').textContent = 'Discrepancy vs. Expected (' + fmt(r.amount) + ')';
+  document.getElementById('discValue').value = 'Rp 0';
+  document.getElementById('discrepancyNote').classList.remove('show');
+  document.getElementById('discNoteText').value = '';
+  document.getElementById('requiredFlag').classList.remove('show');
+  document.getElementById('discNoteFlag').classList.remove('show');
+  document.getElementById('proofFlag').classList.remove('show');
+  document.getElementById('proofFile').value = '';
+  document.getElementById('fileChip').classList.remove('show');
+  document.getElementById('dropzone').style.display = 'block';
+  document.getElementById('cf-owner').innerHTML = ownerOptionsHtml(r.owner);
+  document.getElementById('cf-notes').value = '';
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function cfClearFlag(){ document.getElementById('requiredFlag').classList.remove('show'); }
+function checkDiscrepancy(){
+  var r = findRow(STATE.currentRowId);
+  var val = unfmt(document.getElementById('confirmedAmount').value);
+  var disc = val - r.amount;
+  document.getElementById('discValue').value = fmt(disc);
+  var note = document.getElementById('discrepancyNote');
+  if(disc !== 0){ note.classList.add('show'); } else { note.classList.remove('show'); document.getElementById('discNoteFlag').classList.remove('show'); }
+}
+function handleFile(input){
+  if(input.files && input.files[0]){
+    document.getElementById('fileName').textContent = input.files[0].name;
+    document.getElementById('fileChip').classList.add('show');
+    document.getElementById('dropzone').style.display = 'none';
+    document.getElementById('proofFlag').classList.remove('show');
+  }
+}
+function clearFile(e){
+  e.stopPropagation();
+  document.getElementById('proofFile').value = '';
+  document.getElementById('fileChip').classList.remove('show');
+  document.getElementById('dropzone').style.display = 'block';
+}
+
+/* Deposit modal (PIC → Finance) — mirrors the Confirm modal pattern above */
+function openDepositModal(id){
+  var r = findRow(id);
+  STATE.currentRowId = id;
+  var rc = r.riderConfirmData || {};
+  document.getElementById('dep-title').textContent = 'Confirm Deposit to Finance — ' + r.rider;
+  document.getElementById('dep-sub').textContent = r.code + ' · ' + r.client + ' · ' + statusLabel(r.status) + ' ' + elapsedLabel(elapsedMs(r)) + ' since rider confirmation';
+  document.getElementById('dep-riderinfo').textContent = (rc.settlement||'—') + ' · ' + fmt(rc.confirmedAmount||r.amount) + ' · by ' + (rc.confirmedBy||'—');
+  document.getElementById('depositAmount').value = fmt(rc.confirmedAmount || r.amount);
+  document.getElementById('depDiscLabel').textContent = 'Discrepancy vs. Rider-Confirmed Amount (' + fmt(rc.confirmedAmount||r.amount) + ')';
+  document.getElementById('depDiscValue').value = 'Rp 0';
+  document.getElementById('depDiscrepancyNote').classList.remove('show');
+  document.getElementById('depDiscNoteText').value = '';
+  document.getElementById('depDiscNoteFlag').classList.remove('show');
+  document.getElementById('depProofFlag').classList.remove('show');
+  document.getElementById('depProofFile').value = '';
+  document.getElementById('depFileChip').classList.remove('show');
+  document.getElementById('depDropzone').style.display = 'block';
+  document.getElementById('dep-notes').value = '';
+  document.getElementById('depositOverlay').classList.add('open');
+}
+function checkDepositDiscrepancy(){
+  var r = findRow(STATE.currentRowId);
+  var baseline = (r.riderConfirmData && r.riderConfirmData.confirmedAmount) || r.amount;
+  var val = unfmt(document.getElementById('depositAmount').value);
+  var disc = val - baseline;
+  document.getElementById('depDiscValue').value = fmt(disc);
+  var note = document.getElementById('depDiscrepancyNote');
+  if(disc !== 0){ note.classList.add('show'); } else { note.classList.remove('show'); document.getElementById('depDiscNoteFlag').classList.remove('show'); }
+}
+function handleDepFile(input){
+  if(input.files && input.files[0]){
+    document.getElementById('depFileName').textContent = input.files[0].name;
+    document.getElementById('depFileChip').classList.add('show');
+    document.getElementById('depDropzone').style.display = 'none';
+    document.getElementById('depProofFlag').classList.remove('show');
+  }
+}
+function clearDepFile(e){
+  e.stopPropagation();
+  document.getElementById('depProofFile').value = '';
+  document.getElementById('depFileChip').classList.remove('show');
+  document.getElementById('depDropzone').style.display = 'block';
+}
+function submitDeposit(){
+  var r = findRow(STATE.currentRowId);
+  var baseline = (r.riderConfirmData && r.riderConfirmData.confirmedAmount) || r.amount;
+  var hasFile = document.getElementById('depProofFile').files.length > 0;
+  var depositedAmt = unfmt(document.getElementById('depositAmount').value);
+  var disc = depositedAmt - baseline;
+  var noteVal = document.getElementById('depDiscNoteText').value.trim();
+  var extraNotes = document.getElementById('dep-notes').value.trim();
+  var ok = true;
+  if(disc !== 0 && !noteVal){ document.getElementById('depDiscNoteFlag').classList.add('show'); ok = false; }
+  if(!hasFile){ document.getElementById('depProofFlag').classList.add('show'); ok = false; }
+  if(!ok) return;
+
+  var fileName = document.getElementById('depProofFile').files[0].name;
+  r.status = 'confirmed';
+  r.frozen = true;
+  r.depositData = {
+    method: 'Bank Transfer',
+    depositedAmount: depositedAmt,
+    discNote: noteVal,
+    notes: extraNotes,
+    depositedBy: r.owner,
+    depositedAt: new Date().toLocaleString('en-GB', {year:'numeric',month:'2-digit',day:'2-digit'}).split('/').reverse().join('-') + ', ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) + ' WIB',
+    proofFile: fileName
+  };
+  closeModal('depositOverlay');
+  toast('Deposit to Finance confirmed for ' + r.rider + ' \u2014 fully reconciled');
+  render();
+  if(document.getElementById('mapView').style.display !== 'none') renderControlTower();
+}
+
+function submitConfirm(){
+  var r = findRow(STATE.currentRowId);
+  var src = document.getElementById('settlementSource').value;
+  var hasFile = document.getElementById('proofFile').files.length > 0;
+  var confirmedAmt = unfmt(document.getElementById('confirmedAmount').value);
+  var disc = confirmedAmt - r.amount;
+  var noteVal = document.getElementById('discNoteText').value.trim();
+  var extraNotes = document.getElementById('cf-notes').value.trim();
+  var ok = true;
+  if(!src){ document.getElementById('requiredFlag').classList.add('show'); ok = false; }
+  if(disc !== 0 && !noteVal){ document.getElementById('discNoteFlag').classList.add('show'); ok = false; }
+  if(!hasFile){ document.getElementById('proofFlag').classList.add('show'); ok = false; }
+  if(!ok) return;
+
+  var fileName = document.getElementById('proofFile').files[0].name;
+  var settlementLabels = { rider:'Rider Paid', pic:'PIC Covered (Talangan)', tribe:'Tribe Write-off' };
+  // This confirms Rider → PIC only. The cash now sits with the PIC until they deposit it to Finance —
+  // that's a separate leg (see openDepositModal), so this does NOT mark the row fully resolved yet.
+  r.status = 'pending_deposit';
+  r.riderConfirmData = {
+    settlement: settlementLabels[src],
+    confirmedAmount: confirmedAmt,
+    discNote: noteVal,
+    notes: extraNotes,
+    confirmedBy: document.getElementById('cf-owner').value.replace(' (current)',''),
+    confirmedAt: new Date().toLocaleString('en-GB', {year:'numeric',month:'2-digit',day:'2-digit'}).split('/').reverse().join('-') + ', ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) + ' WIB',
+    proofFile: fileName
+  };
+  // Start a fresh clock for the deposit leg — same 24h pattern as the confirmation leg.
+  r.completedAt = Date.now();
+  r.thresholdH = 24;
+  r.expectedLabel = '24h';
+  closeModal('confirmOverlay');
+  toast(r.rider + '\u2019s COD confirmed from rider \u2014 now awaiting PIC deposit to Finance');
+  render();
+  if(document.getElementById('mapView').style.display !== 'none') renderControlTower();
+}
+
+/* Log Contact modal */
+function contactLogHtml(r){
+  if(!r.contactLog || r.contactLog.length === 0) return '<div class="cl-empty">No contact attempts logged yet.</div>';
+  return r.contactLog.map(function(c){
+    var mins = Math.floor((Date.now()-c.ts)/60000);
+    var when = mins < 60 ? mins+'m ago' : Math.floor(mins/60)+'h ago';
+    return '<div class="cl-item"><div class="cl-dot" style="background:var(--muted);"></div><div class="cl-body"><div class="cl-title">'+c.method+(c.result?' — '+c.result:'')+'</div><div class="cl-meta">'+when+(c.notes?' · '+c.notes:'')+'</div></div></div>';
+  }).join('');
+}
+function waTemplate(r){
+  return 'Halo ' + r.rider.split(' ')[0] + ', ini dari Dash Ops mengenai pengiriman ' + r.code + ' (' + r.client + ') yang belum selesai. Mohon konfirmasi status Anda saat ini. Terima kasih.';
+}
+function openWhatsAppModal(id){
+  var r = findRow(id);
+  STATE.currentRowId = id;
+  document.getElementById('wa-title').textContent = 'Message via WhatsApp \u2014 ' + r.rider;
+  document.getElementById('wa-sub').textContent = r.code + ' \u00b7 ' + r.client + ' \u00b7 ' + statusLabel(r.status) + ' ' + elapsedLabel(elapsedMs(r)) + ' (expected ' + r.expectedLabel + ')';
+  document.getElementById('wa-log').innerHTML = contactLogHtml(r);
+  document.getElementById('wa-phone').value = r.phone || '\u2014';
+  document.getElementById('wa-template').value = waTemplate(r);
+  document.getElementById('wa-notes').value = '';
+  document.getElementById('waOverlay').classList.add('open');
+}
+function submitWhatsApp(){
+  var r = findRow(STATE.currentRowId);
+  var notes = document.getElementById('wa-notes').value.trim();
+  if(!r.contactLog) r.contactLog = [];
+  r.contactLog.push({ method:'WhatsApp sent', result:'', notes:notes, ts:Date.now() });
+  var msg = 'WhatsApp message sent to ' + r.rider;
+  if(r.status === 'needs_attention' || r.status === 'unreachable'){
+    r.waDeadline = Date.now() + 30*60*1000;
+    r.contactLog.push({ method:'Response window started (30m)', result:'', notes:'', ts:Date.now() });
+    msg += ' \u2014 30-minute response window started';
+  }
+  closeModal('waOverlay');
+  toast(msg);
+  render();
+  if(document.getElementById('mapView').style.display !== 'none') renderControlTower();
+}
+
+/* ══════════════════════════════════════════════════════
+   CONTROL TOWER (map view)
+══════════════════════════════════════════════════════ */
+function atRiskRows(){
+  return ROWS.filter(function(r){
+    return r.status === 'needs_attention' || r.status === 'unreachable'
+        || r.status === 'outstanding' || r.status === 'escalated';
+  });
+}
+function setView(view){
+  document.querySelectorAll('#viewToggle button').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelector('#viewToggle button:nth-child(' + (view === 'list' ? 1 : 2) + ')').classList.add('active');
+  document.getElementById('listView').style.display = view === 'list' ? '' : 'none';
+  document.getElementById('mapView').style.display = view === 'map' ? '' : 'none';
+  if(view === 'map') renderControlTower();
+}
+function ctCardHtml(r){
+  var isStage1 = (r.status === 'needs_attention' || r.status === 'unreachable');
+  var tracked = isStage1 && r.client === 'Zalora';
+  var liveTag;
+  if(isStage1){
+    liveTag = tracked
+      ? '<span class="ct-live-tag live"><span class="ct-live-dot"></span>Live \u00b7 updated just now</span>'
+      : '<span class="ct-live-tag stale">Last synced ~52m ago</span>';
+  } else {
+    liveTag = '<span class="ct-live-tag stale">Delivery complete</span>';
+  }
+  var statusTxt = statusLabel(r.status);
+  var deliveryLink = '<a class="order-link" href="https://back-office.dashelectric.co/deliveries/'+r.orderId+'" target="_blank" rel="noopener" onclick="event.stopPropagation();">'+r.orderId+'</a>';
+  var providerLink = '<a class="order-link" href="https://back-office.dashelectric.co/deliveries?provider_order_id='+r.providerOrderId+'" target="_blank" rel="noopener" onclick="event.stopPropagation();">'+r.providerOrderId+'</a>';
+
+  var actionsHtml;
+  if(isStage1){
+    var actionBtn = tracked
+      ? '<button class="btn-confirm" onclick="selectCtRider(' + r.id + ')">Center on Map</button>'
+      : '<button class="btn-action-disabled" disabled title="No live tracking for Sayurbox">No Live Pin</button>';
+    actionsHtml = actionBtn + '<button class="btn-whatsapp' + (r.status==='unreachable'?' retry':'') + '" onclick="event.stopPropagation();openWhatsAppModal(' + r.id + ')" style="flex:1;">' + (r.status==='unreachable'?'WhatsApp (retry)':'WhatsApp') + '</button>';
+  } else {
+    // Stage 2: delivery's done, cash is with the PIC — but a PIC may still want to reach the
+    // rider directly, so WhatsApp stays available alongside Confirm.
+    actionsHtml = '<button class="btn-confirm" onclick="event.stopPropagation();openConfirmModal(' + r.id + ')">Confirm</button>'
+      + '<button class="btn-whatsapp" onclick="event.stopPropagation();openWhatsAppModal(' + r.id + ')" style="flex:1;">WhatsApp</button>';
+  }
+
+  return '<div class="ct-card" id="ctcard-' + r.id + '" onclick="selectCtRider(' + r.id + ')">'
+    + '<div class="ct-card-top"><div><div class="ct-card-name">' + r.rider + '</div><div class="ct-card-code">' + r.code + ' \u00b7 ' + r.client + '</div></div>' + liveTag + '</div>'
+    + '<div class="ct-card-section">'
+      + '<span class="status-pill ' + statusPillClass(r.status) + '">' + statusTxt + '</span>'
+      + '<span class="ct-elapsed">' + elapsedLabel(elapsedMs(r)) + '</span>'
+    + '</div>'
+    + '<div class="ct-hub">' + r.hub + '</div>'
+    + '<div class="ct-id-grid">'
+      + '<div><div class="ct-id-label">Provider Order ID</div>' + providerLink + '</div>'
+      + '<div><div class="ct-id-label">Delivery ID</div>' + deliveryLink + '</div>'
+    + '</div>'
+    + '<div class="ct-amount">' + fmt(r.amount) + '</div>'
+    + '<div class="ct-card-actions">' + actionsHtml + '</div>'
+    + '</div>';
+}
+function ctPinHtml(r){
+  return '<div class="ct-pin status-' + r.status + '" id="ctpin-' + r.id + '" style="left:' + r.mapX + 'px;top:' + r.mapY + 'px;" onclick="selectCtRider(' + r.id + ')">'
+    + (r.status === 'unreachable' ? '<div class="ct-pin-pulse"></div>' : '')
+    + '<div class="ct-pin-label">' + r.rider + '</div>'
+    + '<div class="ct-pin-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/></svg></div>'
+    + '</div>';
+}
+function renderControlTower(){
+  var list = atRiskRows();
+  document.getElementById('ctList').innerHTML = list.length
+    ? list.map(ctCardHtml).join('')
+    : '<div class="cl-empty">No riders currently need attention.</div>';
+  var pinnable = list.filter(function(r){
+    var isStage1 = (r.status === 'needs_attention' || r.status === 'unreachable');
+    return isStage1 && r.client === 'Zalora';
+  });
+  document.getElementById('ctPins').innerHTML = pinnable.map(ctPinHtml).join('');
+}
+function selectCtRider(id){
+  document.querySelectorAll('.ct-card').forEach(function(c){ c.classList.remove('selected'); });
+  document.querySelectorAll('.ct-pin').forEach(function(p){ p.classList.remove('selected'); });
+  var card = document.getElementById('ctcard-' + id);
+  var pin = document.getElementById('ctpin-' + id);
+  if(card){ card.classList.add('selected'); if(typeof card.scrollIntoView === 'function') card.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+  if(pin) pin.classList.add('selected');
+}
+
+/* Detail modal (read-only) */
+function openDetailModal(id){
+  var r = findRow(id);
+  var c = r.riderConfirmData || {};
+  var d = r.depositData || {};
+  document.getElementById('dt-title').textContent = 'Confirmation Detail — ' + r.rider;
+  document.getElementById('dt-sub').textContent = r.code + ' · ' + r.client + ' · Fully reconciled ' + (d.depositedAt || '');
+  document.getElementById('dt-hub').textContent = r.hub;
+  document.getElementById('dt-providerid').innerHTML = '<a class="order-link" href="https://back-office.dashelectric.co/deliveries?provider_order_id='+r.providerOrderId+'" target="_blank" rel="noopener">'+r.providerOrderId+'</a>';
+  document.getElementById('dt-orderid').innerHTML = '<a class="order-link" href="https://back-office.dashelectric.co/deliveries/'+r.orderId+'" target="_blank" rel="noopener">'+r.orderId+'</a>';
+
+  document.getElementById('dt-settlement').textContent = c.settlement || '—';
+  document.getElementById('dt-expected').textContent = fmt(r.amount);
+  document.getElementById('dt-confirmed').textContent = fmt(c.confirmedAmount || 0);
+  document.getElementById('dt-disc').textContent = fmt((c.confirmedAmount||0) - r.amount);
+  if(c.discNote){
+    document.getElementById('dt-noteRow').style.display = 'flex';
+    document.getElementById('dt-note').textContent = c.discNote;
+  } else {
+    document.getElementById('dt-noteRow').style.display = 'none';
+  }
+  document.getElementById('dt-by').textContent = c.confirmedBy || '—';
+  document.getElementById('dt-geotag').innerHTML = (c.confirmedAt||'') + '<br/>' + r.hub + '<br/>Indonesia';
+
+  document.getElementById('dt-depmethod').textContent = d.method || '—';
+  document.getElementById('dt-depamount').textContent = fmt(d.depositedAmount || 0);
+  document.getElementById('dt-depdisc').textContent = fmt((d.depositedAmount||0) - (c.confirmedAmount||r.amount));
+  if(d.discNote){
+    document.getElementById('dt-depNoteRow').style.display = 'flex';
+    document.getElementById('dt-depnote').textContent = d.discNote;
+  } else {
+    document.getElementById('dt-depNoteRow').style.display = 'none';
+  }
+  document.getElementById('dt-depat').textContent = d.depositedAt || '—';
+  document.getElementById('dt-depgeotag').innerHTML = (d.depositedAt||'') + '<br/>' + r.hub + '<br/>Indonesia (Bank/ATM)';
+
+  window._lbData = {
+    payment: { geotag: (c.confirmedAt||'') + '<br/>' + r.hub + '<br/>Indonesia', caption: (c.proofFile||'—') + ' · uploaded by ' + (c.confirmedBy||'—') },
+    deposit: { geotag: (d.depositedAt||'') + '<br/>' + r.hub + '<br/>Indonesia (Bank/ATM)', caption: (d.proofFile||'—') + ' · uploaded by ' + (d.depositedBy||'—') }
+  };
+  document.getElementById('detailOverlay').classList.add('open');
+}
+function openLightbox(which){
+  which = which || 'payment';
+  var data = window._lbData[which];
+  document.getElementById('lb-geotag').innerHTML = data.geotag;
+  document.getElementById('lb-caption').textContent = data.caption;
+  document.getElementById('lightboxOverlay').classList.add('open');
+}
+
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(function(ov){
+  ov.addEventListener('click', function(e){ if(e.target === this) this.classList.remove('open'); });
+});
+
+/* ══════════════════════════════════════════════════════
+   CONTROLS: time tabs, custom range, export, refresh, sidebar
+══════════════════════════════════════════════════════ */
+function selectTimeTab(btn){
+  document.querySelectorAll('#timeTabs button').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('customRangeBtn').classList.remove('active');
+  btn.classList.add('active');
+  document.getElementById('todayBtn').classList.toggle('active', btn.id === 'tab1d');
+}
+function selectToday(){
+  selectTimeTab(document.getElementById('tab1d'));
+}
+function toggleCustomRange(){ document.getElementById('customRangePopover').classList.toggle('open'); }
+function clearCustomRange(){ document.getElementById('customRangePopover').classList.remove('open'); }
+function applyCustomRange(){
+  var start = document.getElementById('crpStart').value;
+  var end = document.getElementById('crpEnd').value;
+  if(start && end){
+    document.getElementById('dateRangeLabel').textContent = start + ' → ' + end + ' WIB';
+    document.querySelectorAll('#timeTabs button').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('todayBtn').classList.remove('active');
+    document.getElementById('customRangeBtn').classList.add('active');
+  }
+  document.getElementById('customRangePopover').classList.remove('open');
+}
+document.addEventListener('click', function(e){
+  var pop = document.getElementById('customRangePopover');
+  var btn = document.getElementById('customRangeBtn');
+  if(pop.classList.contains('open') && !pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)){
+    pop.classList.remove('open');
+  }
+});
+
+function doRefresh(){ toast('Data refreshed'); render(); }
+function doExport(){
+  var list = sortRows(getFiltered());
+  var header = ['Rider','Mitra Code','Client','Hub','Owner','Time in Status','Expected','Amount','Status'];
+  var lines = [header.join(',')];
+  list.forEach(function(r){
+    lines.push([r.rider, r.code, r.client, '"'+r.hub+'"', r.owner, elapsedLabel(elapsedMs(r)), r.expectedLabel, r.amount, statusLabel(r.status)].join(','));
+  });
+  try {
+    var blob = new Blob([lines.join('\n')], {type:'text/csv'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cod-reconciliation-export.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('Exported ' + list.length + ' rows to CSV');
+  } catch(e){
+    toast('Export needs a full browser tab — try opening this file directly.');
+  }
+}
+function toggleSidebar(){
+  document.querySelector('aside').classList.toggle('collapsed');
+}
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+(function(){
+  var today = new Date();
+  var y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,'0'), d = String(today.getDate()).padStart(2,'0');
+  document.getElementById('dateRangeLabel').textContent = y + '-' + m + '-' + d + ' WIB';
+})();
+render();
+setInterval(tickAges, 1000);
+
+/* Demo: show what "the system detects it automatically" actually looks like.
+   In production this is the sync job picking up delivered_at / a webhook event —
+   nobody clicks anything for this to happen. */
+setTimeout(function(){
+  var r = findRow(10);
+  if(r && (r.status === 'needs_attention' || r.status === 'ontrack' || r.status === 'unreachable')){
+    r.status = 'outstanding';
+    r.thresholdH = 24;
+    r.completedAt = Date.now();
+    r.expectedLabel = '24h';
+    toast('Sync detected ' + r.rider + '\'s delivery completed — moved automatically. No one logged this.');
+    render();
+  }
+}, 14000);
+</script>
+
+</body>
+</html>
