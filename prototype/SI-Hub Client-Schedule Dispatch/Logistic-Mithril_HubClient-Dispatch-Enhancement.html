@@ -3184,7 +3184,7 @@ function hcSchedFor(code){return DSP_SCHEDULES.filter(s=>s.hub===code&&s.active)
 function openCreateHubClient(){
   closeCreate4W();
   const sc=hcSchedFor("HC_POLDA_BALI");
-  hc={hub:"HC_POLDA_BALI",client:"NCS",batchRef:"",note:"",sendDate:"",time:sc.length?sc[0].time:"",mode:"manual"};
+  hc={hub:"HC_POLDA_BALI",client:"NCS",batchRef:"",note:"",sendDate:"",time:sc.length?sc[0].time:"",mode:"manual",entry:"form",bulkRows:[]};
   hcRows=[{nama:"",alamat:""}];renderCreateHubClient();
 }
 function hcGanti(){closeHubClient();openShipmentTypeMenu();}
@@ -3215,6 +3215,48 @@ function hcConfirm(){
   SHIPMENTS.unshift({waybill:wb,booking:wb,batch:"—",client:hc.client,bu:"HUB_CLIENT",status:"Created",items:v.length,created:"Baru · sekarang",dispatched:"—",service:"SCHEDULED",hubClient:true,zone:h.zone,provider:"—",note:hc.note||"",uploadId:"(baru · "+(hc.batchRef||"tanpa ref")+")",sender:{name:h.name,phone:"—"},receiver:first.nama,receiverPhone:"—",addr:first.alamat,origin:{name:h.name,addr:h.addr,coord:h.coord},dest:{addr:first.alamat,coord:"—"},itemsList:v.map((r,k)=>({name:"Surat Tilang · "+r.nama,invoice:(hc.batchRef||"REF")+"-"+String(k+1).padStart(3,"0"),qty:1,koli:1,kg:0,m3:0,addr:r.alamat,delivery:{leg:"Last mile",waybill:"—",status:"CREATED"}}))});
   closeModal();closeHubClient();nav("shipments");toast(`Shipment Hub Client dibuat · ${v.length} penerima · ${h.name} · dispatch ${hc.time} WIB`);
 }
+/* ===== Bulk CSV (banyak batch) — 1 file → banyak shipment, grouped by hub+tanggal, dgn validasi & preview ===== */
+const HC_BULK_SAMPLE=[
+  {hub:"Polda Bali",client:"NCS",tanggal:"2026-08-16",nama:"I Wayan Gede Artawan",alamat:"Jl. Gatot Subroto Barat No.88, Padangsambian, Denpasar Barat",ref:"ETLE-DPS-001"},
+  {hub:"Polda Bali",client:"NCS",tanggal:"2026-08-16",nama:"Ni Kadek Ayu Lestari",alamat:"Jl. Tukad Badung No.12, Renon, Denpasar Selatan",ref:"ETLE-DPS-002"},
+  {hub:"Polda Bali",client:"NCS",tanggal:"2026-08-16",nama:"Putu Andika Pratama",alamat:"Denpasar",ref:"ETLE-DPS-003"},
+  {hub:"Polres Denpasar",client:"NCS",tanggal:"2026-08-16",nama:"I Made Surya Dinata",alamat:"Jl. Raya Kuta No.45, Kuta, Badung",ref:"ETLE-DPS-051"},
+  {hub:"Polres Denpasar",client:"NCS",tanggal:"2026-08-16",nama:"I Made Surya Dinata",alamat:"Jl. Raya Kuta No.45, Kuta, Badung",ref:"ETLE-DPS-051"},
+  {hub:"Polres Denpasar",client:"NCS",tanggal:"2026-08-16",nama:"Kadek Dwi Payana",alamat:"Jl. Diponegoro No.150, Denpasar Selatan",ref:"ETLE-DPS-052"},
+  {hub:"Polres Badung",client:"NCS",tanggal:"2026-08-17",nama:"I Gusti Ngurah Bagus",alamat:"Jl. Uluwatu No.88, Jimbaran, Kuta Selatan, Badung",ref:"ETLE-BDG-001"},
+  {hub:"Polres Badung",client:"NCS",tanggal:"2026-08-17",nama:"Ni Luh Sekar",alamat:"Jl. Bypass Ngurah Rai No.20, Jimbaran, Badung",ref:"ETLE-BDG-002"}
+];
+function hcSetEntry(e){hc.entry=e;renderCreateHubClient();}
+function hcBulkImport(){hc.bulkRows=JSON.parse(JSON.stringify(HC_BULK_SAMPLE));renderCreateHubClient();toast(`${HC_BULK_SAMPLE.length} baris CSV dimuat — periksa preview per grup`);}
+function hcBulkClear(){hc.bulkRows=[];renderCreateHubClient();}
+function hcBulkGroups(){
+  const map={};(hc.bulkRows||[]).forEach(r=>{const k=r.hub+"|"+r.tanggal;(map[k]=map[k]||[]).push(r);});
+  return Object.keys(map).map(k=>{
+    const [hubName,tanggal]=k.split("|");const rows=map[k];const seen=new Set();let dup=0,addrFlag=0;const valid=[];
+    rows.forEach(r=>{const key=((r.nama||"")+"|"+(r.alamat||"")).toLowerCase().trim();if(seen.has(key)){dup++;return;}seen.add(key);const tokens=(r.alamat||"").split(/[,\s]+/).filter(Boolean).length;const addrOk=tokens>=4;if(!addrOk)addrFlag++;valid.push({...r,addrOk});});
+    const hcm=HUB_CLIENTS.find(x=>x.name===hubName);const sc=hcm?hcSchedFor(hcm.code):[];
+    return {hubName,tanggal,rows,valid,dup,addrFlag,time:sc.length?sc[0].time:null,code:hcm?hcm.code:null,zone:hcm?hcm.zone:"—",riders:hcm?hcm.riders:0,client:rows[0].client};
+  });
+}
+function hcBulkStats(){const g=hcBulkGroups();return {groups:g.length,rows:(hc.bulkRows||[]).length,valid:g.reduce((a,x)=>a+x.valid.length,0),dup:g.reduce((a,x)=>a+x.dup,0),addrFlag:g.reduce((a,x)=>a+x.addrFlag,0),noSched:g.filter(x=>!x.time).length};}
+function hcBulkConfirmDialog(){
+  const st=hcBulkStats();if(!st.rows){toast("Upload CSV dulu",false);return;}if(!st.valid){toast("Tidak ada baris valid",false);return;}
+  const g=hcBulkGroups();
+  const list=g.map(x=>`<tr><td class="strong">${x.hubName}</td><td>${x.tanggal}</td><td>${x.time?x.time+" WIB":'<span style="color:var(--warning-base,#c7791b)">belum ada jadwal</span>'}</td><td>${x.valid.length}${x.dup?` <span class="muted">(−${x.dup} dup)</span>`:""}</td></tr>`).join("");
+  openModal(`<div class="modal" style="max-width:620px"><div class="modal-head" style="justify-content:space-between"><div style="display:flex;gap:12px;align-items:center"><div class="modal-ic purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div><h3>Buat ${st.groups} shipment dari CSV?</h3><div class="sub" style="font-family:var(--sans)">${st.valid} penerima valid · ${st.rows} baris${st.dup?` · ${st.dup} duplikat dilewati`:""}</div></div></div><button class="x" onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:var(--text-soft)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+    <div class="modal-body">${st.addrFlag?`<div class="hc-nosched" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><b>${st.addrFlag} alamat perlu dicek</b> (kemungkinan tidak lengkap). Tetap dibuat, ditandai untuk admin — berisiko ke success rate.</div></div>`:""}
+      <div class="fsec" style="margin-top:0">Grup shipment · ${st.groups}</div>
+      <div class="table-wrap" style="max-height:260px;overflow:auto;border:1px solid var(--stroke-soft);border-radius:10px"><table><thead><tr><th>Hub Client</th><th>Tanggal</th><th>Jam dispatch</th><th>Penerima</th></tr></thead><tbody>${list}</tbody></table></div></div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal()">Kembali</button><button class="btn primary" onclick="hcBulkConfirm()">Buat ${st.groups} shipment</button></div></div>`);
+}
+function hcBulkConfirm(){
+  const g=hcBulkGroups();let n=0;
+  g.forEach(x=>{const v=x.valid;if(!v.length)return;const hcm=HUB_CLIENTS.find(y=>y.code===x.code)||HUB_CLIENTS[0];const first=v[0];
+    const wb="DLNCS2608"+String(30+SHIPMENTS.length%60)+hcm.code.replace("HC_","").slice(0,3);
+    SHIPMENTS.unshift({waybill:wb,booking:wb,batch:"CSV",client:x.client,bu:"HUB_CLIENT",status:"Created",items:v.length,created:"Baru · CSV",dispatched:"—",service:"SCHEDULED",hubClient:true,zone:hcm.zone,provider:"—",note:"Bulk CSV · "+x.tanggal,uploadId:"(bulk-csv)",sender:{name:hcm.name,phone:"—"},receiver:first.nama,receiverPhone:"—",addr:first.alamat,origin:{name:hcm.name,addr:hcm.addr,coord:hcm.coord},dest:{addr:first.alamat,coord:"—"},itemsList:v.map((r,k)=>({name:"Surat Tilang · "+r.nama,invoice:r.ref||("REF-"+String(k+1).padStart(3,"0")),qty:1,koli:1,kg:0,m3:0,addr:r.alamat,delivery:{leg:"Last mile",waybill:"—",status:"CREATED"}}))});
+    n++;});
+  closeModal();closeHubClient();nav("shipments");toast(`${n} shipment dibuat dari CSV (${g.length} grup, ${g.reduce((a,x)=>a+x.valid.length,0)} penerima)`);
+}
 function renderCreateHubClient(){
   let layer=document.getElementById("hcLayer");
   if(!layer){layer=document.createElement("div");layer.id="hcLayer";document.body.appendChild(layer);}
@@ -3237,13 +3279,9 @@ function renderCreateHubClient(){
         :`<select class="sel-field" onchange="hc.time=this.value;renderCreateHubClient()">${scheds.map(s=>`<option value="${s.time}" ${hc.time===s.time?"selected":""}>${s.time} WIB — ${s.label}</option>`).join("")}</select>`}
       <div class="c4-fnote">Diambil dari <b>Jadwal Dispatch</b> hub ini. <a class="cs-link" style="margin:0" onclick="closeHubClient();nav('dispatch-schedule')">Ubah jadwal →</a></div></div>`
     :`<div class="hc-nosched"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><b>Belum ada jadwal dispatch</b> untuk ${h.name}. Atur dulu agar dispatch berjalan otomatis. <a class="cs-link" style="margin:0" onclick="closeHubClient();nav('dispatch-schedule')">Buka Jadwal Dispatch →</a></div></div>`;
-  layer.innerHTML=`<div class="cs-full"><div class="cs-full-head"><div class="x" onclick="closeHubClient()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div><div><div class="c4w-crumb">Operations · Shipments · <b>New shipment</b></div><h2>Buat Shipment</h2></div><div class="cs-head-actions">${helpBtns}</div></div>
-  <div class="cs-full-body">
-    <div class="cs-panel cs-main">
-      <div class="c4-sec-h">01 · Tipe pengiriman</div>
-      <div class="hc-typechip"><span class="hc-tc-ic">🏢</span><div class="hc-tc-txt"><div class="hc-tc-n">Hub Client</div><div class="hc-tc-d">Pickup dari titik milik client · dispatch terjadwal · rider pakai app partner</div></div><button class="btn ghost sm" onclick="hcGanti()">Ganti tipe</button></div>
-
-      <div class="c4-sec-h" style="margin-top:22px">02 · Hub Client &amp; client <span class="req">diisi Ops</span></div>
+  const isForm=hc.entry!=="bulk";const st=hcBulkStats();const groups=hcBulkGroups();
+  const entryToggle=`<div class="lbl-seg cs-seg" style="margin-top:14px;max-width:460px"><button class="${isForm?'on':''}" onclick="hcSetEntry('form')">Satu batch (form)</button><button class="${!isForm?'on':''}" onclick="hcSetEntry('bulk')">Bulk CSV (banyak batch)</button></div>`;
+  const formMain=`<div class="c4-sec-h" style="margin-top:22px">02 · Hub Client &amp; client <span class="req">diisi Ops</span></div>
       <div class="c4-grid">
         <div><label class="lbl-field">Pilih Hub Client<span class="req-tag">*</span></label><select class="sel-field" onchange="hcSetHub(this.value)">${hubOpts}</select><div class="c4-fnote">Titik pickup milik client — didaftarkan Ops di <b>Master · Hubs</b> (backoffice).</div></div>
         <div><label class="lbl-field">Client<span class="req-tag">*</span></label><select class="sel-field" onchange="hc.client=this.value">${clientOpts}</select></div>
@@ -3263,10 +3301,16 @@ function renderCreateHubClient(){
       <div class="c4-grid">
         <div><label class="lbl-field">Tanggal kirim<span class="req-tag">*</span></label><input type="date" class="sel-field" value="${esc(hc.sendDate)}" min="${new Date().toISOString().slice(0,10)}" onchange="hc.sendDate=this.value"><div class="c4-fnote">Data disiapkan H-1, dikirim pada tanggal ini. Tidak bisa tanggal lampau.</div></div>
         ${schedBlock}
-      </div>
-    </div>
-    <div class="cs-panel cs-side">
-      <h2 style="font-size:18px;font-weight:800;margin-bottom:14px">Tinjau Pesanan</h2>
+      </div>`;
+  const grpCards=groups.map(g=>`<div class="hc-grp"><div class="hc-grp-h"><div><div class="hc-grp-t">${g.hubName}</div><div class="hc-grp-sub">${g.tanggal} · ${g.time?g.time+" WIB":'<span style="color:var(--warning-base,#c7791b)">belum ada jadwal</span>'} · zona ${g.zone}</div></div><div class="hc-grp-n">${g.valid.length}<span>penerima</span></div></div><div class="hc-grp-flags">${g.dup?`<span class="hc-flag dup">${g.dup} duplikat dilewati</span>`:``}${g.addrFlag?`<span class="hc-flag warn">${g.addrFlag} alamat perlu dicek</span>`:``}${!g.dup&&!g.addrFlag?`<span class="hc-flag ok">Semua valid</span>`:``}</div></div>`).join("");
+  const bulkWarn=(st.dup||st.addrFlag||st.noSched)?`<div class="hc-nosched" style="margin:0 0 12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div>${[st.dup?`<b>${st.dup} duplikat</b> dilewati`:``,st.addrFlag?`<b>${st.addrFlag} alamat</b> perlu dicek`:``,st.noSched?`<b>${st.noSched} grup</b> tanpa jadwal dispatch`:``].filter(Boolean).join(" · ")}</div></div>`:``;
+  const bulkMain=`<div class="c4-sec-h" style="margin-top:22px">02 · Upload CSV lengkap <span class="req">1 file → banyak shipment</span></div>
+      <div class="c4-import"><div class="c4-import-l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><div><div class="c4-import-t">Upload CSV lengkap</div><div class="c4-import-d">Kolom: <span class="mono">hub_client, client, tanggal_kirim, nama, alamat, no_ref</span>. Sistem mengelompokkan baris jadi shipment per <b>hub + tanggal</b>. Jam dispatch otomatis dari Jadwal Dispatch; resi/AWB dari sistem partner.</div></div></div>
+        <div class="c4-import-r"><a class="tmpl-link" onclick="toast('Download template CSV lengkap')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Template</a><button class="btn xs" onclick="hcBulkImport()">Pilih file CSV</button></div></div>
+      ${hc.bulkRows.length?`<div class="c4-sec-h" style="margin-top:22px;display:flex;align-items:center">Preview · ${st.groups} shipment dari ${st.rows} baris <button class="btn ghost sm" style="margin-left:auto" onclick="hcBulkClear()">Ganti file</button></div>
+      ${bulkWarn}
+      <div class="hc-grps">${grpCards}</div>`:`<div class="muted" style="margin-top:16px;font-size:12.5px">Belum ada file. Upload CSV lengkap untuk membuat banyak shipment (banyak hub/tanggal) sekaligus. Cocok untuk volume harian.</div>`}`;
+  const formSide=`<h2 style="font-size:18px;font-weight:800;margin-bottom:14px">Tinjau Pesanan</h2>
       <div class="dev-sec-lbl" style="background:none;padding:0 0 8px">Ringkasan</div>
       <div class="kv"><span class="k">Hub Client</span><span class="v" style="text-align:right">${h.name}</span></div>
       <div class="kv"><span class="k">Client</span><span class="v">${hc.client}</span></div>
@@ -3276,8 +3320,29 @@ function renderCreateHubClient(){
       <div class="fsec" style="margin-top:14px;padding-top:12px">Operasional <span class="muted" style="font-weight:500;text-transform:none;letter-spacing:0;font-size:11px">· dari konfigurasi Hub Client</span></div>
       ${hcOpsNotes(h)||`<div class="muted" style="font-size:12px">Belum ada ketentuan operasional untuk hub ini.</div>`}
       <button class="btn primary" id="hcBuatBtn" style="width:100%;justify-content:center;margin-top:16px" onclick="hcConfirmDialog()">Buat Shipment (${nValid})</button>
-      <button class="btn" style="width:100%;justify-content:center;margin-top:8px" onclick="closeHubClient()">Batal</button>
+      <button class="btn" style="width:100%;justify-content:center;margin-top:8px" onclick="closeHubClient()">Batal</button>`;
+  const bulkSide=`<h2 style="font-size:18px;font-weight:800;margin-bottom:14px">Ringkasan Bulk</h2>
+      <div class="dev-sec-lbl" style="background:none;padding:0 0 8px">Dari file CSV</div>
+      <div class="kv"><span class="k">Baris CSV</span><span class="v">${st.rows}</span></div>
+      <div class="kv"><span class="k">Grup shipment</span><span class="v strong">${st.groups}</span></div>
+      <div class="kv"><span class="k">Penerima valid</span><span class="v strong">${st.valid}</span></div>
+      <div class="kv"><span class="k">Duplikat dilewati</span><span class="v">${st.dup}</span></div>
+      <div class="kv"><span class="k">Alamat perlu dicek</span><span class="v">${st.addrFlag}</span></div>
+      <div class="fsec" style="margin-top:14px;padding-top:12px">Catatan</div>
+      <div class="hc-op"><span class="dot ok"></span><span class="hc-op-k">Grup</span><span class="hc-op-v">per hub + tanggal</span></div>
+      <div class="hc-op"><span class="dot"></span><span class="hc-op-k">Jam dispatch</span><span class="hc-op-v">dari Jadwal Dispatch</span></div>
+      <div class="hc-op"><span class="dot"></span><span class="hc-op-k">Duplikat</span><span class="hc-op-v">otomatis dilewati</span></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:16px" ${st.rows?"":"disabled"} onclick="hcBulkConfirmDialog()">Buat ${st.groups} shipment</button>
+      <button class="btn" style="width:100%;justify-content:center;margin-top:8px" onclick="closeHubClient()">Batal</button>`;
+  layer.innerHTML=`<div class="cs-full"><div class="cs-full-head"><div class="x" onclick="closeHubClient()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div><div><div class="c4w-crumb">Operations · Shipments · <b>New shipment</b></div><h2>Buat Shipment</h2></div><div class="cs-head-actions">${helpBtns}</div></div>
+  <div class="cs-full-body">
+    <div class="cs-panel cs-main">
+      <div class="c4-sec-h">01 · Tipe pengiriman</div>
+      <div class="hc-typechip"><span class="hc-tc-ic">🏢</span><div class="hc-tc-txt"><div class="hc-tc-n">Hub Client</div><div class="hc-tc-d">Pickup dari titik milik client · dispatch terjadwal · rider pakai app partner</div></div><button class="btn ghost sm" onclick="hcGanti()">Ganti tipe</button></div>
+      ${entryToggle}
+      ${isForm?formMain:bulkMain}
     </div>
+    <div class="cs-panel cs-side">${isForm?formSide:bulkSide}</div>
   </div></div>`;
 }
 
@@ -3467,6 +3532,18 @@ function saveSchedule(){
 .hc-op .dot.ok{background:var(--success-base,#2e9e5b)}
 .hc-op-k{color:var(--text-soft);width:92px;flex-shrink:0}
 .hc-op-v{font-weight:600;flex:1;min-width:0}
+.hc-grps{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.hc-grp{border:1px solid var(--stroke-soft);border-radius:12px;padding:14px}
+.hc-grp-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hc-grp-t{font-size:14.5px;font-weight:800}
+.hc-grp-sub{font-size:12px;color:var(--text-soft);margin-top:2px}
+.hc-grp-n{text-align:right;font-size:22px;font-weight:800;line-height:1;color:var(--primary-main)}
+.hc-grp-n span{display:block;font-size:10.5px;font-weight:600;color:var(--text-soft);margin-top:2px}
+.hc-grp-flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.hc-flag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px}
+.hc-flag.ok{background:var(--success-lighter,#e6f6ec);color:var(--success-dark,#1a7f45)}
+.hc-flag.warn{background:var(--warning-lighter,#fbf1dc);color:var(--warning-base,#c7791b)}
+.hc-flag.dup{background:var(--bg-weak,#eef0f4);color:var(--text-sub,#5b6472)}
 .hc-review-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 24px}
 .exp-group{margin-top:12px}
 .exp-glbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-soft);margin-bottom:6px}
