@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scheduled Instant · Reliability Metrics · UI Mockup · v2.1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  background: #F2F2F7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 24px 80px;
+}
+
+.page-title { font-size: 13px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #8E8E93; margin-bottom: 8px; text-align: center; }
+.page-sub { font-size: 12px; font-weight: 500; color: #B0B0B6; margin-bottom: 24px; text-align: center; max-width: 640px; line-height: 1.6; }
+
+.screen-group { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 860px; }
+.screen-group.wide { max-width: 1180px; }
+.screen-label { font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #8E8E93; margin-bottom: 10px; text-align: center; width: 100%; }
+.screen-label.new { color: #5E2AAC; }
+.screen-label.updated { color: #C2630A; }
+
+.group-sep { width: 100%; max-width: 1180px; display: flex; align-items: center; gap: 12px; margin: 30px 0 22px; }
+.group-sep-line { flex: 1; height: 1px; background: #E0E0E0; }
+.group-sep-label { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #5E2AAC; white-space: nowrap; }
+
+/* Changelog */
+.changelog { width: 100%; max-width: 1180px; background: #fff; border: 1px solid #E4E4E4; border-radius: 12px; padding: 18px 22px; margin-bottom: 32px; }
+.changelog-title { font-size: 12px; font-weight: 800; color: #1A1A1A; margin-bottom: 12px; }
+.changelog-grid { display: flex; gap: 26px; flex-wrap: wrap; }
+.changelog-col { flex: 1 1 240px; min-width: 220px; }
+.changelog-col h4 { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #8E8E93; margin-bottom: 7px; }
+.changelog-col ul { list-style: none; }
+.changelog-col li { font-size: 11.5px; color: #444; line-height: 1.65; margin-bottom: 5px; padding-left: 14px; position: relative; }
+.changelog-col li::before { content: '·'; position: absolute; left: 3px; color: #B0B0B6; font-weight: 800; }
+.changelog-col li b { color: #1A1A1A; font-weight: 700; }
+.tag-out { color: #C0392B; font-weight: 700; }
+.tag-in { color: #2D7A45; font-weight: 700; }
+
+/* Browser shell */
+.browser-shell { width: 100%; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07); border: 1px solid #E4E4E4; margin-bottom: 34px; }
+.browser-topbar { height: 38px; background: #EDEDED; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid #DDD; }
+.tl-dots { display: flex; gap: 6px; }
+.tl-dot { width: 10px; height: 10px; border-radius: 50%; }
+.tl-dot.r { background: #FF5F57; } .tl-dot.y { background: #FEBC2E; } .tl-dot.g { background: #28C840; }
+.browser-url { flex: 1; background: #fff; border-radius: 6px; padding: 5px 12px; font-size: 11px; color: #8E8E93; max-width: 380px; }
+
+/* ══════════ PRODUCTION SHELL (matches live logistic.dashelectric.co) ══════════ */
+.prod { display: flex; background: #fff; min-height: 520px; }
+
+.prod-side { width: 176px; flex-shrink: 0; background: #0D0D0F; padding: 14px 0 0; display: flex; flex-direction: column; }
+.prod-brand { display: flex; align-items: center; gap: 8px; padding: 0 14px 16px; }
+.prod-brand-mark { width: 24px; height: 24px; border-radius: 7px; background: #fff; color: #0D0D0F; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.prod-brand-name { font-size: 12px; font-weight: 800; color: #fff; line-height: 1.1; }
+.prod-brand-sub { font-size: 8px; font-weight: 700; color: #6E6E76; letter-spacing: 0.14em; margin-top: 2px; }
+.prod-navlabel { font-size: 8px; font-weight: 800; color: #6E6E76; letter-spacing: 0.14em; text-transform: uppercase; padding: 12px 14px 5px; }
+.prod-navitem { display: flex; align-items: center; gap: 8px; padding: 6px 14px; font-size: 11px; font-weight: 600; color: #C7C7CE; }
+.prod-navitem .ic { width: 13px; text-align: center; opacity: 0.75; font-size: 11px; }
+.prod-navitem.active { color: #fff; font-weight: 800; background: #1C1C21; }
+.prod-user { margin-top: auto; border-top: 1px solid #1F1F25; padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
+.prod-user-av { width: 22px; height: 22px; border-radius: 50%; background: #5E2AAC; color: #fff; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.prod-user-nm { font-size: 10px; font-weight: 700; color: #fff; line-height: 1.2; }
+.prod-user-em { font-size: 8.5px; color: #6E6E76; }
+
+.prod-main { flex: 1; min-width: 0; background: #fff; display: flex; flex-direction: column; }
+.prod-crumb { font-size: 9px; font-weight: 700; letter-spacing: 0.13em; color: #A0A0A8; padding: 12px 22px 0; text-transform: uppercase; }
+.prod-head { padding: 12px 22px 14px; }
+.prod-eyebrow { font-size: 9px; font-weight: 800; letter-spacing: 0.13em; color: #A0A0A8; text-transform: uppercase; margin-bottom: 4px; }
+.prod-h1 { font-size: 21px; font-weight: 800; color: #121214; line-height: 1.15; }
+.prod-h1-sub { font-size: 11px; color: #8A8A92; margin-top: 4px; }
+
+.prod-tabs { display: inline-flex; gap: 2px; background: #F1F1F4; border-radius: 10px; padding: 3px; margin: 0 22px 14px; align-self: flex-start; }
+.prod-tab { padding: 6px 14px; font-size: 11.5px; font-weight: 700; color: #75757E; border-radius: 8px; white-space: nowrap; }
+.prod-tab.active { background: #fff; color: #121214; box-shadow: 0 1px 3px rgba(0,0,0,0.09); }
+
+.prod-stats { display: flex; margin: 0 22px 14px; border: 1px solid #EBEBEF; border-radius: 12px; overflow: hidden; }
+.prod-stat { flex: 1; padding: 13px 16px; border-right: 1px solid #EBEBEF; display: block; text-decoration: none; color: inherit; }
+.prod-stat:last-child { border-right: none; }
+.prod-stat-l { font-size: 8.5px; font-weight: 800; letter-spacing: 0.11em; color: #9A9AA2; text-transform: uppercase; margin-bottom: 5px; }
+.prod-stat-v { font-size: 23px; font-weight: 800; color: #121214; line-height: 1; }
+.prod-stat-v.orange { color: #D97706; }
+.prod-stat-v.red { color: #C0392B; }
+.prod-stat.clickable { background: #FDF6F5; border-bottom: 2px solid #C0392B; cursor: pointer; position: relative; }
+.prod-stat.clickable:hover { background: #FBEDEB; }
+.prod-stat-hint { font-size: 8.5px; font-weight: 800; color: #C0392B; margin-top: 5px; display: flex; align-items: center; gap: 3px; }
+
+/* pagination bar */
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 2px 2px; flex-wrap: wrap; border-top: 1px solid #F4F4F6; margin-top: 4px; }
+.pager-info { font-size: 10.5px; color: #9A9AA2; font-weight: 600; }
+.pager-right { display: flex; align-items: center; gap: 14px; margin-left: auto; flex-wrap: wrap; }
+.pager-size { display: flex; align-items: center; gap: 7px; position: relative; }
+.pager-label { font-size: 10.5px; color: #75757E; font-weight: 700; white-space: nowrap; }
+.pager-select { border: 1px solid #E4E4E8; border-radius: 7px; padding: 4px 9px; font-size: 10.5px; font-weight: 700; color: #121214; display: flex; align-items: center; gap: 10px; background: #fff; }
+.pager-menu { position: absolute; bottom: 100%; right: 0; margin-bottom: 5px; background: #fff; border: 1px solid #E4E4E8; border-radius: 9px; box-shadow: 0 6px 20px rgba(0,0,0,0.13); padding: 4px; z-index: 5; min-width: 66px; }
+.pager-menu div { font-size: 10.5px; font-weight: 700; color: #55555E; padding: 5px 10px; border-radius: 6px; }
+.pager-menu div.on { background: #F1EDFA; color: #5E2AAC; }
+.pager-btns { display: flex; gap: 3px; }
+.pg { min-width: 24px; height: 24px; border: 1px solid #E4E4E8; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; color: #55555E; padding: 0 6px; }
+.pg.active { background: #121214; color: #fff; border-color: #121214; }
+.pg.disabled { color: #C8C8CE; }
+
+/* sortable table headers */
+th.sortable { cursor: pointer; }
+th .sorter { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+th .arrow { font-size: 8px; color: #C0C0C8; line-height: 1; }
+th.sorted { color: #121214 !important; }
+th.sorted .arrow { color: #5E2AAC; font-size: 9px; }
+
+/* period dropdown (open state) */
+.per-wrap { position: relative; }
+.per-menu { position: absolute; top: 100%; left: 0; margin-top: 5px; background: #fff; border: 1px solid #E4E4E8; border-radius: 10px; box-shadow: 0 8px 26px rgba(0,0,0,0.15); padding: 5px; z-index: 6; min-width: 186px; }
+.per-menu div { font-size: 11px; font-weight: 600; color: #444; padding: 7px 10px; border-radius: 7px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.per-menu div.on { background: #F1EDFA; color: #5E2AAC; font-weight: 800; }
+.per-menu div .tag { font-size: 9px; font-weight: 700; color: #B0B0B8; }
+.per-menu .sep { height: 1px; background: #F0F0F3; margin: 4px 6px; padding: 0; }
+.per-menu div.warn { color: #9A6800; }
+
+/* mockup annotation layer (not part of the product UI) */
+.annot { margin: 0 22px 14px; border: 1.5px dashed #B39AE0; background: #F8F5FD; border-radius: 10px; padding: 10px 14px; display: flex; align-items: flex-start; gap: 10px; }
+.annot-mark { background: #5E2AAC; color: #fff; font-size: 9px; font-weight: 800; border-radius: 5px; padding: 3px 7px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.04em; }
+.annot-txt { font-size: 11px; color: #4A3570; line-height: 1.6; }
+.annot-txt b { color: #2E1A52; font-weight: 800; }
+.annot-txt a { color: #5E2AAC; font-weight: 800; }
+.flow-link { width: 100%; max-width: 1180px; display: flex; flex-direction: column; align-items: center; gap: 4px; margin: -14px 0 22px; }
+.flow-link-arrow { font-size: 20px; color: #5E2AAC; line-height: 1; }
+.flow-link-txt { font-size: 10.5px; font-weight: 800; color: #5E2AAC; letter-spacing: 0.04em; text-align: center; }
+.backlink { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; color: #5E2AAC; text-decoration: none; margin-bottom: 6px; }
+
+.prod-toolbar { display: flex; align-items: center; gap: 8px; padding: 0 22px 12px; flex-wrap: wrap; }
+.prod-toggle { display: inline-flex; gap: 2px; background: #F1F1F4; border-radius: 9px; padding: 3px; }
+.prod-toggle span { padding: 5px 11px; font-size: 11px; font-weight: 700; color: #75757E; border-radius: 7px; }
+.prod-toggle span.active { background: #fff; color: #121214; box-shadow: 0 1px 3px rgba(0,0,0,0.09); }
+.prod-navbtn { width: 24px; height: 24px; border: 1px solid #E4E4E8; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #75757E; }
+.prod-daterange { font-size: 11.5px; font-weight: 700; color: #121214; padding: 0 5px; }
+.prod-today { font-size: 11.5px; font-weight: 600; color: #75757E; }
+.prod-search { margin-left: auto; border: 1px solid #E4E4E8; border-radius: 9px; padding: 6px 11px; font-size: 11px; color: #A0A0A8; min-width: 175px; display: flex; align-items: center; gap: 7px; }
+.prod-cta { background: #121214; color: #fff; border-radius: 9px; padding: 7px 13px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+
+/* production table */
+.prod-tblwrap { padding: 0 22px 20px; overflow-x: auto; }
+table.prod-tbl { width: 100%; border-collapse: collapse; }
+.prod-tbl th { font-size: 8.5px; font-weight: 800; letter-spacing: 0.11em; color: #9A9AA2; text-transform: uppercase; text-align: left; padding: 9px 9px; border-bottom: 1px solid #EBEBEF; white-space: nowrap; }
+.prod-tbl td { font-size: 11.5px; color: #121214; padding: 11px 9px; border-bottom: 1px solid #F4F4F6; vertical-align: middle; }
+.prod-tbl tr.open td { background: #F8F6FC; }
+.prod-tbl tr.exp td { background: #fff; padding: 0; }
+.prod-date { font-weight: 600; color: #55555E; }
+.prod-jam { font-weight: 700; }
+.prod-klien { font-weight: 700; }
+.prod-klien .sub { font-weight: 500; color: #A0A0A8; font-size: 10.5px; }
+.prod-ridercell { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+.prod-cnt { background: #F1F1F4; color: #55555E; border-radius: 5px; font-size: 10px; font-weight: 800; padding: 1px 6px; }
+.pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 20px; font-size: 10px; font-weight: 700; padding: 3px 9px; white-space: nowrap; }
+.pill.pending { background: #FEF6E0; color: #9A6800; }
+.pill.confirmed { background: #E9F6EC; color: #1E7A3D; }
+.pill.danger { background: #FDECEA; color: #C0392B; }
+.pill.zero { background: #F1F1F4; color: #55555E; }
+.prod-chev { color: #B0B0B8; font-size: 11px; text-align: right; }
+
+/* readiness column */
+.rd { min-width: 118px; }
+.rd-top { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+.rd-pct { font-size: 12.5px; font-weight: 800; }
+.rd-pct.good { color: #1E7A3D; } .rd-pct.warn { color: #C2630A; } .rd-pct.bad { color: #C0392B; } .rd-pct.zero { color: #A0A0A8; }
+.rd-frac { font-size: 9.5px; color: #9A9AA2; font-weight: 700; }
+.rd-bar { height: 4px; border-radius: 3px; background: #EDEDF0; overflow: hidden; }
+.rd-fill { height: 100%; border-radius: 3px; }
+.rd-fill.good { background: #1E7A3D; } .rd-fill.warn { background: #E08A1E; } .rd-fill.bad { background: #C0392B; }
+
+/* expanded panel — matches production */
+.exp-panel { padding: 14px 16px 16px; border-bottom: 1px solid #F4F4F6; }
+.exp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; flex-wrap: wrap; }
+.exp-when { font-size: 10.5px; color: #75757E; font-weight: 600; }
+.exp-editbtn { border: 1px solid #E4E4E8; border-radius: 8px; padding: 6px 11px; font-size: 10.5px; font-weight: 700; color: #121214; white-space: nowrap; }
+.exp-label { font-size: 8.5px; font-weight: 800; letter-spacing: 0.11em; color: #9A9AA2; text-transform: uppercase; margin-bottom: 8px; }
+.exp-riders { display: flex; gap: 9px; flex-wrap: wrap; margin-bottom: 14px; }
+.exp-rider { border: 1px solid #EBEBEF; border-radius: 10px; padding: 7px 10px; display: flex; align-items: center; gap: 8px; flex: 1 1 300px; min-width: 280px; }
+.exp-av { width: 24px; height: 24px; border-radius: 50%; background: #F0EBF9; color: #5E2AAC; font-size: 8.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.exp-nm { font-size: 11.5px; font-weight: 600; flex: 1; min-width: 0; }
+.exp-sel { background: #FEF6E0; color: #9A6800; border: 1px solid #F5E3B0; border-radius: 7px; font-size: 10px; font-weight: 700; padding: 4px 8px; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.exp-sel.ok { background: #E9F6EC; color: #1E7A3D; border-color: #B9E0C4; }
+.exp-sel.no { background: #FDECEA; color: #C0392B; border-color: #F3C4BE; }
+.exp-act { font-size: 10px; font-weight: 700; white-space: nowrap; }
+.exp-act.wa { color: #1E7A3D; }
+.exp-act.ganti { color: #5E2AAC; }
+.exp-audit { font-size: 10.5px; color: #75757E; display: flex; align-items: flex-start; gap: 7px; }
+.exp-audit .dot { width: 5px; height: 5px; border-radius: 50%; background: #121214; margin-top: 6px; flex-shrink: 0; }
+.exp-audit b { color: #121214; font-weight: 700; }
+.silent { display: inline-flex; align-items: center; gap: 3px; font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 20px; background: #FDECEA; color: #C0392B; white-space: nowrap; }
+.silent.soft { background: #FEF6E0; color: #9A6800; }
+
+/* generic dashboard (Screens 14 & 8 keep the earlier presentation) */
+.dash-topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #F0F0F0; }
+.dash-brand { display: flex; align-items: center; gap: 10px; }
+.dash-logo { width: 30px; height: 30px; border-radius: 8px; background: #5E2AAC; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 800; }
+.dash-title-text { font-size: 15px; font-weight: 800; color: #1A1A1A; }
+.dash-title-sub { font-size: 11px; color: #8E8E93; margin-top: 1px; }
+.dash-actions { display: flex; align-items: center; gap: 10px; }
+.ops-avatar { width: 30px; height: 30px; border-radius: 50%; background: #F0EBF9; color: #5E2AAC; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
+.sub-nav { display: flex; gap: 22px; padding: 0 20px; border-bottom: 1px solid #F0F0F0; background: #fff; }
+.sub-nav-tab { padding: 10px 0; font-size: 12px; font-weight: 700; color: #8E8E93; border-bottom: 2px solid transparent; }
+.sub-nav-tab.active { color: #5E2AAC; border-bottom-color: #5E2AAC; }
+.toolbar-row { display: flex; align-items: center; gap: 12px; padding: 10px 20px; border-bottom: 1px solid #F0F0F0; flex-wrap: wrap; }
+.client-filter, .range-filter { display: flex; align-items: center; gap: 8px; }
+.client-filter { margin-left: auto; }
+.client-filter label, .range-filter label { font-size: 11px; font-weight: 700; color: #8E8E93; white-space: nowrap; }
+.fake-select { border: 1px solid #E0E0E0; border-radius: 8px; padding: 6px 10px; font-size: 12px; color: #1A1A1A; background: #fff; display: flex; align-items: center; gap: 8px; min-width: 140px; justify-content: space-between; }
+.dash-body { padding: 16px 20px 22px; background: #fff; }
+.section-heading { font-size: 12px; font-weight: 800; color: #1A1A1A; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+.link { font-size: 11px; font-weight: 700; color: #5E2AAC; }
+.fill-note { font-size: 10.5px; color: #B0B0B6; margin: 4px 0 14px; line-height: 1.55; }
+
+.warn-modal { border-left: 4px solid #C2630A; background: #FFF8ED; border-radius: 10px; padding: 14px 16px; margin-bottom: 18px; }
+.warn-modal-title { font-size: 12px; font-weight: 800; color: #C2630A; margin-bottom: 4px; }
+.warn-modal-body { font-size: 11.5px; color: #7A4500; line-height: 1.6; }
+.tbd { background: #FFE0B2; border: 1px dashed #C2630A; color: #8A4B00; padding: 1px 6px; border-radius: 4px; font-weight: 800; font-family: monospace; font-size: 11px; }
+
+.stat-row { display: flex; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; }
+.stat-card { flex: 1; min-width: 160px; background: #FAFAFA; border-radius: 10px; padding: 14px 16px; border: 1px solid #F0F0F0; }
+.stat-card.headline { background: #F5F0FC; border: 1.5px solid #C9B3EC; flex: 1 1 100%; display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; gap: 16px; }
+.stat-card.support { background: #F4FAF6; border: 1px solid #CDE8D6; }
+.stat-card.pending { border-style: dashed; background: #fff; }
+.stat-label { font-size: 12px; color: #1A1A1A; margin-bottom: 1px; font-weight: 800; }
+.stat-label-tech { font-size: 9.5px; color: #B0B0B6; font-style: italic; font-weight: 500; margin-bottom: 6px; }
+.stat-card.headline .stat-label { font-size: 13px; }
+.stat-value { font-size: 20px; font-weight: 800; color: #1A1A1A; }
+.stat-card.headline .stat-value { font-size: 34px; }
+.stat-value.danger { color: #C0392B; }
+.stat-value.success { color: #2D7A45; }
+.stat-value.warn { color: #C2630A; }
+.stat-delta { font-size: 10.5px; font-weight: 700; margin-top: 5px; }
+.stat-delta.good { color: #2D7A45; }
+.stat-delta.bad { color: #C0392B; }
+.stat-sub { font-size: 10.5px; color: #8E8E93; margin-top: 4px; line-height: 1.5; }
+.stat-denom { font-size: 9.5px; color: #8E8E93; margin-top: 5px; background: #F0F0F2; border-radius: 4px; padding: 3px 6px; display: inline-block; line-height: 1.4; }
+.headline-target { text-align: right; font-size: 11px; color: #8E8E93; max-width: 230px; line-height: 1.55; }
+.headline-target strong { color: #1A1A1A; }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 20px; }
+.badge.amber { background: #FFF3E0; color: #C2630A; }
+
+.split-bar { display: flex; height: 7px; border-radius: 4px; overflow: hidden; margin-top: 9px; background: #ECECEF; }
+.split-seg.ya { background: #2D7A45; }
+.split-seg.tidak { background: #C0392B; }
+.split-seg.none { background: #D6D6DB; }
+.split-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.split-item { display: flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; color: #6E6E73; }
+.split-key { width: 8px; height: 8px; border-radius: 2px; }
+.split-key.ya { background: #2D7A45; } .split-key.tidak { background: #C0392B; } .split-key.none { background: #D6D6DB; }
+.split-item b { color: #1A1A1A; font-weight: 800; }
+
+.scope-note { border: 1px dashed #D8D8DC; border-radius: 10px; padding: 13px 16px; background: #FCFCFD; }
+.scope-note-title { font-size: 11px; font-weight: 800; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.scope-note ul { list-style: none; }
+.scope-note li { font-size: 11.5px; color: #6E6E73; line-height: 1.6; margin-bottom: 4px; }
+.scope-note li b { color: #1A1A1A; font-weight: 700; }
+
+table.dash-table { width: 100%; border-collapse: collapse; }
+.dash-table th { font-size: 10px; font-weight: 700; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.05em; text-align: left; padding: 8px 10px; border-bottom: 1px solid #F0F0F0; }
+.dash-table td { font-size: 12px; color: #1A1A1A; padding: 10px 10px; border-bottom: 1px solid #F5F5F5; }
+.cell-danger { color: #C0392B; font-weight: 700; }
+.cell-success { color: #2D7A45; font-weight: 700; }
+.cell-muted { color: #B0B0B6; }
+.table-wrap { overflow-x: auto; }
+
+.role-subheading { font-size: 10px; font-weight: 800; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.05em; margin: 18px 0 8px; }
+.rider-card-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+.rider-card-sm { border: 1px solid #F0F0F0; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; min-width: 190px; flex: 1 1 190px; }
+.rider-card-sm.ghost { border-style: dashed; color: #8E8E93; justify-content: center; font-size: 11px; font-weight: 700; }
+.rider-avatar { width: 30px; height: 30px; border-radius: 50%; background: #F0EBF9; color: #5E2AAC; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.rider-card-name { font-size: 12px; font-weight: 700; color: #1A1A1A; }
+.rider-card-meta { font-size: 10.5px; color: #8E8E93; margin-top: 1px; }
+.modal-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+.modal-title { font-size: 15px; font-weight: 800; color: #1A1A1A; }
+.status-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 20px; }
+.status-badge.active { background: #EDF7ED; color: #2D7A45; }
+.btn-secondary { padding: 9px 16px; border-radius: 8px; border: 1px solid #E0E0E0; background: #fff; font-size: 12px; font-weight: 700; color: #1A1A1A; }
+.btn-danger { padding: 9px 16px; border-radius: 8px; background: #C0392B; color: #fff; font-size: 12px; font-weight: 700; }
+
+.dialog-shell { width: 100%; max-width: 480px; background: #fff; border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.16); border: 1px solid #E4E4E4; overflow: hidden; margin-bottom: 34px; }
+.dialog-body { padding: 22px 24px 20px; }
+.dialog-title { font-size: 15px; font-weight: 800; color: #1A1A1A; margin-bottom: 10px; }
+.dialog-text { font-size: 12.5px; color: #555; line-height: 1.65; margin-bottom: 14px; }
+.dialog-warn { border-left: 4px solid #C0392B; background: #FDF2F2; border-radius: 8px; padding: 12px 14px; font-size: 11.5px; color: #8A2A20; line-height: 1.6; margin-bottom: 18px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Scheduled Instant · Reliability Metrics · UI Mockup · v2.2</div>
+<div class="page-sub">v2.2 — two engineering gaps fixed & deployed 07-08-2026 (NO_RESPONSE wiring, T-2 silence escalation); Konfirmasi Lalu Hilang unblocked. Metrics aggregation endpoints still don't exist — Screen 14's numbers remain illustrative until that ships.</div>
+
+<!-- ======================== CHANGELOG ======================== -->
+<div class="changelog">
+  <div class="changelog-title">Perubahan dari v1.1 → v2.2</div>
+  <div class="changelog-grid">
+    <div class="changelog-col">
+      <h4>Headline berpindah</h4>
+      <ul>
+        <li><b>Waktu Cari Pengganti</b> jadi angka utama, target &lt;20–30 menit (dari ~2 jam).</li>
+        <li>Semua angka bisa dihitung otomatis dari data yang sudah ada — tanpa input manual ops.</li>
+      </ul>
+    </div>
+    <div class="changelog-col">
+      <h4><span class="tag-out">Dikeluarkan</span> dari scope</h4>
+      <ul>
+        <li><b>Slot Gagal Total</b> — butuh bukti pengiriman benar terjadi.</li>
+        <li><b>Slot Ketutup</b> — butuh data kehadiran rider.</li>
+        <li><b>Client-first gap discovery</b> — butuh log komplain klien.</li>
+        <li><b>Reliabilitas % per rider</b> — masuk Sprint 2.</li>
+      </ul>
+    </div>
+    <div class="changelog-col">
+      <h4><span class="tag-in">Ditambah / diubah</span></h4>
+      <ul>
+        <li>"Rider Nggak Konfirmasi" dipecah jadi <b>T-12</b> dan T-2.</li>
+        <li>"Rider Cadangan Dipanggil" → <b>Ditugaskan</b>.</li>
+        <li>Kartu <b>Rider Balas Duluan</b> dipecah YA / TIDAK / Diam.</li>
+        <li><b>v2.1:</b> Screen 2 &amp; 15 disamakan dengan tampilan produksi.</li>
+        <li><b>v2.1:</b> jalur masuk Screen 15 lewat kartu <b>Perlu Perhatian</b> yang sudah ada.</li>
+        <li><span class="tag-in" style="background:#E9F6EC;color:#1E7A3D;">v2.2</span> <b>NO_RESPONSE</b> &amp; <b>eskalasi diam T-2</b> — selesai 07-08-2026, Konfirmasi Lalu Hilang tidak lagi terblokir.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== SCREEN 2 — PRODUCTION-MATCHED ======================== -->
+<div class="screen-group wide" id="screen-2">
+  <div class="screen-label updated">Screen 2 — Slot Harian · Table View (disesuaikan dengan produksi + kolom "Siap Konfirmasi")</div>
+  <div class="browser-shell">
+    <div class="browser-topbar">
+      <div class="tl-dots"><span class="tl-dot r"></span><span class="tl-dot y"></span><span class="tl-dot g"></span></div>
+      <div class="browser-url">🔒 logistic.dashelectric.co/scheduled-instant/schedule</div>
+    </div>
+
+    <div class="prod">
+      <!-- sidebar -->
+      <div class="prod-side">
+        <div class="prod-brand">
+          <div class="prod-brand-mark">D</div>
+          <div>
+            <div class="prod-brand-name">Dash Electric</div>
+            <div class="prod-brand-sub">MITHRIL</div>
+          </div>
+        </div>
+        <div class="prod-navlabel">Analytics</div>
+        <div class="prod-navitem"><span class="ic">▣</span> Docking Dashboard</div>
+        <div class="prod-navlabel">Hub Ops</div>
+        <div class="prod-navitem"><span class="ic">◈</span> Shipments</div>
+        <div class="prod-navitem"><span class="ic">▤</span> Packages</div>
+        <div class="prod-navitem"><span class="ic">▽</span> Inbound</div>
+        <div class="prod-navitem"><span class="ic">➤</span> Dispatches</div>
+        <div class="prod-navitem"><span class="ic">▣</span> Delivery</div>
+        <div class="prod-navitem"><span class="ic">▦</span> Invoices</div>
+        <div class="prod-navlabel">Scheduled Instant</div>
+        <div class="prod-navitem active"><span class="ic">▩</span> Schedule</div>
+        <div class="prod-navlabel">Master</div>
+        <div class="prod-navitem"><span class="ic">⌂</span> Hubs</div>
+        <div class="prod-navitem"><span class="ic">◇</span> Zones</div>
+        <div class="prod-navitem"><span class="ic">◉</span> Addresses</div>
+        <div class="prod-user">
+          <div class="prod-user-av">A</div>
+          <div>
+            <div class="prod-user-nm">Albert Ernesto</div>
+            <div class="prod-user-em">albert.ernesto…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- main -->
+      <div class="prod-main">
+        <div class="prod-crumb">· Dash · Logistic</div>
+        <div class="prod-head">
+          <div class="prod-eyebrow">Hub Ops</div>
+          <div class="prod-h1">Scheduled Instant</div>
+          <div class="prod-h1-sub">Jadwal rider harian, konfirmasi &amp; pengganti · Phase 1</div>
+        </div>
+
+        <div class="prod-tabs">
+          <div class="prod-tab active">Slot Harian</div>
+          <div class="prod-tab">Master Jadwal</div>
+          <div class="prod-tab">Day Off Rider</div>
+        </div>
+
+        <div class="prod-stats">
+          <div class="prod-stat">
+            <div class="prod-stat-l">Total Slot</div>
+            <div class="prod-stat-v">118</div>
+          </div>
+          <div class="prod-stat">
+            <div class="prod-stat-l">Belum Ada Rider</div>
+            <div class="prod-stat-v orange">7</div>
+          </div>
+          <a href="#screen-15" class="prod-stat clickable">
+            <div class="prod-stat-l">Perlu Perhatian</div>
+            <div class="prod-stat-v red">7</div>
+            <div class="prod-stat-hint">Lihat rider belum merespons ›</div>
+          </a>
+          <div class="prod-stat">
+            <div class="prod-stat-l">Terkonfirmasi</div>
+            <div class="prod-stat-v">64</div>
+          </div>
+        </div>
+
+        <div class="prod-toolbar">
+          <div class="prod-toggle"><span>📅 Calendar</span><span class="active">≡ Table</span></div>
+          <div class="prod-navbtn">‹</div>
+          <div class="prod-daterange">03 Aug – 09 Aug 2026</div>
+          <div class="prod-navbtn">›</div>
+          <div class="prod-today">Hari ini</div>
+          <div class="prod-search">🔍 Filter klien…</div>
+          <div class="prod-cta">+ Tambah Slot</div>
+        </div>
+
+        <div class="prod-tblwrap">
+          <table class="prod-tbl">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Jam</th>
+                <th>Klien</th>
+                <th>Rider</th>
+                <th style="color:#5E2AAC;">Siap Konfirmasi ✦</th>
+                <th>Status</th>
+                <th>Toleransi</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="prod-date">03 Aug</td>
+                <td class="prod-jam">08:00–17:00</td>
+                <td class="prod-klien">Selectro</td>
+                <td><div class="prod-ridercell">1 rider <span class="prod-cnt">1</span></div></td>
+                <td><div class="rd"><div class="rd-top"><span class="rd-pct good">100%</span><span class="rd-frac">1 dari 1</span></div><div class="rd-bar"><div class="rd-fill good" style="width:100%"></div></div></div></td>
+                <td><span class="pill confirmed">● Terkonfirmasi</span></td>
+                <td><span class="pill zero">Zero</span></td>
+                <td class="prod-chev">⌄</td>
+              </tr>
+              <tr>
+                <td class="prod-date">03 Aug</td>
+                <td class="prod-jam">08:00–16:00</td>
+                <td class="prod-klien">GIB - 2W Dedicated Courier</td>
+                <td><div class="prod-ridercell">1 rider <span class="prod-cnt">1</span></div></td>
+                <td><div class="rd"><div class="rd-top"><span class="rd-pct bad">0%</span><span class="rd-frac">0 dari 1</span></div><div class="rd-bar"><div class="rd-fill bad" style="width:0%"></div></div></div></td>
+                <td><span class="pill pending">● Pending</span></td>
+                <td><span class="pill zero">Zero</span></td>
+                <td class="prod-chev">⌄</td>
+              </tr>
+
+              <tr class="open">
+                <td class="prod-date">03 Aug</td>
+                <td class="prod-jam">08:00–17:00</td>
+                <td class="prod-klien">Chief Groom</td>
+                <td><div class="prod-ridercell">3 rider <span class="prod-cnt">3</span></div></td>
+                <td><div class="rd"><div class="rd-top"><span class="rd-pct warn">67%</span><span class="rd-frac">2 dari 3</span></div><div class="rd-bar"><div class="rd-fill warn" style="width:67%"></div></div></div></td>
+                <td><span class="pill pending">● Pending</span></td>
+                <td><span class="pill zero">Zero</span></td>
+                <td class="prod-chev">⌃</td>
+              </tr>
+              <tr class="exp">
+                <td colspan="8">
+                  <div class="exp-panel">
+                    <div class="exp-head">
+                      <div class="exp-when">Monday, 03 Aug · 08:00–17:00</div>
+                      <div class="exp-editbtn">✎ Edit slot hari ini</div>
+                    </div>
+
+                    <div class="exp-label">Rider Utama (3)</div>
+                    <div class="exp-riders">
+                      <div class="exp-rider">
+                        <div class="exp-av">IK</div>
+                        <div class="exp-nm">imal kurnia</div>
+                        <div class="exp-sel ok">Konfirmasi YA ⌄</div>
+                        <div class="exp-act ganti">⇄ Ganti</div>
+                      </div>
+                      <div class="exp-rider">
+                        <div class="exp-av">AK</div>
+                        <div class="exp-nm">Ardi kamal</div>
+                        <div class="exp-sel ok">Konfirmasi YA ⌄</div>
+                        <div class="exp-act ganti">⇄ Ganti</div>
+                      </div>
+                      <div class="exp-rider">
+                        <div class="exp-av">AP</div>
+                        <div class="exp-nm">Agus Permadi <span class="silent">⏳ diam 2j 14m</span></div>
+                        <div class="exp-sel">Menunggu ⌄</div>
+                        <div class="exp-act wa">✆ Kirim WA</div>
+                        <div class="exp-act ganti">⇄ Ganti</div>
+                      </div>
+                    </div>
+
+                    <div class="exp-label">Aktivitas Slot · Audit</div>
+                    <div class="exp-audit">
+                      <span class="dot"></span>
+                      <span>Diperbarui dari Master Jadwal · <b>08:00–17:00</b> · 30 Jul 15:41 · fahlevi.sander@dashelectric.co</span>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="prod-date">03 Aug</td>
+                <td class="prod-jam">08:00–23:00</td>
+                <td class="prod-klien">Noovoleum Cleaning</td>
+                <td><div class="prod-ridercell">9 rider <span class="prod-cnt">9</span></div></td>
+                <td><div class="rd"><div class="rd-top"><span class="rd-pct good">89%</span><span class="rd-frac">8 dari 9</span></div><div class="rd-bar"><div class="rd-fill good" style="width:89%"></div></div></div></td>
+                <td><span class="pill pending">● Pending</span></td>
+                <td><span class="pill zero">Zero</span></td>
+                <td class="prod-chev">⌄</td>
+              </tr>
+              <tr>
+                <td class="prod-date">03 Aug</td>
+                <td class="prod-jam">09:00–21:00</td>
+                <td class="prod-klien">Saturdays</td>
+                <td><div class="prod-ridercell">4 rider <span class="prod-cnt">4</span></div></td>
+                <td><div class="rd"><div class="rd-top"><span class="rd-pct bad">25%</span><span class="rd-frac">1 dari 4</span></div><div class="rd-bar"><div class="rd-fill bad" style="width:25%"></div></div></div></td>
+                <td><span class="pill danger">● Perlu perhatian</span></td>
+                <td><span class="pill zero">Zero</span></td>
+                <td class="prod-chev">⌄</td>
+              </tr>
+              <tr>
+                <td class="prod-date">03 Aug</td>
+                <td class="prod-jam">09:00–17:00</td>
+                <td class="prod-klien">One Percent <span class="sub">· One percent jakarta</span></td>
+                <td><div class="prod-ridercell">3 rider <span class="prod-cnt">3</span></div></td>
+                <td><div class="rd"><div class="rd-top"><span class="rd-pct warn">67%</span><span class="rd-frac">2 dari 3</span></div><div class="rd-bar"><div class="rd-fill warn" style="width:67%"></div></div></div></td>
+                <td><span class="pill pending">● Pending</span></td>
+                <td><span class="pill zero">Zero</span></td>
+                <td class="prod-chev">⌄</td>
+              </tr>
+              <tr>
+                <td class="prod-date">03 Aug</td>
+                <td class="prod-jam">13:00–15:00</td>
+                <td class="prod-klien">UMAI Group</td>
+                <td><div class="prod-ridercell">6 rider <span class="prod-cnt">6</span></div></td>
+                <td><div class="rd"><div class="rd-top"><span class="rd-pct good">100%</span><span class="rd-frac">6 dari 6</span></div><div class="rd-bar"><div class="rd-fill good" style="width:100%"></div></div></div></td>
+                <td><span class="pill confirmed">● Terkonfirmasi</span></td>
+                <td><span class="pill zero">Zero</span></td>
+                <td class="prod-chev">⌄</td>
+              </tr>
+              <tr>
+                <td class="prod-date">03 Aug</td>
+                <td class="prod-jam">14:00–20:00</td>
+                <td class="prod-klien">PT. Salam Sehat Indonesia</td>
+                <td><div class="prod-ridercell">5 rider <span class="prod-cnt">5</span></div></td>
+                <td><div class="rd"><div class="rd-top"><span class="rd-pct warn">60%</span><span class="rd-frac">3 dari 5</span></div><div class="rd-bar"><div class="rd-fill warn" style="width:60%"></div></div></div></td>
+                <td><span class="pill pending">● Pending</span></td>
+                <td><span class="pill zero">Zero</span></td>
+                <td class="prod-chev">⌄</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pager">
+            <div class="pager-info">Menampilkan 1–10 dari 118 slot</div>
+            <div class="pager-right">
+              <div class="pager-size">
+                <span class="pager-label">Baris per halaman</span>
+                <div class="pager-select">10 <span style="color:#A0A0A8;">⌄</span></div>
+              </div>
+              <div class="pager-btns">
+                <span class="pg disabled">‹</span>
+                <span class="pg active">1</span>
+                <span class="pg">2</span>
+                <span class="pg">3</span>
+                <span class="pg">…</span>
+                <span class="pg">12</span>
+                <span class="pg">›</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-link">
+  <div class="flow-link-txt">Klik kartu "Perlu Perhatian" di Screen 2</div>
+  <div class="flow-link-arrow">↓</div>
+</div>
+
+<div class="group-sep">
+  <div class="group-sep-line"></div>
+  <div class="group-sep-label">Permintaan Ops #2 — Rider Belum Merespons</div>
+  <div class="group-sep-line"></div>
+</div>
+
+<!-- ======================== SCREEN 15 — PRODUCTION-MATCHED ======================== -->
+<div class="screen-group wide" id="screen-15">
+  <div class="screen-label new">Screen 15 — Rider Belum Merespons (BARU · kerangka produksi)</div>
+  <div class="browser-shell">
+    <div class="browser-topbar">
+      <div class="tl-dots"><span class="tl-dot r"></span><span class="tl-dot y"></span><span class="tl-dot g"></span></div>
+      <div class="browser-url">🔒 logistic.dashelectric.co/scheduled-instant/schedule?view=belum-merespons</div>
+    </div>
+
+    <div class="prod">
+      <div class="prod-side">
+        <div class="prod-brand">
+          <div class="prod-brand-mark">D</div>
+          <div>
+            <div class="prod-brand-name">Dash Electric</div>
+            <div class="prod-brand-sub">MITHRIL</div>
+          </div>
+        </div>
+        <div class="prod-navlabel">Analytics</div>
+        <div class="prod-navitem"><span class="ic">▣</span> Docking Dashboard</div>
+        <div class="prod-navlabel">Hub Ops</div>
+        <div class="prod-navitem"><span class="ic">◈</span> Shipments</div>
+        <div class="prod-navitem"><span class="ic">▤</span> Packages</div>
+        <div class="prod-navitem"><span class="ic">▽</span> Inbound</div>
+        <div class="prod-navitem"><span class="ic">➤</span> Dispatches</div>
+        <div class="prod-navitem"><span class="ic">▣</span> Delivery</div>
+        <div class="prod-navitem"><span class="ic">▦</span> Invoices</div>
+        <div class="prod-navlabel">Scheduled Instant</div>
+        <div class="prod-navitem active"><span class="ic">▩</span> Schedule</div>
+        <div class="prod-navlabel">Master</div>
+        <div class="prod-navitem"><span class="ic">⌂</span> Hubs</div>
+        <div class="prod-navitem"><span class="ic">◇</span> Zones</div>
+        <div class="prod-navitem"><span class="ic">◉</span> Addresses</div>
+        <div class="prod-user">
+          <div class="prod-user-av">A</div>
+          <div>
+            <div class="prod-user-nm">Albert Ernesto</div>
+            <div class="prod-user-em">albert.ernesto…</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prod-main">
+        <div class="prod-crumb">· Dash · Logistic · Scheduled Instant</div>
+        <div class="prod-head">
+          <a href="#screen-2" class="backlink">‹ Kembali ke Slot Harian</a>
+          <div class="prod-eyebrow">Hub Ops</div>
+          <div class="prod-h1">Rider Belum Merespons</div>
+          <div class="prod-h1-sub">Semua slot · 06 Agu 2026 · dibuka dari kartu <b style="color:#C0392B;">"Perlu Perhatian · 7"</b> di Slot Harian</div>
+        </div>
+
+        <div class="prod-tabs">
+          <div class="prod-tab active">Belum Merespons · 7</div>
+          <div class="prod-tab">Menolak (TIDAK) · 3</div>
+        </div>
+
+        <div class="prod-toolbar">
+          <div class="prod-navbtn">‹</div>
+          <div class="prod-daterange">Hari ini · 06 Agu 2026</div>
+          <div class="prod-navbtn">›</div>
+          <div class="prod-search">🔍 Filter klien…</div>
+        </div>
+
+        <div class="prod-tblwrap">
+          <div style="font-size:10.5px;color:#9A9AA2;margin-bottom:10px;line-height:1.55;">Rider yang sudah dikirimi T-12 atau T-2 tapi belum menekan tombol apa pun. Diurutkan dari yang jam pickup-nya paling dekat.</div>
+
+          <table class="prod-tbl">
+            <thead>
+              <tr>
+                <th>Rider</th>
+                <th>Klien / Slot</th>
+                <th>Pesan Terakhir</th>
+                <th>Sudah Diam</th>
+                <th>Pickup</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="exp-av">YA</div><div><div style="font-weight:700;">Yoga Alamsyah</div><div style="font-size:9.5px;color:#9A9AA2;">MTR0004410</div></div></div></td>
+                <td>Goreca <span class="sub" style="color:#9A9AA2;">· 05:00–17:00</span></td>
+                <td>T-2 · 03:00</td>
+                <td><span class="silent">⏳ 1j 42m</span></td>
+                <td style="color:#C0392B;font-weight:800;">18 menit lagi</td>
+                <td><span class="exp-act wa" style="margin-right:10px;">✆ Hubungi</span><span class="exp-act ganti">⇄ Cari Pengganti</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="exp-av">RM</div><div><div style="font-weight:700;">Riki Maulana</div><div style="font-size:9.5px;color:#9A9AA2;">MTR0004411</div></div></div></td>
+                <td>Goreca <span class="sub" style="color:#9A9AA2;">· 05:00–17:00</span></td>
+                <td>T-12 · 17:00</td>
+                <td><span class="silent">⏳ 2j 14m</span></td>
+                <td style="color:#C0392B;font-weight:800;">18 menit lagi</td>
+                <td><span class="exp-act wa" style="margin-right:10px;">✆ Hubungi</span><span class="exp-act ganti">⇄ Cari Pengganti</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="exp-av">BR</div><div><div style="font-weight:700;">Bayu Rachmanto</div><div style="font-size:9.5px;color:#9A9AA2;">MTR0002791</div></div></div></td>
+                <td>Noovoleum Cleaning <span class="sub" style="color:#9A9AA2;">· 08:00–23:00</span></td>
+                <td>T-12 · 20:00</td>
+                <td><span class="silent">⏳ 2j 05m</span></td>
+                <td>3 jam lagi</td>
+                <td><span class="exp-act wa" style="margin-right:10px;">✆ Hubungi</span><span class="exp-act ganti">⇄ Cari Pengganti</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="exp-av">AP</div><div><div style="font-weight:700;">Agus Permadi</div><div style="font-size:9.5px;color:#9A9AA2;">MTR0003890</div></div></div></td>
+                <td>Chief Groom <span class="sub" style="color:#9A9AA2;">· 08:00–17:00</span></td>
+                <td>T-12 · 22:00</td>
+                <td><span class="silent soft">⏳ 58m</span></td>
+                <td>5 jam lagi</td>
+                <td><span class="exp-act wa">✆ Hubungi</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="exp-av">TH</div><div><div style="font-weight:700;">Taufik Hidayat</div><div style="font-size:9.5px;color:#9A9AA2;">MTR0006677</div></div></div></td>
+                <td>Saturdays <span class="sub" style="color:#9A9AA2;">· 09:00–21:00</span></td>
+                <td>T-12 · 22:00</td>
+                <td><span class="silent soft">⏳ 58m</span></td>
+                <td>5 jam lagi</td>
+                <td><span class="exp-act wa">✆ Hubungi</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="exp-av">WK</div><div><div style="font-weight:700;">Wahyu Kurnia</div><div style="font-size:9.5px;color:#9A9AA2;">MTR0002215</div></div></div></td>
+                <td>Selectro <span class="sub" style="color:#9A9AA2;">· 08:00–17:00</span></td>
+                <td>T-12 · 22:00</td>
+                <td><span class="silent soft">⏳ 58m</span></td>
+                <td>5 jam lagi</td>
+                <td><span class="exp-act wa">✆ Hubungi</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="exp-av">FT</div><div><div style="font-weight:700;">Fajar Triatmojo</div><div style="font-size:9.5px;color:#9A9AA2;">MTR0001998</div></div></div></td>
+                <td>UMAI Group <span class="sub" style="color:#9A9AA2;">· 13:00–15:00</span></td>
+                <td>T-12 · 23:00</td>
+                <td><span class="silent soft">⏳ 34m</span></td>
+                <td>8 jam lagi</td>
+                <td><span class="exp-act wa">✆ Hubungi</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pager">
+            <div class="pager-info">Menampilkan 1–7 dari 7 rider</div>
+            <div class="pager-right">
+              <div class="pager-size">
+                <span class="pager-label">Baris per halaman</span>
+                <div class="pager-select">10 <span style="color:#A0A0A8;">⌃</span></div>
+                <div class="pager-menu">
+                  <div class="on">10</div>
+                  <div>20</div>
+                  <div>30</div>
+                  <div>40</div>
+                  <div>50</div>
+                </div>
+              </div>
+              <div class="pager-btns">
+                <span class="pg disabled">‹</span>
+                <span class="pg active">1</span>
+                <span class="pg disabled">›</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="scope-note" style="margin-top:16px;">
+            <div class="scope-note-title">Catatan implementasi — Rider Belum Merespons</div>
+            <ul>
+              <li><b>Bukan tab baru di sub-nav.</b> Sub-nav produksi berisi <i>area kerja</i> (Slot Harian / Master Jadwal / Day Off Rider). Layar ini bersifat mendesak dan idealnya kosong — jadi masuknya lewat kartu <b>"Perlu Perhatian"</b> yang sudah ada di strip statistik, bukan lewat tab.</li>
+              <li><b>Dua tab dipisah dengan sengaja.</b> "Belum Merespons" = rider yang diam. "Menolak" = rider yang sudah menekan TIDAK. Ops butuh yang pertama; yang kedua sudah memberi kabar dan tinggal dicarikan pengganti.</li>
+              <li><b>Prasyarat: <span class="pill confirmed" style="font-size:10px;">✅ selesai 07-08-2026</span></b> status <code>NO_RESPONSE</code> sekarang sudah dipasang — pemisahan dua tab ini sekarang bersih by status, tidak perlu lagi lewat log pesan WhatsApp.</li>
+              <li><b>Sudah ada tanpa layar ini:</b> bot Slack di <code>#alert-calendar-schedule-instant</code> sudah mengirim daftar rider yang tidak merespons setiap kali sweep berjalan. Cek dulu apakah ops sudah menerimanya sebelum membangun layar ini.</li>
+              <li>Kolom "Sudah Diam" dihitung dari waktu pesan terakhir dikirim, bukan dari waktu slot dibuat.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== SCREEN 15B — TAB MENOLAK ======================== -->
+<div class="screen-group wide" id="screen-15b">
+  <div class="screen-label new">Screen 15B — Tab "Menolak (TIDAK)" (BARU)</div>
+  <div class="browser-shell">
+    <div class="browser-topbar">
+      <div class="tl-dots"><span class="tl-dot r"></span><span class="tl-dot y"></span><span class="tl-dot g"></span></div>
+      <div class="browser-url">🔒 logistic.dashelectric.co/scheduled-instant/schedule?view=menolak</div>
+    </div>
+
+    <div class="prod">
+      <div class="prod-side">
+        <div class="prod-brand">
+          <div class="prod-brand-mark">D</div>
+          <div>
+            <div class="prod-brand-name">Dash Electric</div>
+            <div class="prod-brand-sub">MITHRIL</div>
+          </div>
+        </div>
+        <div class="prod-navlabel">Analytics</div>
+        <div class="prod-navitem"><span class="ic">▣</span> Docking Dashboard</div>
+        <div class="prod-navlabel">Hub Ops</div>
+        <div class="prod-navitem"><span class="ic">◈</span> Shipments</div>
+        <div class="prod-navitem"><span class="ic">▤</span> Packages</div>
+        <div class="prod-navitem"><span class="ic">▽</span> Inbound</div>
+        <div class="prod-navitem"><span class="ic">➤</span> Dispatches</div>
+        <div class="prod-navitem"><span class="ic">▣</span> Delivery</div>
+        <div class="prod-navitem"><span class="ic">▦</span> Invoices</div>
+        <div class="prod-navlabel">Scheduled Instant</div>
+        <div class="prod-navitem active"><span class="ic">▩</span> Schedule</div>
+        <div class="prod-navlabel">Master</div>
+        <div class="prod-navitem"><span class="ic">⌂</span> Hubs</div>
+        <div class="prod-navitem"><span class="ic">◇</span> Zones</div>
+        <div class="prod-navitem"><span class="ic">◉</span> Addresses</div>
+        <div class="prod-user">
+          <div class="prod-user-av">A</div>
+          <div>
+            <div class="prod-user-nm">Albert Ernesto</div>
+            <div class="prod-user-em">albert.ernesto…</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prod-main">
+        <div class="prod-crumb">· Dash · Logistic · Scheduled Instant</div>
+        <div class="prod-head">
+          <a href="#screen-2" class="backlink">‹ Kembali ke Slot Harian</a>
+          <div class="prod-eyebrow">Hub Ops</div>
+          <div class="prod-h1">Rider Belum Merespons</div>
+          <div class="prod-h1-sub">Semua slot · 06 Agu 2026</div>
+        </div>
+
+        <div class="prod-tabs">
+          <div class="prod-tab">Belum Merespons · 7</div>
+          <div class="prod-tab active">Menolak (TIDAK) · 3</div>
+        </div>
+
+        <div class="prod-toolbar">
+          <div class="prod-navbtn">‹</div>
+          <div class="prod-daterange">Hari ini · 06 Agu 2026</div>
+          <div class="prod-navbtn">›</div>
+          <div class="prod-search">🔍 Filter klien…</div>
+        </div>
+
+        <div class="prod-tblwrap">
+          <div style="font-size:10.5px;color:#9A9AA2;margin-bottom:10px;line-height:1.55;">Rider yang sudah menekan <b style="color:#C0392B;">TIDAK</b>. Mereka sudah memberi kabar — yang dibutuhkan hanya pengganti. Baris yang sudah dapat pengganti tetap ditampilkan sebagai bukti slot-nya aman.</div>
+
+          <table class="prod-tbl">
+            <thead>
+              <tr>
+                <th>Rider</th>
+                <th>Klien / Slot</th>
+                <th>Menolak Saat</th>
+                <th>Pickup</th>
+                <th>Pengganti</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="exp-av">DP</div><div><div style="font-weight:700;">Doni Prasetyo</div><div style="font-size:9.5px;color:#9A9AA2;">MTR0003307</div></div></div></td>
+                <td>Goreca <span class="sub" style="color:#9A9AA2;">· 05:00–17:00</span></td>
+                <td>T-12 · 18:04</td>
+                <td style="color:#C0392B;font-weight:800;">18 menit lagi</td>
+                <td><span class="pill danger">● Belum ada</span></td>
+                <td><span class="exp-act ganti">⇄ Cari Pengganti</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="exp-av">WP</div><div><div style="font-weight:700;">Wahyu Prabowo</div><div style="font-size:9.5px;color:#9A9AA2;">MTR0008801</div></div></div></td>
+                <td>Noovoleum Cleaning <span class="sub" style="color:#9A9AA2;">· 08:00–23:00</span></td>
+                <td>T-2 · 06:12</td>
+                <td>3 jam lagi</td>
+                <td><span class="pill confirmed">● Slamet Widodo</span></td>
+                <td><span class="exp-act" style="color:#75757E;">Lihat slot ›</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:8px;"><div class="exp-av">NK</div><div><div style="font-weight:700;">Nur Kholis</div><div style="font-size:9.5px;color:#9A9AA2;">MTR0000799</div></div></div></td>
+                <td>Chief Groom <span class="sub" style="color:#9A9AA2;">· 08:00–17:00</span></td>
+                <td>T-12 · 22:30</td>
+                <td>5 jam lagi</td>
+                <td><span class="pill confirmed">● Hendra Nugraha</span></td>
+                <td><span class="exp-act" style="color:#75757E;">Lihat slot ›</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pager">
+            <div class="pager-info">Menampilkan 1–3 dari 3 rider</div>
+            <div class="pager-right">
+              <div class="pager-size">
+                <span class="pager-label">Baris per halaman</span>
+                <div class="pager-select">10 <span style="color:#A0A0A8;">⌄</span></div>
+              </div>
+              <div class="pager-btns">
+                <span class="pg disabled">‹</span>
+                <span class="pg active">1</span>
+                <span class="pg disabled">›</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="scope-note" style="margin-top:16px;">
+            <div class="scope-note-title">Catatan — kenapa tab ini beda dari "Belum Merespons"</div>
+            <ul>
+              <li><b>Kolom "Sudah Diam" hilang, diganti "Pengganti".</b> Rider di tab ini sudah memberi kabar, jadi lamanya diam tidak relevan. Yang penting: slot-nya sudah aman atau belum.</li>
+              <li><b>Tombol "Hubungi" hilang.</b> Tidak ada gunanya menelepon rider yang sudah bilang tidak bisa. Aksinya langsung <i>Cari Pengganti</i>.</li>
+              <li><b>Baris yang sudah dapat pengganti tetap ditampilkan</b> (hijau, dengan nama penggantinya) supaya ops bisa melihat sekilas mana yang sudah beres dan mana yang belum — bukan menghilang begitu ditangani.</li>
+              <li>Angka di tab (3) menghitung <b>semua</b> penolakan hari itu, termasuk yang sudah dapat pengganti. Kalau ops lebih suka hanya yang belum tertangani, angkanya jadi 1 — perlu dikonfirmasi.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="group-sep">
+  <div class="group-sep-line"></div>
+  <div class="group-sep-label">Halaman Reliabilitas (data bugs fixed 07-08-2026 — aggregation endpoints still not built)</div>
+  <div class="group-sep-line"></div>
+</div>
+
+<!-- ======================== SCREEN 14 ======================== -->
+<div class="screen-group">
+  <div class="screen-label updated">Screen 14 — Reliabilitas · Metrics Dashboard</div>
+  <div class="browser-shell">
+    <div class="browser-topbar">
+      <div class="tl-dots"><span class="tl-dot r"></span><span class="tl-dot y"></span><span class="tl-dot g"></span></div>
+      <div class="browser-url">🔒 logistic.dashelectric.co/scheduled-instant/reliabilitas</div>
+    </div>
+
+    <div class="dash-topbar">
+      <div class="dash-brand">
+        <div class="dash-logo">SI</div>
+        <div>
+          <div class="dash-title-text">Scheduled Instant</div>
+          <div class="dash-title-sub">Reliability Metrics</div>
+        </div>
+      </div>
+      <div class="dash-actions"><div class="ops-avatar">OA</div></div>
+    </div>
+
+    <div class="sub-nav">
+      <div class="sub-nav-tab">Slot Harian</div>
+      <div class="sub-nav-tab">Master Jadwal</div>
+      <div class="sub-nav-tab">Day Off Rider</div>
+      <div class="sub-nav-tab active">Reliabilitas</div>
+    </div>
+
+    <div class="toolbar-row" style="padding-bottom:16px;">
+      <div class="range-filter per-wrap">
+        <label>Periode</label>
+        <div class="fake-select" style="border-color:#5E2AAC;">30 Hari Terakhir <span>▴</span></div>
+        <div class="per-menu">
+          <div>7 Hari Terakhir</div>
+          <div class="on">30 Hari Terakhir <span class="tag">default</span></div>
+          <div>90 Hari Terakhir <span class="tag">target 90 hari</span></div>
+          <div class="sep"></div>
+          <div>Bulan Ini</div>
+          <div>Bulan Lalu</div>
+          <div class="sep"></div>
+          <div>Pilih Tanggal Sendiri…</div>
+        </div>
+      </div>
+      <div class="client-filter">
+        <label>Klien</label>
+        <div class="fake-select">Semua Klien <span>▾</span></div>
+      </div>
+    </div>
+
+    <div class="dash-body">
+      <div class="warn-modal" style="border-left-color:#2D7A45; background:#EAF6EE;">
+        <div class="warn-modal-title" style="color:#2D7A45;">✅ Diperbaiki 07-08-2026</div>
+        <div class="warn-modal-body" style="color:#1B4D2E;">
+          <code>NO_RESPONSE</code> sekarang tercatat, dan eskalasi diam di T-2 sekarang berjalan — rider yang konfirmasi di T-12 lalu diam di T-2 sekarang otomatis terdeteksi. <b>Konfirmasi Lalu Hilang</b> di bawah tidak lagi terblokir.
+        </div>
+      </div>
+
+      <div class="warn-modal">
+        <div class="warn-modal-title">⚠️ Sebelum membaca angka di bawah</div>
+        <div class="warn-modal-body">
+          Angka di halaman ini hanya menghitung data sejak <span class="tbd">[TANGGAL GO-LIVE WHATSAPP]</span> — sebelum tanggal itu belum ada siklus konfirmasi T-12/T-2, jadi status rider tidak mencerminkan kondisi sebenarnya.
+          <br><br>
+          <b>Catatan:</b> tanggal ini <b>bukan</b> tanggal go-live dashboard (22-06-2026). Perlu dikonfirmasi ke engineering kapan notifikasi WhatsApp benar-benar mulai aktif di produksi.
+          <br><br>
+          <b>Masih belum bisa dipercaya sepenuhnya:</b> belum ada endpoint agregasi metrik di backend (§7.2 poin 5 di Metrics Framework) — semua angka di halaman ini masih ilustratif, bukan data live, sampai endpoint-nya dibangun.
+        </div>
+      </div>
+
+      <div class="section-heading">Ringkasan Utama</div>
+      <div class="stat-row">
+        <div class="stat-card headline">
+          <div>
+            <div class="stat-label">Waktu Cari Pengganti</div>
+            <div class="stat-label-tech">Time-to-Replacement · median</div>
+            <div class="stat-value warn">34 menit</div>
+            <div class="stat-delta good">▼ 13 menit dari periode sebelumnya (47 menit)</div>
+          </div>
+          <div class="headline-target">Target: <strong>di bawah 20–30 menit</strong><br/>(dari ~2 jam sebelum sistem ini ada)</div>
+        </div>
+      </div>
+      <div class="fill-note">Dihitung dari jarak waktu antara slot ditandai bermasalah sampai pengganti benar-benar ditugaskan.</div>
+
+      <div class="section-heading">Pendukung</div>
+      <div class="stat-row">
+        <div class="stat-card support">
+          <div class="stat-label">Berhasil Dapat Pengganti</div>
+          <div class="stat-label-tech">Recovery Success Rate</div>
+          <div class="stat-value success">89.6%</div>
+          <div class="stat-delta good">▲ 9.8pp dari periode sebelumnya</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Slot Dibuat</div>
+          <div class="stat-value">298</div>
+          <div class="stat-sub">30 hari terakhir, seluruh klien</div>
+        </div>
+      </div>
+
+      <div class="section-heading">Kenapa Angka Ini Bergerak</div>
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-label">Nggak Konfirmasi dari Awal</div>
+          <div class="stat-label-tech">No-Show Rate · T-12</div>
+          <div class="stat-value danger">22.4%</div>
+          <div class="stat-denom">Penyebut: <b>semua</b> rider utama yang dikirimi T-12</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Konfirmasi Lalu Hilang</div>
+          <div class="stat-label-tech">No-Show Rate · T-2</div>
+          <div class="stat-value danger">6.1%</div>
+          <div class="stat-denom">Penyebut: <b>hanya</b> rider yang sudah bilang YA di T-12</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Rider Balas Duluan</div>
+          <div class="stat-label-tech">T-12 Response Rate</div>
+          <div class="stat-value">91.3%</div>
+          <div class="stat-sub">Membalas T-12, apa pun jawabannya</div>
+          <div class="split-bar">
+            <div class="split-seg ya" style="width:77.6%"></div>
+            <div class="split-seg tidak" style="width:13.7%"></div>
+            <div class="split-seg none" style="width:8.7%"></div>
+          </div>
+          <div class="split-legend">
+            <div class="split-item"><span class="split-key ya"></span>YA <b>77.6%</b></div>
+            <div class="split-item"><span class="split-key tidak"></span>TIDAK <b>13.7%</b></div>
+            <div class="split-item"><span class="split-key none"></span>Diam <b>8.7%</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="fill-note">
+        Dua angka pertama <b>tidak bisa dijumlahkan</b> — penyebutnya beda.
+        <br><br>
+        Rincian YA/TIDAK/Diam menjumlah 100%. <b>TIDAK</b> berarti rider memberi kabar dan slot bisa langsung dicarikan pengganti — <b>Diam</b> berarti ops harus menunggu 2 jam dulu baru tahu ada masalah. Dua-duanya masuk "Nggak Konfirmasi dari Awal" (13.7% + 8.7% = 22.4%), tapi biaya operasionalnya jauh berbeda.
+      </div>
+
+      <div class="section-heading">Per Klien <span class="link">Klik judul kolom untuk mengurutkan</span></div>
+      <div class="table-wrap">
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th class="sortable"><span class="sorter">Klien <span class="arrow">⇅</span></span></th>
+              <th class="sortable sorted"><span class="sorter">Waktu Cari Pengganti <span class="arrow">▼</span></span></th>
+              <th class="sortable"><span class="sorter">Berhasil Dapat Pengganti <span class="arrow">⇅</span></span></th>
+              <th class="sortable"><span class="sorter">Nggak Konfirmasi (T-12) <span class="arrow">⇅</span></span></th>
+              <th class="sortable"><span class="sorter">Konfirmasi Lalu Hilang (T-2) <span class="arrow">⇅</span></span></th>
+              <th class="sortable"><span class="sorter">Total Slot <span class="arrow">⇅</span></span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Goreca <span class="badge amber">⚠ lihat catatan</span></td><td class="cell-danger">52 mnt</td><td class="cell-danger">77.4%</td><td class="cell-danger">31.2%</td><td class="cell-danger">9.8%</td><td>54</td></tr>
+            <tr><td>Saturdays</td><td class="cell-danger">41 mnt</td><td>86.9%</td><td>23.6%</td><td>7.8%</td><td>60</td></tr>
+            <tr><td>Noovoleum Cleaning</td><td>36 mnt</td><td>88.7%</td><td>21.0%</td><td>6.7%</td><td>62</td></tr>
+            <tr><td>Rumah Sayur Nusantara</td><td>29 mnt</td><td>90.5%</td><td>19.8%</td><td>5.2%</td><td>30</td></tr>
+            <tr><td>Chief Groom</td><td class="cell-success">25 mnt</td><td>91.8%</td><td>16.9%</td><td>4.9%</td><td>30</td></tr>
+            <tr><td>Merapi</td><td class="cell-success">22 mnt</td><td class="cell-success">94.1%</td><td>17.5%</td><td>4.4%</td><td>28</td></tr>
+            <tr><td>Selectro</td><td class="cell-success">18 mnt</td><td class="cell-success">96.3%</td><td class="cell-success">14.0%</td><td class="cell-success">3.1%</td><td>30</td></tr>
+            <tr><td>Wicked Pies</td><td class="cell-muted" colspan="4">n/a — kurang dari 5 slot pada periode ini</td><td>4</td></tr>
+          </tbody>
+        </table>
+
+        <div class="pager">
+          <div class="pager-info">Menampilkan 1–8 dari 19 klien</div>
+          <div class="pager-right">
+            <div class="pager-size">
+              <span class="pager-label">Baris per halaman</span>
+              <div class="pager-select">10 <span style="color:#A0A0A8;">⌃</span></div>
+              <div class="pager-menu">
+                <div class="on">10</div>
+                <div>20</div>
+                <div>30</div>
+                <div>40</div>
+                <div>50</div>
+              </div>
+            </div>
+            <div class="pager-btns">
+              <span class="pg disabled">‹</span>
+              <span class="pg active">1</span>
+              <span class="pg">2</span>
+              <span class="pg">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scope-note" style="margin-top:14px;">
+        <div class="scope-note-title">Di luar scope versi ini — dan alasannya</div>
+        <ul>
+          <li><b>Slot Gagal Total</b> — butuh bukti pengiriman benar-benar terjadi. Kalender Scheduled Instant belum terhubung ke sistem delivery.</li>
+          <li><b>Slot Ketutup</b> — butuh data kehadiran rider. Rider bilang YA tapi tidak datang tetap terhitung sama.</li>
+          <li><b>Client-first gap discovery</b> — butuh catatan kapan klien komplain. Tidak ada di sistem ini.</li>
+        </ul>
+        <div style="font-size:11px;color:#8E8E93;margin-top:9px;line-height:1.6;">
+          Ketiganya gagal karena alasan yang sama: <b>sistem ini mencatat komitmen rider, bukan hasil pengiriman.</b>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="group-sep">
+  <div class="group-sep-line"></div>
+  <div class="group-sep-label">Master Jadwal — Detail Jadwal + Dialog Hapus</div>
+  <div class="group-sep-line"></div>
+</div>
+
+<!-- ======================== SCREEN 8 ======================== -->
+<div class="screen-group">
+  <div class="screen-label updated">Screen 8 — Detail Jadwal · K24 06:00–07:00</div>
+  <div class="browser-shell">
+    <div class="browser-topbar">
+      <div class="tl-dots"><span class="tl-dot r"></span><span class="tl-dot y"></span><span class="tl-dot g"></span></div>
+      <div class="browser-url">🔒 logistic.dashelectric.co/scheduled-instant/master-jadwal/k24-0600</div>
+    </div>
+    <div class="dash-body" style="padding:20px 24px 24px;">
+      <div class="modal-title-row">
+        <div>
+          <div class="modal-title">K24 · 06:00–07:00 <span class="status-badge active" style="margin-left:8px;">🟢 Aktif</span></div>
+          <div style="font-size:11px;color:#8E8E93;margin-top:3px;">Zero Tolerance · Dibuat 01-04-2026 · Terakhir diubah 22-06-2026</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div class="btn-secondary">Edit Jadwal</div>
+          <div class="btn-danger">Nonaktifkan Jadwal</div>
+        </div>
+      </div>
+
+      <div class="section-heading">Statistik Reliabilitas (30 Hari)</div>
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Slot Dibuat</div>
+          <div class="stat-value">30</div>
+          <div class="stat-sub">30 hari terakhir</div>
+        </div>
+        <div class="stat-card support">
+          <div class="stat-label">Berhasil Dapat Pengganti</div>
+          <div class="stat-label-tech">Recovery Success Rate</div>
+          <div class="stat-value success">91.7%</div>
+          <div class="stat-sub">Dari 4 kali bermasalah, 3 dapat pengganti</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Waktu Cari Pengganti</div>
+          <div class="stat-label-tech">Time-to-Replacement · median</div>
+          <div class="stat-value success">18 menit</div>
+          <div class="stat-sub">Sudah di bawah target 20–30 menit</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Rider Cadangan Ditugaskan</div>
+          <div class="stat-value">3 <span style="font-size:12px;font-weight:600;color:#8E8E93;">dari 4</span></div>
+          <div class="stat-sub">Sisanya diisi rider standby di luar daftar cadangan</div>
+        </div>
+      </div>
+      <div class="fill-note">Kartu ini menghitung cadangan yang <b>ditugaskan</b> lewat sistem. Proses menelepon rider dilakukan di luar sistem sehingga tidak terekam — karena itu bukan "Dipanggil".</div>
+
+      <div class="section-heading">Rider Ditugaskan <span class="link">1 klien · 1 jadwal · bisa lebih dari 1 rider</span></div>
+
+      <div class="role-subheading">Rider Utama (15)</div>
+      <div class="rider-card-grid">
+        <div class="rider-card-sm"><div class="rider-avatar">BS</div><div><div class="rider-card-name">Budi Santoso</div><div class="rider-card-meta">MTR0001504</div></div></div>
+        <div class="rider-card-sm"><div class="rider-avatar">MW</div><div><div class="rider-card-name">Made Wirawan</div><div class="rider-card-meta">MTR0006218</div></div></div>
+        <div class="rider-card-sm"><div class="rider-avatar">AP</div><div><div class="rider-card-name">Agus Prakoso</div><div class="rider-card-meta">MTR0004521</div></div></div>
+        <div class="rider-card-sm ghost">+12 lainnya (15 total)</div>
+      </div>
+
+      <div class="role-subheading">Rider Cadangan (2)</div>
+      <div class="rider-card-grid">
+        <div class="rider-card-sm"><div class="rider-avatar">SW</div><div><div class="rider-card-name">Slamet Widodo</div><div class="rider-card-meta">MTR0002983</div></div></div>
+        <div class="rider-card-sm"><div class="rider-avatar">HN</div><div><div class="rider-card-name">Hendra Nugraha</div><div class="rider-card-meta">MTR0007744</div></div></div>
+      </div>
+      <div class="fill-note">Badge "Reliabilitas XX%" per rider <b>dihapus</b> — angka itu butuh 30–60 hari data konfirmasi bersih dan masuk Sprint 2 bersama sistem tier rider.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== DELETE DIALOG ======================== -->
+<div class="screen-group">
+  <div class="screen-label new">Dialog — Konfirmasi Hapus Jadwal (BARU)</div>
+  <div class="dialog-shell">
+    <div class="dialog-body">
+      <div class="dialog-title">Hapus jadwal K24 · 06:00–07:00?</div>
+      <div class="dialog-text">Tindakan ini tidak bisa dibatalkan.</div>
+      <div class="dialog-warn">
+        <b>Yang akan terjadi:</b><br/>
+        · Semua slot harian <b>yang akan datang</b> dari jadwal ini akan dihapus, beserta penugasan ridernya.<br/>
+        · Slot yang <b>sudah lewat</b> tetap tersimpan, tapi berubah jadi slot mandiri (📌) dan tidak lagi terhubung ke jadwal ini.<br/>
+        · <b>Statistik reliabilitas jadwal ini hilang permanen.</b> Membuat ulang jadwal yang sama tidak mengembalikannya.
+      </div>
+      <div class="dialog-text" style="font-size:11.5px;color:#8E8E93;margin-bottom:16px;">
+        Kalau tujuannya hanya menghentikan jadwal (misalnya klien sunset), gunakan <b>Nonaktifkan Jadwal</b> — riwayat dan statistiknya tetap utuh.
+      </div>
+      <div class="dialog-actions">
+        <div class="btn-secondary">Batal</div>
+        <div class="btn-danger">Ya, Hapus Jadwal</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

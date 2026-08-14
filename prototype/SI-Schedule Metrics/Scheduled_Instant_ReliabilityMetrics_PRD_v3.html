@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scheduled Instant — Rider Reliability System — PRD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Fonts loaded via Google Fonts link above -- Dash Design System v1.1 */
+
+  /* ─── Reset & Base ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; scroll-behavior: smooth; }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background: #F7F7F5;
+    color: #1A1A1A;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ─── Design Tokens ─── */
+  :root {
+    /* Dash Design System v1.1 tokens (see dash-gsm-universal) */
+    --purple:        #5E2AAC;  /* --purple */
+    --purple-light:  #EEE5FB;  /* --purple-soft */
+    --purple-mid:    #47208A;  /* darkened --purple, for depth/contrast pairs */
+    --purple-card:   #F1ECF9;  /* --purple-card */
+    --text:          #1A1A1A;  /* --ink */
+    --text-muted:    #6B6B68;  /* --mute */
+    --border:        #E4E3DE;  /* --rule */
+    --surface:       #FFFFFF;  /* --paper-2 */
+    --surface-alt:   #F7F7F5;  /* --paper */
+    --sidebar-w:     240px;
+    --sans:          'Plus Jakarta Sans', system-ui, sans-serif;
+    --mono:          'JetBrains Mono', monospace;
+    --shadow-xs:     0 1px 2px rgba(0,0,0,0.04), 0 1px 0px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.9);
+    --shadow-sm:     0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9);
+
+    /* Status colors */
+    --created-bg:   #EEE5FB; --created-text:   #5E2AAC; --created-border:  #C9B3EC;
+    --approved-bg:  #1A1A1A; --approved-text:  #FFFFFF; --approved-border: #1A1A1A;
+    --rejected-bg:  #FFFFFF; --rejected-text:  #1A1A1A; --rejected-border: #1A1A1A;
+    --closed-bg:    #F7F7F5; --closed-text:    #6B6B68; --closed-border:   #E4E3DE;
+  }
+
+  /* ─── Sidebar ─── */
+  nav#sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 28px 0 40px;
+    z-index: 100;
+  }
+  .nav-logo {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .nav-logo .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .nav-logo h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--purple);
+    margin-top: 4px;
+    line-height: 1.3;
+  }
+  .nav-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text-muted);
+    padding: 14px 20px 4px;
+  }
+  nav#sidebar a {
+    display: block;
+    padding: 7px 20px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all .15s;
+    line-height: 1.4;
+  }
+  nav#sidebar a:hover { color: var(--purple); background: var(--purple-light); }
+  nav#sidebar a.active {
+    color: var(--purple);
+    border-left-color: var(--purple);
+    background: var(--purple-light);
+    font-weight: 600;
+  }
+
+
+  /* ─── Sidebar collapse ─── */
+  nav#sidebar { transition: transform .28s ease, box-shadow .28s ease; }
+  main { transition: margin-left .28s ease; }
+
+  body.nav-collapsed nav#sidebar { transform: translateX(-100%); box-shadow: none; }
+  body.nav-collapsed main { margin-left: 0; }
+
+  /* Toggle button — always reachable, GSM styled */
+  #nav-toggle {
+    position: fixed; top: 16px; left: 16px; z-index: 200;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; padding: 0;
+    transition: left .28s ease, background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  #nav-toggle:hover { color: var(--purple); border-color: var(--purple); background: var(--purple-light); }
+  #nav-toggle svg { width: 16px; height: 16px; display: block; }
+  /* When expanded, tuck the button just inside the sidebar's right edge so it doesn't cover the logo */
+  body:not(.nav-collapsed) #nav-toggle { left: calc(var(--sidebar-w) - 46px); }
+  /* Rotate chevron by state */
+  #nav-toggle .chev { transition: transform .28s ease; transform-origin: 50% 50%; }
+  body.nav-collapsed #nav-toggle .chev { transform: rotate(180deg); }
+
+  /* ─── Main Content ─── */
+  main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 48px 56px;
+  }
+  .page-header {
+    margin-bottom: 48px;
+    padding-bottom: 28px;
+    border-bottom: 2px solid var(--border);
+  }
+  .page-header .feature-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--purple);
+    margin-bottom: 8px;
+  }
+  .page-header h1 {
+    font-family: var(--sans);
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    line-height: 1.25;
+    margin-bottom: 12px;
+  }
+  .page-header .meta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .page-header .meta span { display: flex; align-items: baseline; gap: 6px; }
+  .page-header .meta .meta-k { font-style: normal; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); }
+  .page-header .meta strong { color: var(--text); font-weight: 600; }
+
+  /* ─── Sections ─── */
+  section { margin-bottom: 56px; scroll-margin-top: 24px; }
+  section h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  section h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 24px 0 12px;
+  }
+  section h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin: 20px 0 8px;
+  }
+  p { font-size: 14px; line-height: 1.7; color: var(--text-muted); margin-bottom: 12px; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { font-size: 14px; line-height: 1.7; color: var(--text-muted); margin-bottom: 4px; }
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--purple-light);
+    color: var(--purple);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* ─── Cards ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-xs);
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 700px) { .card-grid { grid-template-columns: 1fr; } }
+
+  /* ─── Tables ─── */
+  .table-wrap { overflow-x: auto; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface-alt);
+    font-weight: 600;
+    color: var(--text);
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-alt); }
+
+  /* ─── Badges ─── */
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .badge-created  { background: var(--created-bg);  color: var(--created-text);  border-color: var(--created-border);  }
+  .badge-approved { background: var(--approved-bg); color: var(--approved-text); border-color: var(--approved-border); }
+  .badge-rejected { background: var(--rejected-bg); color: var(--rejected-text); border-color: var(--rejected-border); }
+  .badge-closed   { background: var(--closed-bg);   color: var(--closed-text);   border-color: var(--closed-border);   }
+  .badge-purple   { background: var(--purple-light); color: var(--purple); border-color: #C9B3EC; }
+  .badge-gray     { background: var(--surface-alt); color: var(--text-muted); border-color: var(--border); }
+
+  /* HTTP method badges */
+  .method { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; font-family: var(--mono); margin-right: 6px; }
+  .method-get    { background: var(--surface-alt); color: var(--text-muted); border: 1px solid var(--border); }
+  .method-post   { background: var(--text); color: #FFFFFF; }
+  .method-patch  { background: var(--purple); color: #FFFFFF; }
+  .method-put    { background: var(--purple-mid); color: #FFFFFF; }
+  .method-delete { background: var(--surface); color: var(--text); border: 2px solid var(--text); }
+
+  /* ─── Status Flow ─── */
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 20px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    justify-content: center;
+  }
+  .flow-node {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .flow-node .node-badge { font-size: 13px; padding: 6px 16px; }
+  .flow-node .node-label { font-size: 11px; color: var(--text-muted); }
+  .flow-arrow {
+    font-size: 22px; color: var(--border); margin: 0 8px;
+    display: flex; align-items: center;
+  }
+  .flow-arrow.branch { flex-direction: column; gap: 4px; align-items: center; }
+  .flow-arrow .arrow-label { font-size: 11px; color: var(--text-muted); }
+
+  /* ─── Timeline Preview ─── */
+  .timeline { list-style: none; padding: 0; margin: 12px 0; }
+  .timeline li {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .timeline li:last-child { border-bottom: none; }
+  .tl-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 4px;
+  }
+  .tl-dot-purple { background: var(--purple); }
+  .tl-dot-green  { background: var(--text); }
+  .tl-dot-red    { background: var(--purple); }
+  .tl-dot-gray   { background: #9A9895; }
+  .tl-content .tl-title { font-weight: 600; color: var(--text); }
+  .tl-content .tl-meta  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ─── Callouts ─── */
+  .callout {
+    padding: 14px 18px;
+    border-radius: 8px;
+    border-left: 4px solid;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .callout-warning { background: var(--surface); border-color: var(--purple); color: var(--text); }
+  .callout-info    { background: var(--surface-alt); border-color: var(--text-muted); color: var(--text); }
+  .callout-danger  { background: var(--purple-light); border-color: var(--purple); color: var(--text); }
+  .callout-success { background: var(--surface-alt); border-color: var(--text); color: var(--text); }
+  .callout strong  { font-weight: 700; }
+
+  /* ─── Chips / Tags ─── */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    background: var(--purple-light);
+    color: var(--purple);
+    border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+  }
+
+  /* ─── Code block ─── */
+  pre {
+    background: #1A1A1A;
+    color: #F0EFED;
+    border-radius: 8px;
+    padding: 18px 20px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin-bottom: 16px;
+    font-family: var(--mono);
+  }
+  pre .c  { color: #5A5956; }
+  pre .k  { color: #A557FF; }
+  pre .s  { color: #C9B3EC; }
+  pre .n  { color: #F0EFED; }
+  pre .v  { color: #9655DE; }
+
+  /* ─── Checklist ─── */
+  .checklist { list-style: none; padding: 0; }
+  .checklist li {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px; color: var(--text-muted);
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist li::before {
+    content: '☐';
+    color: var(--border);
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .checklist li code { font-size: 11.5px; }
+  .checklist li.done { color: var(--text-muted); text-decoration: line-through; text-decoration-color: var(--border); }
+  .checklist li.done::before { content: '✅'; font-size: 13px; }
+  .checklist li.done strong { color: var(--text-muted); }
+
+  /* ─── Placeholder helpers ─── */
+  .placeholder {
+    color: #9A9895;
+    font-style: italic;
+    background: #F7F7F5;
+    border: 1px dashed #C9C7C1;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 13px;
+  }
+  .fill-note {
+    font-size: 11px;
+    color: #9A9895;
+    font-style: italic;
+    margin-top: 6px;
+  }
+
+  /* ─── Inline receive table ─── */
+  .inline-table { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .inline-table table { margin: 0; }
+  .inline-table thead th { background: var(--purple-light); color: var(--purple); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<button id="nav-toggle" aria-label="Toggle sidebar" aria-expanded="true" title="Collapse sidebar (\\)">
+  <svg class="chev" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M10 3.5 5.5 8 10 12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</button>
+
+<nav id="sidebar">
+  <div class="nav-logo">
+    <div class="label">Product Requirements</div>
+    <h2>Dash Electric<br/>Scheduled Instant</h2>
+  </div>
+
+  <div class="nav-section-label">Overview</div>
+  <a href="#background">Background &amp; Problem</a>
+  <a href="#goals">Goals &amp; Success Metrics</a>
+  <a href="#scope">Scope</a>
+
+  <div class="nav-section-label">Design</div>
+  <a href="#roles">Roles &amp; Permissions</a>
+  <a href="#status-flow">Status Flow</a>
+  <a href="#screens">Screen Specifications</a>
+  <a href="#modals">Modals &amp; Components</a>
+  <a href="#edge-cases">Edge Cases</a>
+
+  <div class="nav-section-label">Engineering</div>
+  <a href="#data-model">Data Model</a>
+  <a href="#api">API Endpoints</a>
+  <a href="#tech-stack">Tech Stack</a>
+  <a href="#impl-notes">Implementation Notes</a>
+  <a href="#work-remaining">Work Remaining</a>
+</nav>
+
+<main>
+
+  <div class="page-header">
+    <div class="feature-label">Product Requirements Document</div>
+    <h1>Scheduled Instant — Rider Reliability System</h1>
+    <div class="meta">
+      <span><em class="meta-k">Author</em> <strong>Albert</strong></span>
+      <span><em class="meta-k">Date</em> <strong>2026-07-10</strong></span>
+      <span><em class="meta-k">Updated</em> <strong>2026-08-07</strong></span>
+      <span><em class="meta-k">Version</em> <strong>v2.1</strong></span>
+      <span><em class="meta-k">Status</em> <strong>Live (Phase 1 + 2) — verified against production code</strong></span>
+      <span><em class="meta-k">Companion</em> <strong>Scheduled_Instant_Metrics_Framework_v2.html</strong></span>
+    </div>
+  </div>
+
+  <div class="callout callout-danger">
+    <strong>What changed in v2.0 (06-08-2026).</strong> This document was reconciled against the actual production codebase (<code>nest-logistic-service</code>, <code>react-logistic-web</code> @ <code>main</code>). Four sections were materially wrong and are corrected here: <strong>§2</strong> success metrics (two targets were unmeasurable), <strong>§9</strong> data model (every table name was wrong, and two tables were missing entirely), <strong>§10</strong> API endpoints (indicative paths replaced with real ones), <strong>§11</strong> tech stack (previously all placeholders). §5's status enum was verified <em>correct</em>. Two implementation gaps were found and are flagged in §5 and §13.
+  </div>
+
+  <div class="callout callout-success">
+    <strong>✅ What changed in v2.1 (07-08-2026).</strong> Three items from §13's Work Remaining list are now fixed and deployed: <strong>T-2 silence escalation</strong>, <strong><code>NO_RESPONSE</code> wiring</strong>, and <strong>delete/deactivate future-slot cleanup</strong>. The two critical gaps flagged in v2.0 §5 are both closed as of today. Still open: activity-log row on automatic escalation, metrics aggregation endpoints, the Siap Konfirmasi column, the Rider Belum Merespons screen, and the canonical schema xlsx correction. See the companion Metrics Framework and Reliabilitas mockup for the metrics-side implications.
+  </div>
+
+  <!-- ── 1. Background & Problem ── -->
+  <section id="background">
+    <h2>1. Background &amp; Problem</h2>
+    <p>Scheduled Instant is a Dash Electric logistics offering where clients need a rider (mitra) to pick up at the client's hub at a scheduled time and deliver directly to the end customer. Riders are gig workers, not employees. The Scheduled Instant Squad (part of the Logistic team) manages roughly 19 in-scope clients.</p>
+    <p>The core problem is rider unreliability. Riders frequently fail to show up without warning. Because there is no early-warning signal, clients often discover the gap before the ops team does, and the manual scramble to find a replacement rider can currently take <strong>up to 2 hours</strong> — during which the client relationship is actively being damaged and no one is tracking how often this happens.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4>Current Situation</h4>
+        <p>Ops tags riders in a WhatsApp group at H-1 as a reminder. Some respond, many leave it on read. If a rider no-shows, the client usually notices first. Ops then manually calls around for a replacement — up to 2 hours — with no structured visibility, no history, and schedules managed across fragmented per-client spreadsheets in five different formats.</p>
+      </div>
+      <div class="card">
+        <h4>Desired Outcome</h4>
+        <p>Unreliability becomes cheap to recover from. Risk is detected early via structured rider confirmation, ops sees gaps before the client does, and replacement time drops from ~2 hours to under 20–30 minutes through a pre-designated reserve rider plus a standby bench — all managed in one dashboard that is the single source of truth.</p>
+      </div>
+    </div>
+
+    <div class="callout callout-warning">
+      <strong>North-star principle:</strong> "Make unreliability cheap to recover from" — the system does not try to eliminate no-shows (structurally impossible with a gig workforce). It detects risk early and shortens recovery time.
+    </div>
+  </section>
+
+  <!-- ── 2. Goals & Success Metrics ── -->
+  <section id="goals">
+    <h2>2. Goals &amp; Success Metrics</h2>
+    <div class="card-grid">
+      <div class="card">
+        <h4>Primary Goals</h4>
+        <ul>
+          <li>Detect rider no-show risk early via structured T-12 / T-2 WhatsApp confirmation.</li>
+          <li>Give ops a single source of truth (dashboard) that surfaces gaps before the client notices.</li>
+          <li>Cut replacement time from ~2 hours to under 20–30 minutes via reserve rider + standby bench.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Secondary Goals</h4>
+        <ul>
+          <li>Retire fragmented per-client spreadsheets as the write system (Model B).</li>
+          <li>Build a clean history of rider reliability to enable a rider-tier system in a later sprint.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Success Metrics — revised 06-08-2026</h3>
+    <div class="callout callout-danger">
+      <strong>Why this table changed.</strong> Two of the four original metrics could not be measured with any data this system holds, and one of them carried the headline 40–50% target. The replacement headline is the recovery-time goal already stated in §1 — measurable today, from data the product generates as a byproduct of real ops work. Full derivation, formulas and code verification in <code>Scheduled_Instant_Metrics_Framework_v2.html</code>.
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Metric</th><th>Target</th><th>How Measured</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Replacement time</strong> (detect → reassigned)<br/><span class="fill-note">Waktu Cari Pengganti — headline</span></td>
+            <td>Under 20–30 min, from ~2 hrs</td>
+            <td>Median elapsed time from the activity-log entry flagging a rider as needing replacement, to the <code>REPLACE</code> entry assigning one</td>
+            <td><span class="badge badge-approved">Measurable now</span></td>
+          </tr>
+          <tr>
+            <td><strong>Recovery success rate</strong><br/><span class="fill-note">Berhasil Dapat Pengganti</span></td>
+            <td>Establish baseline, then improve</td>
+            <td>Assignments reaching <code>REPLACED</code> ÷ assignments that ever needed replacement</td>
+            <td><span class="badge badge-approved">Measurable now</span></td>
+          </tr>
+          <tr>
+            <td><strong>Rider confirmation response rate</strong><br/><span class="fill-note">Rider Balas Duluan — split YA / TIDAK / silent</span></td>
+            <td>Establish baseline, then improve</td>
+            <td>Share of T-12 pings answered, from the WhatsApp message log</td>
+            <td><span class="badge badge-approved">Measurable now</span></td>
+          </tr>
+          <tr>
+            <td><strong>No-show rate — T-12 and T-2</strong><br/><span class="fill-note">Two separate metrics, different denominators</span></td>
+            <td>Establish baseline, then improve</td>
+            <td>Declined or silent ÷ pinged, attributed to checkpoint via the escalation timestamps</td>
+            <td><span class="badge badge-approved">Measurable now</span></td>
+          </tr>
+          <tr>
+            <td><s>No-show incident frequency</s> (↓40–50% / 90 days)</td>
+            <td colspan="2">Requires <code>COMPLETED</code> / <code>FAILED</code>, which nothing in the system writes automatically. Manual close-out rejected — per-rider granularity means up to 450 clicks/day, and partial compliance biases the number upward rather than merely adding noise.</td>
+            <td><span class="badge badge-rejected">Out of scope</span></td>
+          </tr>
+          <tr>
+            <td><s>Client-first gap discovery</s></td>
+            <td colspan="2">Requires a client-complaint timestamp. Complaints arrive by WhatsApp, phone or account managers — no record exists in this system.</td>
+            <td><span class="badge badge-rejected">Out of scope</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout-info">
+      <strong>The shared reason both were dropped:</strong> Scheduled Instant records rider <em>commitments</em>, not delivery <em>outcomes</em>. There is no link to the delivery system and no attendance signal. Any metric needing proof a delivery happened is out of scope until that integration exists — worth stating once, because it otherwise resurfaces per-metric.
+    </div>
+  </section>
+
+  <!-- ── 3. Scope ── -->
+  <section id="scope">
+    <h2>3. Scope</h2>
+    <div class="callout callout-info">
+      <strong>Client scope:</strong> This build covers <strong>PER ORDER/COMBINED</strong> clients only (~19). <strong>FLAT/DEDICATED</strong> clients (Alfagift, Selectro, Kebon Kita, Paxel, Groom) are managed in a separate existing project tracker and are out of scope.
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <h4>Shipped (Phase 1 + 2)</h4>
+        <ul>
+          <li>Ops dashboard: Calendar &amp; Table views of daily slots, with client filter.</li>
+          <li>WhatsApp T-12 / T-2 rider confirmation flow (YA/TIDAK, Bahasa Indonesia) via kirimdev.</li>
+          <li>Add / Edit Slot (direct data entry — Model B).</li>
+          <li>Master Jadwal: recurring schedule management, Active / Non-Aktif, multi-rider.</li>
+          <li>Reserve rider + Standby Rider bench (no-schedule match).</li>
+          <li>Escalation: dashboard flag + grouped Slack notification.</li>
+          <li>Rider Day Off management with soft-block conflict handling.</li>
+          <li>Slot activity / audit log surfaced in Slot Detail.</li>
+          <li>Origin indicators (🔗 / 📌 / ✎ Diedit) on the calendar.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>In build — added 06-08-2026, updated 07-08-2026</h4>
+        <ul>
+          <li><strong>Reliabilitas page</strong> — global metrics dashboard (new).</li>
+          <li><strong>"Siap Konfirmasi" column</strong> on Table View — per-slot % of main riders confirmed.</li>
+          <li><strong>Rider Belum Merespons screen</strong> — flat cross-slot list, plus a "Menolak" tab.</li>
+          <li><span class="badge badge-approved">✅ Fixed 07-08-2026</span> <strong>T-2 silence escalation</strong> — specified in §8, now implemented.</li>
+          <li><span class="badge badge-approved">✅ Fixed 07-08-2026</span> <strong><code>NO_RESPONSE</code> wiring</strong> — now written by the T-12/T-2 sweep.</li>
+          <li>Metrics aggregation endpoints — none exist today.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <h4>Out of Scope</h4>
+      <ul>
+        <li>Risk scoring engine (0–100 score) — deferred; simple status states used instead.</li>
+        <li>Rider Reliability Tier system, and per-rider reliability % — Sprint 2, gated on 30–60 days of clean confirmation data.</li>
+        <li>Metrics requiring delivery outcomes (failure rate, slot coverage) — needs delivery integration first.</li>
+        <li>Client-first gap discovery — needs a complaint log that does not exist.</li>
+        <li>RBAC / roles — one central ops team, everyone sees the same view.</li>
+        <li>Route planning / stop-count optimization — a different system entirely.</li>
+        <li>FLAT/DEDICATED clients — separate existing tracker.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── 4. Roles & Permissions ── -->
+  <section id="roles">
+    <h2>4. Roles &amp; Permissions</h2>
+    <h3>Roles</h3>
+    <div class="chips">
+      <span class="chip">Ops Associate — central team, shift-based</span>
+      <span class="chip">Rider (Mitra) — WhatsApp only, not a dashboard user</span>
+    </div>
+    <p class="fill-note">No RBAC in this build. There is one central ops team working shifts; every associate sees the identical dashboard view. Riders never log into the dashboard — they interact only through WhatsApp.</p>
+
+    <h3>Permission Matrix</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Action</th><th>Ops Associate</th><th>Rider (Mitra)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>View dashboard (Calendar / Table / Master Jadwal / Day Off / Reliabilitas)</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Add / Edit slot, assign riders</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Activate / Deactivate / Delete a schedule</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Assign standby / reserve rider</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Manually set a rider's confirmation status</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Set rider day-off</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Confirm attendance (YA / TIDAK)</td><td>No</td><td>Yes — via WhatsApp</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout-info">
+      <strong>Tolerance policy:</strong> All clients are treated as <span class="badge badge-rejected">ZERO</span> tolerance, derived from client MoU terms. STANDARD / FLEXIBLE tiers are retired from active use (the column defaults to <code>'ZERO'</code> in production).
+    </div>
+  </section>
+
+  <!-- ── 5. Status Flow ── -->
+  <section id="status-flow">
+    <h2>5. Status Flow</h2>
+    <p>Each rider assignment on a slot carries its own confirmation status. A slot with 1–15 riders therefore has 1–15 independent statuses; the slot-level view aggregates them.</p>
+    <div class="flow-diagram">
+      <div class="flow-node">
+        <span class="badge badge-created node-badge">PENDING</span>
+        <span class="node-label">T-12 sent</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <span class="badge badge-approved node-badge">CONFIRMED</span>
+        <span class="node-label">rider taps YA</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <span class="badge badge-closed node-badge">COMPLETED</span>
+        <span class="node-label">manual only</span>
+      </div>
+      <div class="flow-arrow branch"><span class="arrow-label">TIDAK / no-response</span>↓</div>
+      <div class="flow-node">
+        <span class="badge badge-rejected node-badge">NEEDS REPLACEMENT</span>
+        <span class="node-label">reserve → standby</span>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Status</th><th>Colour</th><th>Written by (verified in code)</th><th>Automatic?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="badge badge-created">PENDING</span></td><td>Amber</td><td>Slot creation, daily generate-slots job, roster cascade, new replacement rider</td><td>Yes</td></tr>
+          <tr><td><span class="badge badge-approved">CONFIRMED</span></td><td>Green</td><td>Inbound webhook — rider taps YA</td><td>Yes</td></tr>
+          <tr><td><span class="badge badge-rejected">NEEDS_REPLACEMENT</span></td><td>Red</td><td>Inbound webhook (TIDAK); auto-transition from <code>NO_RESPONSE</code> (T-12 <em>or</em> T-2 silence, both now wired)</td><td>Yes</td></tr>
+          <tr><td><span class="badge badge-purple">REPLACED</span></td><td>Purple</td><td>Ops assigns reserve/standby rider</td><td>Yes</td></tr>
+          <tr><td><span class="badge badge-approved">NO_RESPONSE</span></td><td>Red</td><td><span class="badge badge-approved">✅ Fixed 07-08-2026</span> T-12 timeout sweep (2 hrs) <strong>and</strong> T-2 timeout sweep (30 min, newly built) — silence and explicit <code>TIDAK</code> are now distinguishable by status</td><td>Yes</td></tr>
+          <tr><td><span class="badge badge-closed">COMPLETED</span></td><td>Gray</td><td><strong>Nothing.</strong> No completion signal exists in this module</td><td>Manual only</td></tr>
+          <tr><td><span class="badge badge-closed">FAILED</span></td><td>Gray</td><td><strong>Nothing.</strong> No failure signal exists in this module</td><td>Manual only</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-success">
+      <strong>A5 verified (06-08-2026).</strong> The seven-value enum above matches <code>src/database/schema/enum/si-confirmation-status.enum.ts</code> exactly. The Canonical Schema xlsx's Allowed Values sheet (<code>CONFIRMED_T12</code>/<code>CONFIRMED_T2</code>/<code>DECLINED</code>) is stale and should be corrected to match.
+    </div>
+
+    <div class="callout callout-success">
+      <strong>✅ Both implementation gaps fixed and deployed as of 07-08-2026.</strong> Found 06-08-2026, closed the next day:
+      <ol style="margin:8px 0 0;">
+        <li><strong><code>NO_RESPONSE</code> is now wired.</strong> Both the T-12 and T-2 timeout sweeps write it, so "ignored us" and "explicitly declined" are distinguishable by status. The WhatsApp Flow mockup's "No Response" state (Screen 5) now actually occurs in production.</li>
+        <li><strong>T-2 silence escalation is now built.</strong> A rider who confirms at T-12 and then goes quiet is caught at the 30-minute T-2 timeout, same as T-12 always caught silence. The previously-highest-risk gap — a ghosted rider staying green through pickup — is closed.</li>
+      </ol>
+      <p style="margin:8px 0 0;">Downstream effect: the "Konfirmasi Lalu Hilang T-2" metric (Metrics Framework §3, Reliabilitas mockup) is unblocked — see those documents for updated status.</p>
+    </div>
+  </section>
+
+  <!-- ── 6. Screen Specifications ── -->
+  <section id="screens">
+    <h2>6. Screen Specifications</h2>
+    <p class="fill-note">Shipped screens are mocked in <code>Scheduled_Instant_Dashboard_UI_Mockup_v1.html</code> and <code>Scheduled_Instant_WhatsApp_Flow_Mockup_v1.html</code>. New and updated screens are in <code>Scheduled_Instant_ReliabilityMetrics_v2.html</code>, drawn against the real production shell.</p>
+
+    <div class="card" style="margin-bottom:20px;">
+      <h3>Calendar View</h3>
+      <p>Weekly grid of daily slots. Default landing view. Every ops associate sees the same data.</p>
+      <h4>Layout</h4>
+      <ul>
+        <li>Sub-nav (pill style): Slot Harian / Master Jadwal / Day Off Rider.</li>
+        <li>Stat strip: Total Slot · Belum Ada Rider · Perlu Perhatian · Terkonfirmasi.</li>
+        <li>Toolbar: Calendar/Table toggle, date-range nav, "Hari ini", client filter, "+ Tambah Slot".</li>
+        <li>Blocks show client, time window, rider names, and an origin indicator (🔗 / 📌 / ✎ Diedit).</li>
+        <li>1–3 riders show every name; more show top 2 + "+N lainnya (X rider)".</li>
+      </ul>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <h3>Table View <span class="badge badge-created">Updated</span></h3>
+      <p>Row-per-slot list. Columns: Tanggal, Jam, Klien, Rider, <strong>Siap Konfirmasi</strong>, Status, Toleransi.</p>
+      <h4>New column — Siap Konfirmasi</h4>
+      <ul>
+        <li>Per-slot percentage of <strong>main riders only</strong> who have confirmed, with a fraction and a bar.</li>
+        <li><strong>Excludes Rider Cadangan.</strong> Reserve riders never receive a T-12 ping, so they sit at Pending permanently — including them would make every slot look bad.</li>
+        <li>Measures confirmation, not attendance. Label is deliberately "Siap Konfirmasi", never "Reliabilitas".</li>
+        <li>Proposed thresholds: green ≥80%, amber 50–79%, red &lt;50% — pending ops confirmation.</li>
+        <li>No new data required; the system already stores each rider's status.</li>
+      </ul>
+      <h4>Existing behaviour</h4>
+      <ul>
+        <li>Click a row to expand: every rider with their own status control, "Kirim WA", "Ganti", plus the slot activity/audit log.</li>
+        <li>Rows where a rider has passed the timeout should read <strong>Perlu perhatian</strong> rather than Pending, matching the stat card above.</li>
+      </ul>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <h3>Reliabilitas <span class="badge badge-purple">New</span></h3>
+      <p>Global metrics dashboard. Fourth tab in the sub-nav, with period and client filters.</p>
+      <h4>Layout</h4>
+      <ul>
+        <li><strong>Ringkasan Utama</strong> — Waktu Cari Pengganti (headline) against the 20–30 min target.</li>
+        <li><strong>Pendukung</strong> — Berhasil Dapat Pengganti · Total Slot Dibuat.</li>
+        <li><strong>Kenapa Angka Ini Bergerak</strong> — Nggak Konfirmasi T-12 · Konfirmasi Lalu Hilang T-2 · Rider Balas Duluan (with YA/TIDAK/silent breakdown).</li>
+        <li><strong>Per Klien</strong> table — sortable column headers, pagination (10/20/30/40/50 rows).</li>
+        <li>Period options: 7 / 30 / 90 hari terakhir, Bulan Ini, Bulan Lalu, custom range.</li>
+        <li>Data-trust banner naming the WhatsApp go-live cutover date.</li>
+      </ul>
+      <p class="fill-note">Cards state their own denominators. The two no-show rates must never be added or compared directly — T-12 measures everyone pinged; T-2 measures only those who already confirmed.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <h3>Rider Belum Merespons <span class="badge badge-purple">New</span></h3>
+      <p>Flat list of non-responding riders across all slots, sorted by proximity to pickup.</p>
+      <h4>Layout</h4>
+      <ul>
+        <li><strong>Entry point: the existing "Perlu Perhatian" stat card</strong> becomes clickable. No new sub-nav tab — this screen is urgent and ideally empty, so the count should find ops rather than wait to be found.</li>
+        <li>Two tabs: <strong>Belum Merespons</strong> (silent) and <strong>Menolak (TIDAK)</strong> (declined).</li>
+        <li>Columns: Rider · Klien/Slot · Pesan Terakhir · Sudah Diam · Pickup · Aksi.</li>
+        <li>Actions scale with urgency — near pickup shows both Hubungi and Cari Pengganti; hours out shows Hubungi only.</li>
+        <li>Pagination with 10/20/30/40/50 rows.</li>
+      </ul>
+      <h4>Menolak tab — deliberately different</h4>
+      <ul>
+        <li>"Sudah Diam" is replaced by <strong>Pengganti</strong>; these riders already gave notice, so silence duration is irrelevant.</li>
+        <li>"Hubungi" is removed — no value in calling someone who already declined.</li>
+        <li>Rows that already have a replacement stay visible with the replacement's name, so ops can see what is handled versus outstanding.</li>
+      </ul>
+      <p class="fill-note"><span class="badge badge-approved">✅ Prerequisite cleared 07-08-2026</span> <code>NO_RESPONSE</code> is now wired (§5) — the two groups split cleanly by status, no need to parse the WhatsApp message log. Note the Slack bot at <code>#alert-calendar-schedule-instant</code> already posts this list on every sweep — confirm ops are receiving it before building the screen.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <h3>Slot Detail</h3>
+      <p>Opened from a slot. Full time window, all main riders with individual status, reserve riders with inline contact, and the activity/audit timeline.</p>
+      <ul>
+        <li>Rider Utama grid — each with a confirmation status control and per-rider actions.</li>
+        <li>Rider Cadangan list — each with a contact button.</li>
+        <li><strong>Aktivitas Slot · Audit</strong> — every status change, assignment and edit with actor, reason and timestamp. This log is the source for Time-to-Replacement.</li>
+        <li>Actions: Cari di Standby Rider, Riwayat Rider, Edit Slot.</li>
+      </ul>
+
+      <h4>Activity Log — example</h4>
+      <div class="card" style="padding: 12px 16px; background: var(--surface-alt); box-shadow:none;">
+        <ul class="timeline">
+          <li>
+            <div class="tl-dot tl-dot-purple"></div>
+            <div class="tl-content">
+              <div class="tl-title">Diperbarui dari Master Jadwal · 08:00–17:00</div>
+              <div class="tl-meta">fahlevi.sander@dashelectric.co · 30 Jul 15:41</div>
+            </div>
+          </li>
+          <li>
+            <div class="tl-dot tl-dot-red"></div>
+            <div class="tl-content">
+              <div class="tl-title">Status berubah — PENDING → NEEDS_REPLACEMENT</div>
+              <div class="tl-meta">system (T-12 timeout) · <strong>start of Time-to-Replacement</strong></div>
+            </div>
+          </li>
+          <li>
+            <div class="tl-dot tl-dot-green"></div>
+            <div class="tl-content">
+              <div class="tl-title">Pengganti ditugaskan — Slamet Widodo</div>
+              <div class="tl-meta">ops associate · <strong>end of Time-to-Replacement</strong></div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <h3>Master Jadwal &amp; Schedule Detail <span class="badge badge-created">Updated</span></h3>
+      <p>Recurring schedule definitions, distinct from daily slot instances.</p>
+      <ul>
+        <li>Columns: Klien (with inline batch label), Jam Mulai, Jam Selesai, Toleransi, Rider Utama, Rider Cadangan, Status, Aksi.</li>
+        <li>Schedule Detail stat cards: <strong>Total Slot Dibuat · Berhasil Dapat Pengganti · Waktu Cari Pengganti · Rider Cadangan Ditugaskan</strong>.</li>
+        <li><strong>Per-rider "Reliabilitas XX%" badges removed</strong> — deferred to Sprint 2 with the rider-tier system. They require 30–60 days of clean confirmation data, and built from response data they cannot distinguish "unreliable" from "doesn't tap buttons but always turns up".</li>
+      </ul>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <h3>Day Off Rider</h3>
+      <ul>
+        <li>Table: rider, recurring weekly off-days (toggle pills Sen–Min), specific off-dates.</li>
+        <li>"Atur" opens a detail screen to toggle recurring days and add specific dates.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── 7. Modals & Components ── -->
+  <section id="modals">
+    <h2>7. Modals &amp; Components</h2>
+
+    <h3>Add / Edit Slot</h3>
+    <p>Opened via "+ Tambah Slot" or "Edit Slot". Model B direct entry. Edit Slot changes apply to a single date only and require a reason.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>client</code></td><td>select</td><td>Yes</td><td>Sourced from back-office provider sync (Business Unit = Scheduled Instant). Locked on Edit.</td></tr>
+          <tr><td><code>schedule_date</code></td><td>date</td><td>Yes</td><td>Editable on Edit; triggers a confirmation dialog if the slot has a parent schedule.</td></tr>
+          <tr><td><code>window_start_time</code></td><td>time</td><td>Yes</td><td>Jam Mulai. T-12/T-2 anchor to this.</td></tr>
+          <tr><td><code>window_end_time</code></td><td>time</td><td>Yes</td><td>Jam Selesai.</td></tr>
+          <tr><td><code>main_riders</code></td><td>multi-select</td><td>Yes</td><td>1–15 riders via the rider picker. All get T-12.</td></tr>
+          <tr><td><code>reserve_riders</code></td><td>multi-select</td><td>No</td><td>First-call backups. No auto WhatsApp.</td></tr>
+          <tr><td><code>change_reason</code></td><td>textarea</td><td>Yes (Edit only)</td><td>Required when editing a single occurrence. Recorded in the activity log.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Rider Picker (shared component)</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Element</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>tab</code></td><td>toggle</td><td>Yes</td><td>Dedicated Riders (tag "Scheduled Instant") / All Riders (all Dash except tag "Express").</td></tr>
+          <tr><td><code>search</code></td><td>text</td><td>No</td><td>Search by name, code, or phone.</td></tr>
+          <tr><td><code>selected[]</code></td><td>list</td><td>Yes</td><td>Right panel; remove with ✕. Nothing saved until confirmed.</td></tr>
+          <tr><td>day-off conflict</td><td>warning</td><td>—</td><td>Rider on day-off shows a warning badge; adding requires explicit confirm (soft-block).</td></tr>
+          <tr><td>double-booking</td><td>block</td><td>—</td><td>A main rider already assigned to an overlapping slot is rejected. Reserve riders are exempt.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Deactivate Schedule</h3>
+    <p>Stops future slot generation from an effective date; preserves all history. Requires effective date + reason.</p>
+
+    <h3>Delete Schedule (Hapus Jadwal) <span class="badge badge-approved">✅ Spec confirmed 06-08-2026, implemented 07-08-2026</span></h3>
+    <p>Exists in production. Confirmed behaviour, agreed 06-08-2026, and the future-slot cleanup below is now built:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What happens</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Future slots</strong></td><td>Deleted, along with their rider assignments. <span class="badge badge-approved">✅ Fixed 07-08-2026</span> — the sweep now also skips inactive/orphaned schedules rather than pinging riders on dead schedules.</td></tr>
+          <tr><td><strong>Past slots</strong></td><td>Kept, but detached from the schedule — they become standalone (📌) slots. Rider history and client-level metrics are preserved.</td></tr>
+          <tr><td><strong>Schedule roster + change history</strong></td><td>Deleted with the schedule.</td></tr>
+          <tr><td><strong>Schedule Detail statistics</strong></td><td>Permanently lost. Recreating an identical schedule does not restore them.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The confirmation dialog must state all four outcomes and point to <strong>Nonaktifkan Jadwal</strong> as the non-destructive alternative for client sunset.</p>
+  </section>
+
+  <!-- ── 8. Edge Cases ── -->
+  <section id="edge-cases">
+    <h2>8. Edge Cases</h2>
+
+    <h3>Rider Day-Off Conflict (soft-block)</h3>
+    <p>If ops assigns a rider on their active day-off, the system does not hard-block. It shows a warning with the conflict reason and requires explicit confirmation to override. Riders often agree to work a nominal day off for extra pay; a hard block would fail that real scenario.</p>
+
+    <h3>Multi-Rider Slot Statuses</h3>
+    <p>A slot has 1–15 riders, each with an independent confirmation status. "Needs replacement" applies per-rider, not per-slot. Slot-level views aggregate. <strong>Reserve riders must be excluded from any aggregate percentage</strong> — they never receive a ping and would permanently depress the number.</p>
+
+    <h3>Reserve Rider Is Not Auto-Pinged</h3>
+    <p>Reserve riders receive no WhatsApp at slot creation. They are ops' first manual call if a main rider goes TIDAK or no-response. Only after ops assigns them does the reserve rider get an info-only WhatsApp — never a second YA/TIDAK loop. <strong>The phone call itself happens outside the system and is not recorded</strong> — which is why the Schedule Detail card measures reserves <em>ditugaskan</em> (assigned), not <em>dipanggil</em> (called).</p>
+
+    <h3>Edit Slot vs. Edit Schedule</h3>
+    <p>Editing a single slot occurrence never changes the recurring definition. Editing a schedule cascades to <strong>future</strong> slots only — today and the past are never touched. Riders already confirmed or manually touched are protected from roster-cascade removal.</p>
+
+    <h3>Rider Roster Is a Point-in-Time Snapshot</h3>
+    <p>Slot riders are copied from the schedule roster when the slot is generated. Later roster edits affect only slots after today. A schedule whose roster was trimmed will therefore show larger rider counts on historical slots — correct behaviour, and the explanation for the count mismatch recorded in <code>context.md</code> §11.1.</p>
+
+    <h3>Escalation Timing</h3>
+    <div class="callout callout-success">
+      <strong>T-12 no-response → flagged after 2 hours.</strong> Implemented and running.<br/>
+      <strong>T-2 no-response → flagged after 30 minutes.</strong> <span class="badge badge-approved">✅ Fixed 07-08-2026</span> — specified here and in the WhatsApp Flow mockup; now implemented and running, mirroring T-12.
+    </div>
+    <p>Both fire a dashboard flag <em>and</em> a Slack post, grouped by client + slot, to the ops channel — channel-wide, no individual tagging.</p>
+  </section>
+
+  <!-- ── 9. Data Model ── -->
+  <section id="data-model">
+    <h2>9. Data Model</h2>
+    <div class="callout callout-danger">
+      <strong>Corrected 06-08-2026.</strong> The tables previously listed here — <code>schedules</code>, <code>slots</code>, <code>slot_riders</code>, <code>rider_day_offs</code> — <strong>do not exist</strong>. They were renamed to a generic scheduling namespace on 20-07-2026. Two tables that carry most of the metrics value were missing from this document entirely. Everything below is verified against production.
+    </div>
+
+    <h3>Table: <code>schedule_plans</code> <span class="fill-note">(was: <code>schedules</code>)</span></h3>
+    <p>Recurring schedule definition — Master Jadwal. One row per client + time window + batch.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>UUID</td><td>PK, NOT NULL</td><td></td></tr>
+          <tr><td><code>provider_id</code></td><td>bigint</td><td>NOT NULL</td><td>Core/back-office provider whose Business Unit = Scheduled Instant</td></tr>
+          <tr><td><code>client_name</code></td><td>text</td><td>NOT NULL</td><td>Display snapshot; source of truth is core</td></tr>
+          <tr><td><code>window_start_time</code></td><td>text</td><td>NOT NULL</td><td>'HH:MM'. The T-12/T-2 anchor</td></tr>
+          <tr><td><code>window_end_time</code></td><td>text</td><td>NOT NULL</td><td>'HH:MM'</td></tr>
+          <tr><td><code>recurring_weekdays</code></td><td>jsonb</td><td>NOT NULL</td><td>ISO weekdays, e.g. <code>[1,2,3,4,5]</code></td></tr>
+          <tr><td><code>batch_label</code></td><td>text</td><td>NULLABLE</td><td>SDS/NDS/Lunch/Dinner</td></tr>
+          <tr><td><code>tolerance_tier</code></td><td>text</td><td>NOT NULL, DEFAULT 'ZERO'</td><td>Fixed to ZERO for all clients</td></tr>
+          <tr><td><code>is_active</code></td><td>boolean</td><td>NOT NULL, DEFAULT true</td><td></td></tr>
+          <tr><td><code>deactivated_effective_date</code></td><td>date</td><td>NULLABLE</td><td>Generation stops on/after this date</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Table: <code>schedule_slots</code> <span class="fill-note">(was: <code>slots</code>)</span></h3>
+    <p>A single dated occurrence, generated from a schedule or added ad-hoc.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>UUID</td><td>PK, NOT NULL</td><td></td></tr>
+          <tr><td><code>schedule_id</code></td><td>UUID</td><td>FK → schedule_plans, NULLABLE</td><td>Null = standalone/mandiri slot (📌)</td></tr>
+          <tr><td><code>provider_id</code></td><td>bigint</td><td>NOT NULL</td><td></td></tr>
+          <tr><td><code>client_name</code></td><td>text</td><td>NOT NULL</td><td></td></tr>
+          <tr><td><code>schedule_date</code></td><td>date</td><td>NOT NULL</td><td></td></tr>
+          <tr><td><code>window_start_time</code> / <code>window_end_time</code></td><td>text</td><td>NOT NULL</td><td></td></tr>
+          <tr><td><code>batch_label</code></td><td>text</td><td>NULLABLE</td><td></td></tr>
+          <tr><td><code>edited_at</code></td><td>timestamptz</td><td>NULLABLE</td><td>Set on manual single-slot edit only. Drives the "✎ Diedit" badge</td></tr>
+          <tr><td><code>t1_group_sent_at</code></td><td>timestamptz</td><td>NULLABLE</td><td>Slot-level group reminder anchor</td></tr>
+          <tr><td><code>notes</code></td><td>text</td><td>NULLABLE</td><td>Ops notes / catatan</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="fill-note">UNIQUE(schedule_id, schedule_date, window_start_time, batch_label) makes the daily generation job idempotent.</p>
+
+    <h3>Table: <code>schedule_slot_riders</code> <span class="fill-note">(was: <code>slot_riders</code>)</span></h3>
+    <p>One row per rider assignment, each with its own confirmation status. This is what makes 1–15 riders independently trackable.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>UUID</td><td>PK, NOT NULL</td><td></td></tr>
+          <tr><td><code>slot_id</code></td><td>UUID</td><td>FK → schedule_slots, NOT NULL</td><td>ON DELETE CASCADE</td></tr>
+          <tr><td><code>rider_code</code> / <code>rider_name</code> / <code>rider_phone</code></td><td>text</td><td>NOT NULL</td><td>Snapshot taken at assignment</td></tr>
+          <tr><td><code>role</code></td><td>text</td><td>NOT NULL, CHECK</td><td><code>utama</code> | <code>cadangan</code></td></tr>
+          <tr><td><code>confirmation_status</code></td><td>text</td><td>NOT NULL, DEFAULT 'PENDING', CHECK</td><td>The seven enum values in §5</td></tr>
+          <tr><td><code>replaced_by_id</code></td><td>UUID</td><td>FK → self, NULLABLE</td><td>The assignment that replaced this one</td></tr>
+          <tr><td><code>t12_sent_at</code></td><td>timestamptz</td><td>NULLABLE</td><td></td></tr>
+          <tr><td><code>t12_escalated_at</code></td><td>timestamptz</td><td>NULLABLE</td><td><strong>Exists</strong> — written by the T-12 sweep</td></tr>
+          <tr><td><code>t2_sent_at</code></td><td>timestamptz</td><td>NULLABLE</td><td></td></tr>
+          <tr><td><code>t2_escalated_at</code></td><td>timestamptz</td><td>NULLABLE</td><td><span class="badge badge-approved">✅ Fixed 07-08-2026</span> Now written by the T-2 sweep — see §5</td></tr>
+          <tr><td><code>responded_at</code></td><td>timestamptz</td><td>NULLABLE</td><td>Overwritten by each reply; use the message log for per-checkpoint detail</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout-success">
+      <strong>A6 resolved — do not add <code>escalated_at</code> / <code>replaced_at</code>.</strong> The two escalation stamps above already exist (one per checkpoint, better than the single column previously requested), and the replacement moment is timestamped in the activity log below. <strong>Time-to-Replacement is computable today with no migration.</strong>
+    </div>
+
+    <h3>Table: <code>schedule_slot_activity</code> <span class="badge badge-purple">Was missing from this document</span></h3>
+    <p>Append-only audit log. Feeds the Slot Detail timeline and is the source for Time-to-Replacement.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>slot_id</code></td><td>UUID</td><td>FK, NOT NULL</td><td>ON DELETE CASCADE</td></tr>
+          <tr><td><code>slot_rider_id</code></td><td>UUID</td><td>FK, NULLABLE</td><td>Null for slot-level events</td></tr>
+          <tr><td><code>action</code></td><td>text</td><td>NOT NULL</td><td><code>STATUS_CHANGE</code> | <code>ASSIGN</code> | <code>REPLACE</code> | <code>CREATE</code> | <code>EDIT</code> | …</td></tr>
+          <tr><td><code>from_status</code> / <code>to_status</code></td><td>text</td><td>NULLABLE</td><td></td></tr>
+          <tr><td><code>reason</code></td><td>text</td><td>NULLABLE</td><td>Required for backward status transitions</td></tr>
+          <tr><td><code>actor</code></td><td>text</td><td>NOT NULL</td><td>Ops user or <code>system</code></td></tr>
+          <tr><td><code>created_at</code></td><td>timestamptz</td><td>NOT NULL</td><td>The timestamp metrics read</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout-warning">
+      <strong>Known inconsistency.</strong> Manual status changes write a row here; the <em>automatic</em> escalation sweep stamps the timestamp column but skips the log. Time-to-Replacement therefore reads its start point from two different places depending on path. Fix queued (§13).
+    </div>
+
+    <h3>Table: <code>schedule_wa_messages</code> <span class="badge badge-purple">Was missing from this document</span></h3>
+    <p>Append-only log of every WhatsApp message in and out, with provider-message-id dedup. <strong>This is what makes the mutable status column a non-issue</strong> — the T-12-versus-T-2 answer is recoverable here even though <code>confirmation_status</code> is overwritten in place.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>slot_rider_id</code> / <code>slot_id</code></td><td>UUID</td><td>FK, NULLABLE</td><td>Rider-scoped or slot-scoped send</td></tr>
+          <tr><td><code>direction</code></td><td>text</td><td>NOT NULL, CHECK</td><td><code>OUT</code> | <code>IN</code></td></tr>
+          <tr><td><code>phase</code></td><td>text</td><td>NOT NULL, CHECK</td><td><code>T12</code> | <code>T2</code> | <code>T1_GROUP</code> | <code>STANDBY_INFO</code> | <code>MANUAL</code> | <code>YA_ACK</code> | <code>TIDAK_ACK</code></td></tr>
+          <tr><td><code>button_payload</code></td><td>text</td><td>NULLABLE</td><td><code>YA</code> | <code>TIDAK</code> — inbound taps</td></tr>
+          <tr><td><code>status</code></td><td>text</td><td>NOT NULL, CHECK</td><td><code>PENDING</code> | <code>SENT</code> | <code>DELIVERED</code> | <code>FAILED</code> | <code>FAILED_TO_SEND</code> — <strong>lets a delivery failure be told apart from genuine silence</strong></td></tr>
+          <tr><td><code>provider_message_id</code></td><td>text</td><td>UNIQUE</td><td>Inbound idempotency under webhook redelivery</td></tr>
+          <tr><td><code>attempt_count</code></td><td>integer</td><td>NOT NULL, DEFAULT 0</td><td>≥3 → FAILED_TO_SEND</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Supporting tables</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Table</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>schedule_plan_riders</code></td><td>Default roster for a schedule; copied onto each generated slot</td></tr>
+          <tr><td><code>schedule_plan_changes</code></td><td>Change history of a schedule (create / edit / deactivate) with actor + reason</td></tr>
+          <tr><td><code>schedule_rider_day_offs</code></td><td>Recurring weekly and specific-date day-offs per rider</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-warning">
+      <strong>Migration note:</strong> Generate migrations with <code>pnpm run db:generate</code> — never edit migration files manually. All schema changes go through the ORM.
+    </div>
+  </section>
+
+  <!-- ── 10. API Endpoints ── -->
+  <section id="api">
+    <h2>10. API Endpoints</h2>
+    <p class="fill-note">Actual production surface under <code>/v1/scheduled-instant</code>, verified 06-08-2026. All ops routes require ADMIN or INTERNAL_SERVICE auth; no RBAC guards beyond that.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method &amp; Path</th><th>Description</th><th>Auth / Guard</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method method-get">GET</span><code>/slots</code></td><td>List slots — <code>start_date</code>, <code>end_date</code>, optional <code>client</code>, <code>status</code>, <code>schedule_id</code></td><td>Ops</td></tr>
+          <tr><td><span class="method method-get">GET</span><code>/slots/:id</code></td><td>Slot detail incl. all riders + statuses</td><td>Ops</td></tr>
+          <tr><td><span class="method method-post">POST</span><code>/slots</code></td><td>Create a slot with main + reserve riders</td><td>Ops</td></tr>
+          <tr><td><span class="method method-patch">PATCH</span><code>/slots/:id</code></td><td>Edit single occurrence (requires change reason)</td><td>Ops</td></tr>
+          <tr><td><span class="method method-delete">DELETE</span><code>/slots/:id</code></td><td>Delete a single slot</td><td>Ops</td></tr>
+          <tr><td><span class="method method-patch">PATCH</span><code>/slots/:slotId/riders/:riderId/status</code></td><td>Manually set a rider's status; backward transitions require a reason</td><td>Ops</td></tr>
+          <tr><td><span class="method method-post">POST</span><code>/slots/:slotId/standby-check</code></td><td>Standby availability check for a date/window</td><td>Ops</td></tr>
+          <tr><td><span class="method method-post">POST</span><code>/slots/:slotId/riders/:riderId/replace</code></td><td>Assign a replacement → target becomes <code>REPLACED</code></td><td>Ops</td></tr>
+          <tr><td><span class="method method-post">POST</span><code>/slots/:slotId/riders/:riderId/send-reminder</code></td><td>Manual per-rider WhatsApp reminder</td><td>Ops</td></tr>
+          <tr><td><span class="method method-get">GET</span><code>/schedules</code> · <code>/schedules/:id</code></td><td>List / detail (incl. change history + roster)</td><td>Ops</td></tr>
+          <tr><td><span class="method method-post">POST</span><code>/schedules</code></td><td>Create recurring schedule</td><td>Ops</td></tr>
+          <tr><td><span class="method method-patch">PATCH</span><code>/schedules/:id</code></td><td>Edit; cascades to future slots only</td><td>Ops</td></tr>
+          <tr><td><span class="method method-patch">PATCH</span><code>/schedules/:id/deactivate</code> · <code>/reactivate</code></td><td>Deactivate (effective date + reason) / reactivate</td><td>Ops</td></tr>
+          <tr><td><span class="method method-delete">DELETE</span><code>/schedules/:id</code></td><td>Delete — see §7 for confirmed behaviour</td><td>Ops</td></tr>
+          <tr><td><span class="method method-get">GET</span><code>/day-offs</code> · <code>/riders/:code/day-off</code></td><td>Day-off list / per-rider read</td><td>Ops</td></tr>
+          <tr><td><span class="method method-patch">PATCH</span><code>/riders/:code/day-off</code></td><td>Set recurring + specific day-offs</td><td>Ops</td></tr>
+          <tr><td><span class="method method-post">POST</span><code>/webhooks/kirimdev</code></td><td>Inbound YA/TIDAK from WhatsApp</td><td>Public — HMAC-SHA256 over raw body</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Internal / Scheduler Endpoints</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Endpoint</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>generate-slots</code></td><td>Daily Cloud Scheduler job. Creates dated slots from active schedules and seeds each with the schedule roster as <code>PENDING</code>. Idempotent.</td></tr>
+          <tr><td><code>tick</code></td><td>WhatsApp sweep: T-12 send → T-2 send → T-12 no-response escalation. Idempotent, gated by the <code>*_at</code> columns. Inert unless notifications are enabled and the gateway is configured.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Not Yet Built — Required for the Reliabilitas Page</h3>
+    <div class="callout callout-warning">
+      <strong>There are no metrics or aggregation endpoints.</strong> The Reliabilitas dashboard (§6) needs new routes for the global summary, the per-client table (sortable + paginated), the per-schedule stat cards, and the non-responding-rider list. This is a real backend build, not just a frontend page.
+    </div>
+  </section>
+
+  <!-- ── 11. Tech Stack ── -->
+  <section id="tech-stack">
+    <h2>11. Tech Stack</h2>
+    <div class="callout callout-info">
+      <strong>Placement:</strong> This platform lives on <code>logistic.dashelectric.co</code>. Client records are created in <code>back-office.dashelectric.co</code>; a client created there with Business Unit = Scheduled Instant syncs into this platform via <code>provider_id</code>. This dashboard has no independent client-creation flow.
+    </div>
+    <div class="card-grid">
+      <div class="card">
+        <h4>Backend — <code>nest-logistic-service</code></h4>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+            <tbody>
+              <tr><td>Framework</td><td>NestJS (Fastify adapter)</td></tr>
+              <tr><td>Language</td><td>TypeScript</td></tr>
+              <tr><td>ORM / Query</td><td>Drizzle ORM</td></tr>
+              <tr><td>Database</td><td>PostgreSQL</td></tr>
+              <tr><td>Architecture</td><td>Clean architecture — domain / data / presentation per module</td></tr>
+              <tr><td>Messaging</td><td>WhatsApp via kirimdev (Cloud API, repackaged)</td></tr>
+              <tr><td>Scheduling</td><td>Google Cloud Scheduler → internal endpoints</td></tr>
+              <tr><td>Notifications</td><td>Slack webhook — <code>#alert-calendar-schedule-instant</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h4>Frontend — <code>react-logistic-web</code></h4>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+            <tbody>
+              <tr><td>Framework</td><td>React (CRA + CRACO)</td></tr>
+              <tr><td>Language</td><td>TypeScript</td></tr>
+              <tr><td>Styling</td><td>Tailwind CSS + in-house design system</td></tr>
+              <tr><td>HTTP Client</td><td>Axios</td></tr>
+              <tr><td>Design system</td><td>Plus Jakarta Sans, purple #5E2AAC primary</td></tr>
+              <tr><td>Deploy</td><td>Docker + nginx; GitHub Actions (stg / prd)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="callout callout-warning">
+      <strong>Feature flag:</strong> all Scheduled Instant outbound notifications are gated behind a single environment kill-switch, set per-environment in GitHub Actions variables. When off, the sweep returns inert and no T-12/T-2 messages send — which means <strong>no confirmation data is produced at all</strong>. The production go-live date for this flag is still unconfirmed and gates the metrics cutover (see Metrics Framework §8/A8).
+    </div>
+  </section>
+
+  <!-- ── 12. Implementation Notes ── -->
+  <section id="impl-notes">
+    <h2>12. Implementation Notes</h2>
+
+    <h3>Model B — Dashboard Is the Single Source of Truth</h3>
+    <p>Client spreadsheets are retired as the write system. Ops enter and manage all slots in the dashboard. The historical migration ran once and imported <strong>schedules and rosters only</strong> — it created no slot or rider rows, so all slot history is genuine generated data.</p>
+
+    <h3>WhatsApp Confirmation Timing Anchors to Window Start</h3>
+    <p>T-12 and T-2 are computed from <code>window_start_time</code>, not window end. One message per rider per shift/pickup, not per delivery stop.</p>
+
+    <h3>Metrics Computation Rules</h3>
+    <ul>
+      <li><strong>Count <code>role = 'utama'</code> only.</strong> Reserve riders never receive a ping and sit at <code>PENDING</code> permanently; including them manufactures phantom no-shows and depresses every readiness percentage.</li>
+      <li><strong>Exclude <code>REPLACED</code> rows</strong> from denominators where the replacement carries the outcome, or a successful recovery is counted twice.</li>
+      <li><strong>Unit is the rider-assignment</strong>, not the slot. Large-roster clients therefore dominate global averages — the per-client table matters as much as the headline.</li>
+      <li><strong>Suppress cells below 5 slots</strong> in per-client views; show <code>n/a</code>.</li>
+      <li><strong>Attribute no-shows to a checkpoint via the escalation timestamps</strong>, not the status value — both checkpoints produce the same status.</li>
+      <li><strong>Exclude data before WhatsApp go-live</strong>, not before dashboard go-live (22-06-2026).</li>
+    </ul>
+
+    <h3>Standby Matching Rule</h3>
+    <p>The only match criterion is "no schedule conflict"; the earlier 5 km radius rule was dropped. Day-off riders are excluded from suggestions but can be assigned with explicit override. Reserve riders surface at the top of the standby list.</p>
+
+    <h3>Rider Tag Semantics</h3>
+    <p>"Dedicated Riders" = riders tagged <code>Scheduled Instant</code>. "All Riders" = every Dash rider <em>except</em> those tagged <code>Express</code>. Where these tags are managed is still unconfirmed.</p>
+
+    <h3>Deprecated Concepts — Do Not Reintroduce</h3>
+    <p>Single-trip / multi-trip and <code>route_type</code> / <code>delivery_group_id</code> were removed — the source column is dead and there is no operational definition. Use <code>batch_label</code>. Stop-count-per-route belongs to a route-planning system, not this one.</p>
+  </section>
+
+  <!-- ── 13. Work Remaining ── -->
+  <section id="work-remaining">
+    <h2>13. Work Remaining</h2>
+    <p class="fill-note">Phase 1 and Phase 2 have shipped. What follows is the correction and metrics build identified on 06-08-2026.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4>Backend — Yogi</h4>
+        <ul class="checklist">
+          <li><strong>Confirm the WhatsApp go-live date</strong> and that sends/replies are landing — gates the metrics cutover and the Sprint 2 clock</li>
+          <li class="done"><strong>Implement T-2 silence escalation</strong> (30-min timeout) — product gap, §5 — <em>fixed &amp; deployed 07-08-2026</em></li>
+          <li class="done">Wire <code>NO_RESPONSE</code> so silence and refusal are distinguishable — <em>fixed &amp; deployed 07-08-2026</em></li>
+          <li>Write an activity-log row on automatic escalation, matching the manual path</li>
+          <li class="done">Delete/deactivate: remove future slots; sweep to skip inactive or orphaned schedules — <em>fixed &amp; deployed 07-08-2026</em></li>
+          <li>Build metrics aggregation endpoints (global, per-client, per-schedule, non-responders)</li>
+          <li><strong>Do not</strong> add <code>escalated_at</code> / <code>replaced_at</code> — already covered, §9</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Frontend</h4>
+        <ul class="checklist">
+          <li>Reliabilitas page — headline, diagnostics, per-client table with sorting + pagination</li>
+          <li>"Siap Konfirmasi" column on Table View (utama only)</li>
+          <li>Rider Belum Merespons screen + Menolak tab</li>
+          <li>Make the "Perlu Perhatian" stat card live and clickable</li>
+          <li>Row status to read "Perlu perhatian" once a rider passes the timeout</li>
+          <li>Remove per-rider "Reliabilitas %" badges from Schedule Detail</li>
+          <li>Hapus Jadwal confirmation dialog with the four stated outcomes</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Product — Albert</h4>
+      <ul class="checklist">
+        <li>Correct the Canonical Schema xlsx Allowed Values sheet to match the verified enum</li>
+        <li>Confirm "Siap Konfirmasi" colour thresholds with ops</li>
+        <li>Confirm whether "Perlu Perhatian" counts all non-responders or only those near pickup</li>
+        <li>Confirm whether the "Menolak" tab count includes declines already covered</li>
+        <li>Log delivery-system integration and client-complaint capture as separate workstreams</li>
+        <li>Confirm where "Scheduled Instant" / "Express" rider tags are managed</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // ── Active nav highlight via IntersectionObserver ──
+  const sections = document.querySelectorAll('section[id]');
+  const links    = document.querySelectorAll('nav#sidebar a');
+
+  const obs = new IntersectionObserver(
+    entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const active = document.querySelector(`nav#sidebar a[href="#${e.target.id}"]`);
+          if (active) active.classList.add('active');
+        }
+      });
+    },
+    { rootMargin: '-20% 0px -70% 0px' }
+  );
+
+  sections.forEach(s => obs.observe(s));
+
+  // ── Sidebar collapse/expand ──
+  (function(){
+    const btn = document.getElementById('nav-toggle');
+    let collapsed = false;
+    function apply(){
+      document.body.classList.toggle('nav-collapsed', collapsed);
+      btn.setAttribute('aria-expanded', String(!collapsed));
+      btn.title = collapsed ? 'Expand sidebar (\\)' : 'Collapse sidebar (\\)';
+    }
+    btn.addEventListener('click', ()=>{ collapsed = !collapsed; apply(); });
+    document.addEventListener('keydown', (e)=>{
+      const tag=(e.target.tagName||'').toLowerCase();
+      if(e.key==='\\' && !e.metaKey && !e.ctrlKey && !e.altKey && tag!=='input' && tag!=='textarea'){
+        e.preventDefault(); collapsed=!collapsed; apply();
+      }
+    });
+    apply();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>COD Reconciliation — Full Lifecycle PRD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Fonts loaded via Google Fonts link above -- Dash Design System v1.1 */
+
+  /* ─── Reset & Base ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; scroll-behavior: smooth; }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background: #F7F7F5;
+    color: #1A1A1A;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ─── Design Tokens ─── */
+  :root {
+    /* Dash Design System v1.1 tokens (see dash-gsm-universal) */
+    --purple:        #5E2AAC;  /* --purple */
+    --purple-light:  #EEE5FB;  /* --purple-soft */
+    --purple-mid:    #47208A;  /* darkened --purple, for depth/contrast pairs */
+    --purple-card:   #F1ECF9;  /* --purple-card */
+    --text:          #1A1A1A;  /* --ink */
+    --text-muted:    #6B6B68;  /* --mute */
+    --border:        #E4E3DE;  /* --rule */
+    --surface:       #FFFFFF;  /* --paper-2 */
+    --surface-alt:   #F7F7F5;  /* --paper */
+    --sidebar-w:     240px;
+    --sans:          'Plus Jakarta Sans', system-ui, sans-serif;
+    --mono:          'JetBrains Mono', monospace;
+    --shadow-xs:     0 1px 2px rgba(0,0,0,0.04), 0 1px 0px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.9);
+    --shadow-sm:     0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9);
+
+    /* Status colors */
+    --created-bg:   #FDF1E4; --created-text:   #B4650C; --created-border:  #F3D9B8;
+    --approved-bg:  #E7F6ED; --approved-text:  #1E7A44; --approved-border: #BEE3CB;
+    --rejected-bg:  #FCEAEA; --rejected-text:  #B03A3A; --rejected-border: #F3C7C7;
+    --closed-bg:    #F7F7F5; --closed-text:    #6B6B68; --closed-border:   #E4E3DE;
+  }
+
+  /* ─── Sidebar ─── */
+  nav#sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 28px 0 40px;
+    z-index: 100;
+  }
+  .nav-logo {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .nav-logo .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .nav-logo h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--purple);
+    margin-top: 4px;
+    line-height: 1.3;
+  }
+  .nav-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text-muted);
+    padding: 14px 20px 4px;
+  }
+  nav#sidebar a {
+    display: block;
+    padding: 7px 20px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all .15s;
+    line-height: 1.4;
+  }
+  nav#sidebar a:hover { color: var(--purple); background: var(--purple-light); }
+  nav#sidebar a.active {
+    color: var(--purple);
+    border-left-color: var(--purple);
+    background: var(--purple-light);
+    font-weight: 600;
+  }
+
+
+  /* ─── Sidebar collapse ─── */
+  nav#sidebar { transition: transform .28s ease, box-shadow .28s ease; }
+  main { transition: margin-left .28s ease; }
+
+  body.nav-collapsed nav#sidebar { transform: translateX(-100%); box-shadow: none; }
+  body.nav-collapsed main { margin-left: 0; }
+
+  /* Toggle button — always reachable, GSM styled */
+  #nav-toggle {
+    position: fixed; top: 16px; left: 16px; z-index: 200;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; padding: 0;
+    transition: left .28s ease, background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  #nav-toggle:hover { color: var(--purple); border-color: var(--purple); background: var(--purple-light); }
+  #nav-toggle svg { width: 16px; height: 16px; display: block; }
+  /* When expanded, tuck the button just inside the sidebar's right edge so it doesn't cover the logo */
+  body:not(.nav-collapsed) #nav-toggle { left: calc(var(--sidebar-w) - 46px); }
+  /* Rotate chevron by state */
+  #nav-toggle .chev { transition: transform .28s ease; transform-origin: 50% 50%; }
+  body.nav-collapsed #nav-toggle .chev { transform: rotate(180deg); }
+
+  /* ─── Main Content ─── */
+  main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 48px 56px;
+  }
+  .page-header {
+    margin-bottom: 48px;
+    padding-bottom: 28px;
+    border-bottom: 2px solid var(--border);
+  }
+  .page-header .feature-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--purple);
+    margin-bottom: 8px;
+  }
+  .page-header h1 {
+    font-family: var(--sans);
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    line-height: 1.25;
+    margin-bottom: 12px;
+  }
+  .page-header .meta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .page-header .meta span { display: flex; align-items: baseline; gap: 6px; }
+  .page-header .meta .meta-k { font-style: normal; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); }
+  .page-header .meta strong { color: var(--text); font-weight: 600; }
+
+  /* ─── Sections ─── */
+  section { margin-bottom: 56px; scroll-margin-top: 24px; }
+  section h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  section h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 24px 0 12px;
+  }
+  section h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin: 20px 0 8px;
+  }
+  p { font-size: 14px; line-height: 1.7; color: var(--text-muted); margin-bottom: 12px; }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { font-size: 14px; line-height: 1.7; color: var(--text-muted); margin-bottom: 4px; }
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--purple-light);
+    color: var(--purple);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* ─── Cards ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-xs);
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 700px) { .card-grid { grid-template-columns: 1fr; } }
+
+  /* ─── Tables ─── */
+  .table-wrap { overflow-x: auto; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface-alt);
+    font-weight: 600;
+    color: var(--text);
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-alt); }
+
+  /* ─── Badges ─── */
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .badge-created  { background: var(--created-bg);  color: var(--created-text);  border-color: var(--created-border);  }
+  .badge-approved { background: var(--approved-bg); color: var(--approved-text); border-color: var(--approved-border); }
+  .badge-rejected { background: var(--rejected-bg); color: var(--rejected-text); border-color: var(--rejected-border); }
+  .badge-closed   { background: var(--closed-bg);   color: var(--closed-text);   border-color: var(--closed-border);   }
+  .badge-purple   { background: var(--purple-light); color: var(--purple); border-color: #C9B3EC; }
+  .badge-gray     { background: var(--surface-alt); color: var(--text-muted); border-color: var(--border); }
+
+  /* HTTP method badges */
+  .method { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; font-family: var(--mono); margin-right: 6px; }
+  .method-get    { background: var(--surface-alt); color: var(--text-muted); border: 1px solid var(--border); }
+  .method-post   { background: var(--text); color: #FFFFFF; }
+  .method-patch  { background: var(--purple); color: #FFFFFF; }
+  .method-put    { background: var(--purple-mid); color: #FFFFFF; }
+  .method-delete { background: var(--surface); color: var(--text); border: 2px solid var(--text); }
+
+  /* ─── Status Flow ─── */
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 20px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    justify-content: center;
+  }
+  .flow-node {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .flow-node .node-badge { font-size: 13px; padding: 6px 16px; }
+  .flow-node .node-label { font-size: 11px; color: var(--text-muted); }
+  .flow-arrow {
+    font-size: 22px; color: var(--border); margin: 0 8px;
+    display: flex; align-items: center;
+  }
+  .flow-arrow.branch { flex-direction: column; gap: 4px; align-items: center; }
+  .flow-arrow .arrow-label { font-size: 11px; color: var(--text-muted); }
+
+  /* ─── Timeline Preview ─── */
+  .timeline { list-style: none; padding: 0; margin: 12px 0; }
+  .timeline li {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .timeline li:last-child { border-bottom: none; }
+  .tl-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 4px;
+  }
+  .tl-dot-purple { background: var(--purple); }
+  .tl-dot-green  { background: var(--text); }
+  .tl-dot-red    { background: var(--purple); }
+  .tl-dot-gray   { background: #9A9895; }
+  .tl-content .tl-title { font-weight: 600; color: var(--text); }
+  .tl-content .tl-meta  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ─── Callouts ─── */
+  .callout {
+    padding: 14px 18px;
+    border-radius: 8px;
+    border-left: 4px solid;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .callout-warning { background: var(--surface); border-color: var(--purple); color: var(--text); }
+  .callout-info    { background: var(--surface-alt); border-color: var(--text-muted); color: var(--text); }
+  .callout-danger  { background: var(--purple-light); border-color: var(--purple); color: var(--text); }
+  .callout-success { background: var(--surface-alt); border-color: var(--text); color: var(--text); }
+  .callout strong  { font-weight: 700; }
+
+  /* ─── Chips / Tags ─── */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    background: var(--purple-light);
+    color: var(--purple);
+    border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+  }
+
+  /* ─── Code block ─── */
+  pre {
+    background: #1A1A1A;
+    color: #F0EFED;
+    border-radius: 8px;
+    padding: 18px 20px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin-bottom: 16px;
+    font-family: var(--mono);
+  }
+  pre .c  { color: #5A5956; }
+  pre .k  { color: #A557FF; }
+  pre .s  { color: #C9B3EC; }
+  pre .n  { color: #F0EFED; }
+  pre .v  { color: #9655DE; }
+
+  /* ─── Checklist ─── */
+  .checklist { list-style: none; padding: 0; }
+  .checklist li {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px; color: var(--text-muted);
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist li::before {
+    content: '☐';
+    color: var(--border);
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .checklist li code { font-size: 11.5px; }
+
+  /* ─── Placeholder helpers ─── */
+  .placeholder {
+    color: #9A9895;
+    font-style: italic;
+    background: #F7F7F5;
+    border: 1px dashed #C9C7C1;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 13px;
+  }
+  .fill-note {
+    font-size: 11px;
+    color: #9A9895;
+    font-style: italic;
+    margin-top: 6px;
+  }
+
+  /* ─── Inline receive table ─── */
+  .inline-table { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .inline-table table { margin: 0; }
+  .inline-table thead th { background: var(--purple-light); color: var(--purple); font-size: 12px; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+</head>
+<body>
+
+<button id="nav-toggle" aria-label="Toggle sidebar" aria-expanded="true" title="Collapse sidebar (\\)">
+  <svg class="chev" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M10 3.5 5.5 8 10 12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</button>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SIDEBAR NAVIGATION
+     Update href values and labels to match your sections.
+══════════════════════════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="nav-logo">
+    <div class="label">PRD · XDOCK</div>
+    <h2>COD Reconciliation<br/>Full Lifecycle</h2>
+  </div>
+
+  <div class="nav-section-label">Overview</div>
+  <a href="#background">Background &amp; Problem</a>
+  <a href="#goals">Goals &amp; Success Metrics</a>
+  <a href="#scope">Scope</a>
+
+  <div class="nav-section-label">Design</div>
+  <a href="#roles">Roles &amp; Permissions</a>
+  <a href="#status-flow">Status Flow</a>
+  <a href="#screens">Screen Specifications</a>
+  <a href="#modals">Modals &amp; Components</a>
+  <a href="#edge-cases">Edge Cases</a>
+
+  <div class="nav-section-label">Engineering</div>
+  <a href="#data-model">Data Model</a>
+  <a href="#api">API Endpoints</a>
+  <a href="#tech-stack">Tech Stack</a>
+  <a href="#impl-notes">Implementation Notes</a>
+  <a href="#work-remaining">Work Remaining</a>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════════════════ -->
+<main>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="feature-label">Product Requirements Document</div>
+    <!-- UPDATE: Feature name and one-line description -->
+    <h1>COD Reconciliation — Full Lifecycle (v2.1)</h1>
+    <div class="meta">
+      <span><em class="meta-k">Author</em> <strong>Albert</strong></span>
+      <span><em class="meta-k">Date</em> <strong>2026-08-11</strong></span>
+      <span><em class="meta-k">Version</em> <strong>v2.1</strong></span>
+      <span><em class="meta-k">Status</em> <strong>Draft</strong></span>
+    </div>
+  </div>
+
+
+  <!-- ── 1. Background & Problem ── -->
+  <section id="background">
+    <h2>1. Background &amp; Problem</h2>
+
+    <p>XDOCK handles Cash on Delivery (COD) for two clients: <strong>Sayurbox</strong> and <strong>Zalora</strong>. v1 of this PRD treated COD as a single confirmation step: rider delivers, rider hands cash to the hub PIC, done. Two real fraud cases (Hendry Gusman, Rp 609,466; Dwi Febryaansyadi, Rp 3,328,000 — both written off using tribe cash flow) showed that model was incomplete in two specific ways, and this v2 closes both gaps.</p>
+    <p><strong>Gap 1 — money can go missing before it's even collected.</strong> Dwi's case: the rider delivered, collected COD, but never marked the order complete in the app. Nobody noticed until Zalora escalated at H+3. The original PRD only started watching an order once it reached "awaiting confirmation" — by definition, too late for this exact failure mode.</p>
+    <p><strong>Gap 2 — confirming the rider paid the PIC isn't the same as the PIC paying Finance.</strong> The v1 model treated "Confirm COD" as the end of the line. In reality the PIC now personally holds physical cash until they reach a bank — a second custody window with the same risk profile as the first, that had zero visibility or accountability of its own.</p>
+    <div class="card-grid">
+      <div class="card">
+        <h4>Current Situation</h4>
+        <p>Both gaps are now closed structurally. The lifecycle has 4 stages and 8 named statuses: <strong>In Delivery</strong> (On Track → Needs Attention → Unreachable) catches Dwi's exact pattern before COD is even collected. <strong>Awaiting Confirmation</strong> (Rider → PIC) and <strong>Awaiting Deposit</strong> (PIC → Finance) are two separate, equally-scrutinized custody legs — each with its own 24h clock, its own confirmation modal, and its own discrepancy check. <strong>Resolved</strong> is the only terminal state, and only after both legs are confirmed with proof attached.</p>
+      </div>
+      <div class="card">
+        <h4>Desired Outcome</h4>
+        <p>Every order's location in this chain — who's holding the money, since when, against what expectation — is visible without anyone manually reporting status. Resolution (delivery completing, a rider replying) is detected automatically wherever the underlying data allows it; a human only steps in where judgment is genuinely required — a rider going quiet, a PIC sitting on cash past the deposit window, or a discrepancy at either handoff.</p>
+      </div>
+    </div>
+    <div class="callout callout-warning">
+      <strong>Deliberate MVP call, not an oversight:</strong> as of v2, Confirm and WhatsApp buttons are clickable on every row regardless of status — the "gate confirmation until delivery is verified" logic from earlier drafts was removed because the real field workflow isn't fully known yet. This is a live decision, not a placeholder; see §edge-cases.
+    </div>
+  </section>
+
+
+  <!-- ── 2. Goals & Success Metrics ── -->
+  <section id="goals">
+    <h2>2. Goals &amp; Success Metrics</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4>Primary Goals</h4>
+        <ul>
+          <li>Detect a stalled or unreachable delivery <strong>before</strong> COD is collected, not just after confirmation is overdue</li>
+          <li>Split "money confirmed" into its two real custody legs (Rider → PIC, PIC → Finance), each with its own aging, discrepancy check, and proof of handling</li>
+          <li>Replace manual reporting ("PIC says rider didn't answer") with system-detected signals wherever the data allows it — a 30-minute no-response window, not a human's word</li>
+          <li>Give a PIC one consistent action per situation: WhatsApp the rider, or confirm a handoff — never a form with fields that don't apply to the situation in front of them</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Secondary Goals</h4>
+        <ul>
+          <li>Give Ops & Risk a live map of exactly the riders worth locating (Unreachable / Needs Attention only — not a general fleet tracker)</li>
+          <li>Make every COD row traceable to both the client's own order reference and Dash's internal delivery record, each independently clickable into the back-office</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Success Metrics</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Metric</th><th>Target</th><th>How Measured</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Stalled deliveries caught before COD collection</td>
+            <td>100% of Needs Attention / Unreachable rows flagged pre-completion</td>
+            <td><code>cod_ledger</code> status transitions; row never skips straight from "in delivery" to "escalated" without passing through this stage</td>
+          </tr>
+          <tr>
+            <td>Time-to-detect a non-responsive rider</td>
+            <td>&le; 30 minutes from WhatsApp sent, automatic</td>
+            <td><code>wa_deadline</code> timeout firing without a manual "no answer" report</td>
+          </tr>
+          <tr>
+            <td>Both custody legs independently confirmed with proof</td>
+            <td>100% of Confirmed rows have both <code>rider_confirm_data</code> and <code>deposit_data</code> populated</td>
+            <td>Detail view completeness check</td>
+          </tr>
+          <tr>
+            <td>Discrepancy capture rate at each leg</td>
+            <td>100% — no confirmation possible without a note when amounts don't match</td>
+            <td>Hard validation gate on both Confirm and Confirm Deposit submissions</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <!-- ── 3. Scope ── -->
+  <section id="scope">
+    <h2>3. Scope</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4>In Scope (MVP)</h4>
+        <ul>
+          <li>Full 4-stage, 8-status lifecycle: In Delivery (On Track / Needs Attention / Unreachable) → Awaiting Confirmation (Rider→PIC) → Awaiting Deposit (PIC→Finance) → Confirmed</li>
+          <li>WhatsApp-based contact mechanism with a pre-filled template, replacing the earlier Log Contact / Escalate buttons entirely</li>
+          <li>Automatic 30-minute response window per WhatsApp send: silence flips the row to Unreachable with no human report required; "Rider Responded" is the one optional manual override, and recovers Unreachable back to Needs Attention</li>
+          <li>Two independent confirmation modals (Confirm COD, Confirm Deposit), each with settlement/method, amount, discrepancy-note gate, and mandatory proof upload</li>
+          <li>Control Tower map view — live GPS pins for Zalora's Needs Attention / Unreachable riders only; Sayurbox rows show "last synced," explicitly no pin</li>
+          <li>Provider Order ID and Delivery ID as two independently hyperlinked back-office references per row</li>
+          <li>Filter panel (Client, Status, Hub, Owner, amount range, has-discrepancy) synced to the existing Client dropdown and status tabs — not a second, conflicting set of controls</li>
+          <li>Pagination and stage-grouped stat cards, each showing both a count and an Rp total</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Out of Scope</h4>
+        <ul>
+          <li><span class="badge badge-gray">Ops &amp; Risk</span> PIC negligence investigation criteria — still case-by-case by design, not touched by this build</li>
+          <li><span class="badge badge-gray">Finance</span> Historical write-off sizing beyond the known cases — separate workstream</li>
+          <li><span class="badge badge-gray">Deferred</span> Legal review of the rider salary-deduction clause</li>
+          <li><span class="badge badge-gray">Cost</span> WhatsApp Business API / automated sending — this PRD uses a manual template pre-fill a PIC sends themselves, specifically because the automated API was ruled out on cost; see §edge-cases</li>
+          <li><span class="badge badge-gray">Future</span> Slack-based tiered escalation to Ops Lead (routine ping vs. 🚨-tagged escalate-tier vs. auto-escalation) — agreed in principle, not represented in this mockup's UI since it's a notification/integration behavior, not a screen</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── 4. Roles & Permissions ── -->
+  <section id="roles">
+    <h2>4. Roles &amp; Permissions</h2>
+
+    <!-- UPDATE: List roles / personas involved in this feature -->
+    <h3>Roles</h3>
+    <div class="chips">
+      <span class="chip">Rider (Mitra)</span>
+      <span class="chip">Ops Staff / PIC (Korlap)</span>
+      <span class="chip">Ops Lead</span>
+      <span class="chip">Ops &amp; Risk</span>
+      <span class="chip">Finance</span>
+    </div>
+    <p class="fill-note">Rider has no login to this system — represented as a record attribute and a WhatsApp recipient, not an authenticated user.</p>
+
+    <h3>Permission Matrix</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>Ops Team</th>
+            <th>Ops &amp; Risk</th>
+            <th>Finance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>View list / Control Tower map</td>            <td>Yes</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Send WhatsApp / log Rider Responded</td>       <td>Yes</td><td>No</td><td>No</td></tr>
+          <tr><td>Confirm COD (Rider &rarr; PIC)</td>            <td>Yes</td><td>No</td><td>No</td></tr>
+          <tr><td>Confirm Deposit (PIC &rarr; Finance)</td>      <td>Yes</td><td>No</td><td>Cond.</td></tr>
+          <tr><td>Use Filter panel (Hub / Owner / Amount)</td>   <td>Yes</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Investigate an Unreachable escalation</td>     <td>Cond.*</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Approve a write-off at either custody leg</td> <td>No</td><td>Cond.</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="fill-note">"Ops Team" collapses Ops Staff/PIC and Ops Lead — identical permissions everywhere except the row marked *. <strong>Cond.* on that row means Ops Lead only, scoped to their own hub; Ops Staff/PIC has no investigation authority at all</strong> — this is the one place the two roles genuinely differ, kept visible rather than merged away. Elsewhere, "Cond." = Finance can confirm a deposit directly only if reconciling on the PIC's behalf; write-off approval above a threshold (TBD) still requires Finance regardless of who raised it.</p>
+
+    <h3>Status Values</h3>
+    <div class="chips">
+      <span class="badge badge-gray">on_track</span>
+      <span class="badge badge-gray">needs_attention</span>
+      <span class="badge badge-gray">unreachable</span>
+      <span class="badge badge-gray">outstanding</span>
+      <span class="badge badge-gray">escalated</span>
+      <span class="badge badge-gray">pending_deposit</span>
+      <span class="badge badge-gray">deposit_overdue</span>
+      <span class="badge badge-gray">confirmed</span>
+    </div>
+  </section>
+
+
+  <!-- ── 5. Status Flow ── -->
+  <section id="status-flow">
+    <h2>5. Status Flow</h2>
+
+    <p>Two flows, not one — the lifecycle splits cleanly at the moment COD is actually collected. Everything before that point is about whether the delivery itself is progressing; everything after is about which pair of hands is holding the money.</p>
+
+    <h3>Flow 1 — In Delivery (before COD is collected)</h3>
+    <div class="flow-diagram">
+      <div class="flow-node">
+        <span class="badge badge-approved node-badge">on_track</span>
+        <span class="node-label">within expected duration</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <span class="badge badge-created node-badge">needs_attention</span>
+        <span class="node-label">past expected duration</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <span class="badge badge-rejected node-badge">unreachable</span>
+        <span class="node-label">no reply in 30 min</span>
+      </div>
+    </div>
+    <p class="fill-note">Not shown: "delivery completes" exits <em>any</em> of these three states directly into Flow 2 — it isn't limited to the unreachable end of the chain. "Rider Responded" also recovers unreachable back to needs_attention.</p>
+
+    <h3>Flow 2 — Custody (after COD is collected)</h3>
+    <div class="flow-diagram">
+      <div class="flow-node">
+        <span class="badge badge-created node-badge">outstanding</span>
+        <span class="node-label">Rider → PIC, &lt;24h</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <span class="badge badge-rejected node-badge">escalated</span>
+        <span class="node-label">&gt;24h unconfirmed</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <span class="badge badge-created node-badge">pending_deposit</span>
+        <span class="node-label">PIC → Finance, &lt;24h</span>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <span class="badge badge-approved node-badge">confirmed</span>
+        <span class="node-label">both legs proven</span>
+      </div>
+    </div>
+    <p class="fill-note">Not shown for space: deposit_overdue branches off pending_deposit past 24h, mirroring escalated — same pattern, second leg.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Status</th><th>Stage</th><th>Color</th><th>Triggered by</th><th>Terminal?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="badge badge-approved">on_track</span></td><td>1 · In Delivery</td><td>Green</td><td>Order created, within expected duration</td><td>No</td></tr>
+          <tr><td><span class="badge badge-created">needs_attention</span></td><td>1 · In Delivery</td><td>Amber</td><td>Elapsed &gt; expected duration (auto)</td><td>No</td></tr>
+          <tr><td><span class="badge badge-rejected">unreachable</span></td><td>1 · In Delivery</td><td>Red</td><td>WhatsApp sent, no reply within 30 min (auto timeout)</td><td>No</td></tr>
+          <tr><td><span class="badge badge-created">outstanding</span></td><td>2 · Awaiting Confirmation</td><td>Amber</td><td>Delivery completion auto-detected from source data</td><td>No</td></tr>
+          <tr><td><span class="badge badge-rejected">escalated</span></td><td>2 · Awaiting Confirmation</td><td>Red</td><td>Elapsed &gt; 24h unconfirmed (auto)</td><td>No</td></tr>
+          <tr><td><span class="badge badge-created">pending_deposit</span></td><td>3 · Awaiting Deposit</td><td>Amber</td><td>PIC submits Confirm COD (Rider → PIC leg closes)</td><td>No</td></tr>
+          <tr><td><span class="badge badge-rejected">deposit_overdue</span></td><td>3 · Awaiting Deposit</td><td>Red</td><td>Elapsed &gt; 24h without deposit (auto)</td><td>No</td></tr>
+          <tr><td><span class="badge badge-approved">confirmed</span></td><td>4 · Resolved</td><td>Green</td><td>PIC submits Confirm Deposit (PIC → Finance leg closes)</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Status Transition Map — Categorized</h3>
+    <p>Every transition the current build actually produces, grouped by <em>why</em> it happens rather than listed flat. Category D is not a designed path — it's a confirmed defect, included here because this section documents what the build does, not only what it was meant to do.</p>
+
+    <h4>A. Movement within Stage 1 (delivery hasn't completed yet)</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>From</th><th>To</th><th>Trigger</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>on_track</td><td>needs_attention</td><td>Elapsed time exceeds expected duration</td><td>Automatic</td></tr>
+          <tr><td>needs_attention</td><td>unreachable</td><td>WhatsApp sent, no reply within 30 min</td><td>Automatic (timeout)</td></tr>
+          <tr><td>unreachable</td><td>needs_attention</td><td>"Rider Responded" logged</td><td>Manual (PIC)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>B. Aging within a custody stage — same pattern, appears twice</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>From</th><th>To</th><th>Trigger</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>outstanding</td><td>escalated</td><td>Elapsed time exceeds 24h</td><td>Automatic</td></tr>
+          <tr><td>pending_deposit</td><td>deposit_overdue</td><td>Elapsed time exceeds 24h</td><td>Automatic</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>C. Advancing to the next stage (intended path)</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>From</th><th>To</th><th>Trigger</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>Stage 1 (any)</td><td>Stage 2 · Confirmation</td><td>Delivery completion detected from sync data</td><td>Automatic</td></tr>
+          <tr><td>Stage 2 (outstanding/escalated)</td><td>Stage 3 · Deposit</td><td>PIC submits the Confirm modal</td><td>Manual (PIC)</td></tr>
+          <tr><td>Stage 3 (any)</td><td>Stage 4 · Resolved</td><td>PIC submits the Confirm Deposit modal</td><td>Manual (PIC)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>D. Anomaly — fixed. Kept here as a record of what was wrong and how it was closed.</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>From</th><th>To</th><th>Trigger</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr style="background:#F7F7F5;text-decoration:line-through;color:#9A9A96;"><td>Stage 1 (any)</td><td>Stage 3 · Deposit</td><td>PIC clicks Confirm — jumped straight there, skipping Stage 2 entirely</td><td>Manual (PIC)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout-success">
+      <strong>Fixed:</strong> Confirm is now disabled (grayed, no click handler at all — not just visually inert) on <code>on_track</code>, <code>needs_attention</code>, and <code>unreachable</code> rows, with a tooltip explaining why. It only becomes active the instant a row's status is <code>outstanding</code> or <code>escalated</code> — which only happens via the automatic delivery-completion detection, never via a manual click. This closes the bug <em>by construction</em>: there's no click left to mishandle, rather than a check added on top of the old handler. Option B (reinterpreting a Stage-1 Confirm as "delivery done too") is now off the table as a result — that path no longer exists to reinterpret. WhatsApp remains ungated on every status, per the original MVP decision below; only Confirm was narrowed, and only on the one transition that had no legitimate case for existing.
+    </div>
+
+    <h3>Full User Flow (Diagram)</h3>
+    <p>Same categories as the table above, drawn as one flow. The diagram below reflects the <strong>fixed</strong> behavior — the three dashed-red bypass edges from the earlier draft are gone, because that path is no longer reachable, not just discouraged.</p>
+    <div id="prd-flow-diagram" style="overflow-x:auto;background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px;"></div>
+    <script>
+      mermaid.initialize({ startOnLoad: false, theme: 'base', flowchart: { curve: 'linear', nodeSpacing: 40, rankSpacing: 55 } });
+      var prdFlowGraph = `
+flowchart TD
+    START(["START"]) --> A["Order created<br/>payment method = COD"]
+    A --> B{"Within expected<br/>delivery duration?"}
+    B -->|Yes| C["On track"]
+    B -->|No| D["Needs attention"]
+    D --> E["PIC sends WhatsApp<br/>to rider"]
+    E --> F{"Rider replies<br/>within 30 min?"}
+    F -->|Yes| C
+    F -->|No| G["Unreachable"]
+    G --> H["PIC retries WhatsApp"]
+    H --> I{"Rider responds?"}
+    I -->|Yes| D
+    I -->|No| G
+    C --> J{"Delivery<br/>completed?"}
+    D --> J
+    G --> J
+    J -->|"Yes, auto-detected"| K["Awaiting confirmation"]
+    K --> L{"PIC confirms<br/>within 24h?"}
+    L -->|Yes| N["PIC clicks Confirm<br/>rider hands over cash"]
+    L -->|No| M["Overdue confirmation"]
+    M --> N
+    N --> O{"Amount matches<br/>rider total?"}
+    O -->|Yes| Q["Awaiting deposit"]
+    O -->|No| P["Enter discrepancy note"]
+    P --> Q
+    Q --> R{"PIC deposits<br/>within 24h?"}
+    R -->|Yes| T["PIC clicks Confirm Deposit<br/>cash reaches Finance"]
+    R -->|No| S["Deposit overdue"]
+    S --> T
+    T --> U{"Deposit matches<br/>confirmed amount?"}
+    U -->|Yes| W(["Confirmed"])
+    U -->|No| V["Enter discrepancy note"]
+    V --> W
+
+    classDef process fill:#FF5722,stroke:#D84315,color:#fff,font-weight:600
+    classDef decision fill:#1a1a1a,stroke:#000,color:#fff,font-weight:600
+    classDef terminal fill:#757575,stroke:#5c5c5c,color:#fff,font-weight:700
+    classDef startNode fill:#4285F4,stroke:#3367d6,color:#fff,font-weight:700
+
+    class A,C,D,E,G,H,K,M,N,P,Q,S,T,V process
+    class B,F,I,J,L,O,R,U decision
+    class W terminal
+    class START startNode
+`;
+      mermaid.render('prd-flow-svg', prdFlowGraph).then(function(result){
+        document.getElementById('prd-flow-diagram').innerHTML = result.svg;
+      });
+    </script>
+  </section>
+
+
+  <!-- ── 6. Screen Specifications ── -->
+  <section id="screens">
+    <h2>6. Screen Specifications</h2>
+
+    <!-- Screen 1: List View -->
+    <div class="card" style="margin-bottom:20px;">
+      <h3>List View — "COD Reconciliation"</h3>
+      <p>Default view. Seen by Ops Staff/PIC, Ops Lead, Ops &amp; Risk, Finance.</p>
+
+      <h4>Layout</h4>
+      <ul>
+        <li>List / Control Tower toggle, top of page</li>
+        <li>Time range: 1d / 7d / 30d / 90d tabs, a dedicated Today shortcut (kept in sync with the 1d tab), and Custom Range</li>
+        <li>Stat cards grouped into 4 labeled stage clusters (Total, In Delivery, Awaiting Confirmation, Awaiting Deposit, Resolved) — each card shows both a count and an Rp total, and is clickable as a shortcut into that status's filtered view</li>
+        <li>Status tabs — one per status, 1:1 with the stat cards, no combined/rollup tabs</li>
+        <li>Search (rider name / mitra code) and a Filter panel (Hub, Owner, Amount range, has-discrepancy) — synced to, not duplicating, the Client dropdown and status tabs</li>
+        <li>Table columns (13, horizontally scrollable — the row no longer fits any reasonable screen width): Rider, Provider Order ID (hyperlinked), Delivery ID (hyperlinked), Client / Hub (merged into one stacked cell — client badge on top, hub as a muted sub-line), Owner, Time in Status, Expected, Amount, <strong>In Delivery</strong> / <strong>Confirmation (Rider→PIC)</strong> / <strong>Deposit (PIC→Finance)</strong> / <strong>Resolved</strong> (the single old Status column split into 4 stage-specific columns — a row's pill appears in exactly one of the four, the rest show a dash, so scanning becomes "which column has color" instead of parsing 8 possible pill texts), Actions</li>
+        <li>Edit Columns: show/hide any column except Rider and Actions, which are locked (hiding either breaks the row's basic usability). Hidden state survives sorting, filtering, and search — it's part of view state, not a one-time render.</li>
+        <li>Pagination: "Showing X–Y of Z", numbered page buttons with First/Last, Show N/page (10/20/30/40/50)</li>
+        <li>Empty state: "No orders match this filter."</li>
+      </ul>
+    </div>
+
+    <!-- Screen 2: Control Tower -->
+    <div class="card" style="margin-bottom:20px;">
+      <h3>Control Tower — At-Risk Riders (map view)</h3>
+      <p>Rider-side accountability only: In Delivery and Confirmation stage (needs_attention, unreachable, outstanding, escalated). Deposit and Resolved are excluded — that's PIC-to-Finance, and the rider isn't part of it anymore.</p>
+
+      <h4>Layout</h4>
+      <ul>
+        <li>Map pane: pins for Stage 1 (In Delivery) + Zalora rows only — the combination where live GPS exists <em>and</em> location is actually the thing blocking progress. Stage 2 rows never get a pin, even Zalora ones: delivery is done, so the rider's location no longer changes what happens next. Sayurbox never gets a pin at any stage — no live signal to place one from.</li>
+        <li>Side list: one card per at-risk rider (both stages, mixed together). Card sections, top to bottom: name/code + live-or-stale tag (Stage 1) or "Delivery complete" (Stage 2); status pill + elapsed time; hub; a labeled 2-column ID grid (Provider Order ID, Delivery ID — both independently hyperlinked to the back-office); amount; a bordered action row.</li>
+        <li>Action row differs by stage: Stage 1 shows Center on Map (primary button — Sayurbox shows disabled "No Live Pin" instead) + WhatsApp (WhatsApp (retry) for unreachable). Stage 2 shows Confirm + WhatsApp — both active, no disabled placeholder.</li>
+        <li>Panel height fills remaining viewport space rather than a fixed pixel height, so the map/list area grows on taller screens instead of leaving dead space below a fixed-size box.</li>
+        <li>Clicking a card or its pin selects both in sync (highlight + scroll-into-view); clicking an ID link inside a card opens the back-office without triggering card selection</li>
+      </ul>
+      <div class="callout callout-info">
+        <strong>Open question:</strong> should this live inside the existing back office or as a separate dashboard? Not decided here — flagged for Aldi.
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── 7. Modals & Components ── -->
+  <section id="modals">
+    <h2>7. Modals &amp; Components</h2>
+
+    <h3>Confirm COD (Rider &rarr; PIC)</h3>
+    <p>Triggered by the Confirm button, any pre-Confirmed row. On submit, moves the row to <code>pending_deposit</code> — this is not a terminal action.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>settlement_source</code></td><td>select</td><td>Yes</td><td>Rider Paid / PIC Covered (Talangan) / Tribe Write-off</td></tr>
+          <tr><td><code>confirmed_amount</code></td><td>number</td><td>Yes</td><td>Pre-filled with expected amount, editable</td></tr>
+          <tr><td><code>discrepancy_note</code></td><td>textarea</td><td>Cond.</td><td>Required if confirmed amount &ne; expected amount</td></tr>
+          <tr><td><code>proof_of_payment</code></td><td>file</td><td>Yes</td><td>PDF/PNG/JPG</td></tr>
+          <tr><td><code>owner</code></td><td>select</td><td>Yes</td><td>Defaults to current PIC, reassignable</td></tr>
+          <tr><td><code>notes</code></td><td>textarea</td><td>No</td><td>Optional, free text</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Confirm Deposit (PIC &rarr; Finance)</h3>
+    <p>Triggered by the Confirm Deposit button, on <code>pending_deposit</code> / <code>deposit_overdue</code> rows. On submit, moves the row to <code>confirmed</code> — terminal.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>deposit_method</code></td><td>fixed value</td><td>&mdash;</td><td>"Bank Transfer" — not a dropdown; see §edge-cases</td></tr>
+          <tr><td><code>deposited_amount</code></td><td>number</td><td>Yes</td><td>Pre-filled with the rider-confirmed amount from Leg 1, editable</td></tr>
+          <tr><td><code>discrepancy_note</code></td><td>textarea</td><td>Cond.</td><td>Required if deposited amount &ne; rider-confirmed amount</td></tr>
+          <tr><td><code>proof_of_deposit</code></td><td>file</td><td>Yes</td><td>Bank transfer receipt or ATM slip</td></tr>
+          <tr><td><code>notes</code></td><td>textarea</td><td>No</td><td>Optional</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Message via WhatsApp</h3>
+    <p>Triggered from any non-Confirmed row. Starts a 30-minute response window on send for <code>needs_attention</code> / <code>unreachable</code> rows — the window, not a human report, is what later flips the row to Unreachable.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>phone</code></td><td>display</td><td>&mdash;</td><td>Read-only, from rider record</td></tr>
+          <tr><td><code>message_template</code></td><td>textarea</td><td>Yes</td><td>Pre-filled Indonesian template referencing order code and client; editable</td></tr>
+          <tr><td><code>notes</code></td><td>textarea</td><td>No</td><td>Optional</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Rider Responded</h3>
+    <p>Triggered from the response-window countdown. Clears the window; recovers <code>unreachable</code> back to <code>needs_attention</code>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>notes</code></td><td>textarea</td><td>No</td><td>Optional — defaults to "No details given" if left blank. See §edge-cases on whether this should be required instead.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Confirmation Detail (read-only)</h3>
+    <p>Triggered by Detail, <code>confirmed</code> rows only. Shows both custody legs as separate sections — Leg 1 Rider&rarr;PIC and Leg 2 PIC&rarr;Finance — each with its own proof-of-file image, opening a shared Lightbox component keyed by which leg was clicked.</p>
+  </section>
+
+
+  <!-- ── 8. Edge Cases ── -->
+  <section id="edge-cases">
+    <h2>8. Edge Cases</h2>
+
+    <h3>No status-based gating on WhatsApp (deliberate) — Confirm is now the exception, not the rule</h3>
+    <p>WhatsApp stays clickable on every row regardless of status, by the same original reasoning: the real field workflow for contacting a rider isn't confirmed yet, so this stays flexible until Ops validates it. <strong>Confirm no longer follows that rule.</strong> It's disabled on <code>on_track</code>, <code>needs_attention</code>, and <code>unreachable</code> — see the fixed Category D entry in §status-flow for why. The distinction that made this the right call: WhatsApp's gating was a genuine unknown about field workflow; Confirm's was a fact (a delivery that hasn't completed has nothing to confirm), not a policy guess — so it didn't get the same benefit of the doubt. Confirmed rows remain Detail-only — that exception still stands, unrelated to this change.</p>
+
+    <div class="callout callout-success">
+      <strong>Fixed, not just decided:</strong> Confirm is disabled — no click handler attached at all, not merely styled to look inactive — on <code>on_track</code>, <code>needs_attention</code>, and <code>unreachable</code>, with a tooltip explaining why. Option A from the earlier draft (block it) is what shipped; Option B (reinterpret a Stage-1 click as "delivery done too") is no longer applicable, since there's no click left to reinterpret. Full transition table in §status-flow, Category D — now struck through there as closed.
+    </div>
+
+    <h3>No path exists for a confirmed fraud case stuck in Stage 1 — proposed, not built</h3>
+    <p>The Confirm fix above closes a bug, but it also closes the one (incorrect) way a PIC could previously get a known-fraud Unreachable row into any tracked flow at all. If Ops &amp; Risk independently verifies — outside the app, since the app will never show completion when the rider is the one withholding that signal on purpose — that a delivery happened and the rider kept the cash, there is currently <strong>no mechanism to record that</strong>. This is a different problem from the bug just fixed: that was the system being <em>wrong</em> about a delivery's state; this is a human being <em>right</em> about it despite the system never being able to confirm it on its own.</p>
+    <p>Proposed mechanism, not yet implemented in the mockup: a new action — <strong>"Escalate as Suspected Fraud"</strong> — visible only on <code>unreachable</code> rows (not <code>needs_attention</code>, which is still too early to presume bad faith), restricted to Ops &amp; Risk per the permission matrix in §roles, requiring a written justification, and routing into the <em>existing</em> Confirm modal pre-set to the <code>Tribe Write-off</code> settlement source that's been in this PRD since v1 for exactly this scenario (Hendry Gusman, Dwi Febryaansyadi). Reuses the existing accountability trail rather than forking a parallel one.</p>
+    <div class="callout callout-warning">
+      <strong>Open tension, not resolved here:</strong> this is a manual override on the exact mechanism (auto-detected completion, no human claiming "it's done" on the rider's behalf) that this whole project was built to remove. Narrow and well-gated, that's a legitimate exception; loosely gated, it's the original vulnerability again with extra steps. Undecided: does this need a second approver (e.g. Finance sign-off before the write-off posts), or is Ops &amp; Risk's own investigation sufficient authority by itself?
+    </div>
+
+    <h3>Two placeholder thresholds, not yet validated with Ops</h3>
+    <p>The 30-minute WhatsApp response window and the 24-hour deposit window (Stage 3) are both reused from the existing 24h confirmation pattern for consistency, not derived from a real number. Both need sign-off before this is a real spec — the deposit window in particular has no basis yet for how long a PIC should reasonably take to reach a bank.</p>
+
+    <h3>Rider Responded notes are optional, arguably shouldn't be</h3>
+    <p>The stated purpose of this field is "so we know what the issue was" — but it doesn't block submission if left blank (defaults to "No details given"). This mirrors the same non-blocking philosophy applied everywhere else, but is a real tension worth resolving explicitly rather than by default.</p>
+
+    <h3>Provider Order ID format is unconfirmed for Sayurbox</h3>
+    <p>Zalora's format (<code>ZDE</code> + 9 digits + dash + 4 digits) is grounded in real data seen in the actual Zalora runsheet. Sayurbox's equivalent (<code>SBX-2026-NNNNNN</code> in this build) is an invented placeholder — no real example exists anywhere in this project yet.</p>
+
+    <h3>Multi-slot / multi-hub riders</h3>
+    <p>A rider can work multiple slots or hubs in a day. If shift/PIC changes mid-day, who is the named <code>owner</code> for that rider's outstanding rows? <span class="badge badge-gray">Owner: Ops</span> — not decided here.</p>
+
+    <h3>Bulk PIC transfer attribution</h3>
+    <p>A PIC sometimes deposits one bulk bank transfer covering several riders' COD at once. The Confirm Deposit modal assumes a 1:1 rider-to-deposit match; bulk transfers require manual attribution outside this flow for now. <span class="badge badge-gray">Owner: Yogi / Aldi</span>.</p>
+
+    <div class="callout callout-danger">
+      <strong>No PIC negligence investigation criteria exists yet:</strong> the Escalate path in earlier drafts assumed an Ops &amp; Risk investigation process that is, in practice, still case-by-case with no defined criteria or approval threshold. This PRD's Confirm Deposit / discrepancy capture builds the data trail; it does not create the missing governance process around it.
+    </div>
+
+    <h3>WhatsApp is a manual template, not an integration</h3>
+    <p>There is no WhatsApp Business API here — cost was the explicit reason this was ruled out earlier in scoping. The "Message via WhatsApp" modal pre-fills a template for a human to send themselves; nothing is sent automatically. If this assumption changes, the 30-minute timeout mechanic (which currently relies on nothing but elapsed time, since there's no delivery-receipt signal from an actual API) may need to be revisited.</p>
+  </section>
+
+
+  <!-- ── 9. Data Model ── -->
+  <section id="data-model">
+    <h2>9. Data Model</h2>
+
+    <p class="fill-note">All tables use <code>snake_case</code>. Both custody legs share one table (<code>cod_confirmations</code>, distinguished by <code>leg_type</code>) rather than duplicating rider-facing and deposit-facing columns twice on <code>cod_ledger</code> — that mirrors the two-leg model directly instead of just documenting it in prose.</p>
+
+    <h3>Table: <code>cod_ledger</code></h3>
+    <p>One row per COD order, across its full lifecycle.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>UUID</td><td>PK, NOT NULL</td><td></td></tr>
+          <tr><td><code>client</code></td><td>enum</td><td>NOT NULL</td><td><code>zalora</code> / <code>sayurbox</code></td></tr>
+          <tr><td><code>delivery_id</code></td><td>varchar</td><td>NOT NULL, UNIQUE</td><td>Dash's own record ID; direct back-office resource path</td></tr>
+          <tr><td><code>provider_order_id</code></td><td>varchar</td><td>NOT NULL</td><td>Client's own order reference; back-office looked up by query, not path — see §edge-cases on Sayurbox format</td></tr>
+          <tr><td><code>rider_id</code></td><td>varchar</td><td>NOT NULL</td><td>Mitra code</td></tr>
+          <tr><td><code>hub_id</code></td><td>varchar</td><td>NULLABLE</td><td></td></tr>
+          <tr><td><code>owner_id</code></td><td>varchar</td><td>NOT NULL</td><td>Currently accountable Ops Staff/PIC</td></tr>
+          <tr><td><code>amount_expected</code></td><td>decimal</td><td>NOT NULL</td><td></td></tr>
+          <tr><td><code>status</code></td><td>enum</td><td>NOT NULL, DEFAULT 'on_track'</td><td>8 values — see §status-flow</td></tr>
+          <tr><td><code>threshold_hours</code></td><td>decimal</td><td>NOT NULL</td><td>Expected duration for whatever stage the row is currently in</td></tr>
+          <tr><td><code>stage_started_at</code></td><td>timestamptz</td><td>NOT NULL</td><td>Resets every time the row advances a stage — one continuous clock, re-armed</td></tr>
+          <tr><td><code>wa_deadline</code></td><td>timestamptz</td><td>NULLABLE</td><td>Set on WhatsApp send for in-delivery rows; timeout flips to <code>unreachable</code></td></tr>
+          <tr><td><code>created_at</code> / <code>updated_at</code></td><td>timestamptz</td><td>NOT NULL, DEFAULT now()</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Table: <code>cod_confirmations</code></h3>
+    <p>One row per completed custody leg. A fully <code>confirmed</code> order has exactly two rows here.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>UUID</td><td>PK, NOT NULL</td><td></td></tr>
+          <tr><td><code>cod_ledger_id</code></td><td>UUID</td><td>FK &rarr; cod_ledger.id</td><td></td></tr>
+          <tr><td><code>leg_type</code></td><td>enum</td><td>NOT NULL</td><td><code>rider_to_pic</code> / <code>pic_to_finance</code></td></tr>
+          <tr><td><code>method</code></td><td>varchar</td><td>NOT NULL</td><td>Settlement source (Leg 1) or deposit method (Leg 2, currently fixed "Bank Transfer")</td></tr>
+          <tr><td><code>confirmed_amount</code></td><td>decimal</td><td>NOT NULL</td><td></td></tr>
+          <tr><td><code>discrepancy_amount</code></td><td>decimal</td><td>DEFAULT 0</td><td><code>confirmed_amount</code> minus the baseline for that leg (order amount for Leg 1, Leg 1's confirmed amount for Leg 2)</td></tr>
+          <tr><td><code>discrepancy_note</code></td><td>text</td><td>Cond. NOT NULL</td><td>Required if discrepancy &ne; 0</td></tr>
+          <tr><td><code>proof_file</code></td><td>varchar</td><td>NOT NULL</td><td></td></tr>
+          <tr><td><code>notes</code></td><td>text</td><td>NULLABLE</td><td>Optional</td></tr>
+          <tr><td><code>confirmed_by</code></td><td>varchar</td><td>NOT NULL</td><td></td></tr>
+          <tr><td><code>confirmed_at</code></td><td>timestamptz</td><td>NOT NULL</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Table: <code>cod_contact_log</code></h3>
+    <p>WhatsApp sends, timeouts, and rider responses — the audit trail for the in-delivery stage.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>UUID</td><td>PK, NOT NULL</td><td></td></tr>
+          <tr><td><code>cod_ledger_id</code></td><td>UUID</td><td>FK &rarr; cod_ledger.id</td><td></td></tr>
+          <tr><td><code>event_type</code></td><td>enum</td><td>NOT NULL</td><td><code>whatsapp_sent</code> / <code>window_expired</code> / <code>rider_responded</code></td></tr>
+          <tr><td><code>notes</code></td><td>text</td><td>NULLABLE</td><td>Optional on every event type — see §edge-cases</td></tr>
+          <tr><td><code>logged_at</code></td><td>timestamptz</td><td>NOT NULL, DEFAULT now()</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-warning">
+      <strong>Migration note:</strong> confirm ORM/migration convention with Aldi before implementation. Not assumed here.
+    </div>
+  </section>
+
+
+  <!-- ── 10. API Endpoints ── -->
+  <section id="api">
+    <h2>10. API Endpoints</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Method &amp; Path</th><th>Description</th><th>Auth / Guard</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method method-get">GET</span><code>/api/cod-ledger</code></td>
+            <td>List/search with filters (client, status, hub, owner, amount range, has-discrepancy)</td>
+            <td>All authenticated Ops roles</td>
+          </tr>
+          <tr>
+            <td><span class="method method-get">GET</span><code>/api/cod-ledger/:id</code></td>
+            <td>Fetch single row + its confirmations and contact log</td>
+            <td>All authenticated Ops roles</td>
+          </tr>
+          <tr>
+            <td><span class="method method-patch">PATCH</span><code>/api/cod-ledger/:id/confirm</code></td>
+            <td>Submit Leg 1 (Rider &rarr; PIC) &mdash; writes a <code>rider_to_pic</code> row, moves status to <code>pending_deposit</code></td>
+            <td>Ops Staff/PIC, Ops Lead</td>
+          </tr>
+          <tr>
+            <td><span class="method method-patch">PATCH</span><code>/api/cod-ledger/:id/confirm-deposit</code></td>
+            <td>Submit Leg 2 (PIC &rarr; Finance) &mdash; writes a <code>pic_to_finance</code> row, moves status to <code>confirmed</code></td>
+            <td>Ops Staff/PIC, Ops Lead, Finance (cond.)</td>
+          </tr>
+          <tr>
+            <td><span class="method method-post">POST</span><code>/api/cod-ledger/:id/whatsapp</code></td>
+            <td>Log a WhatsApp send; starts <code>wa_deadline</code> for in-delivery rows</td>
+            <td>Ops Staff/PIC, Ops Lead</td>
+          </tr>
+          <tr>
+            <td><span class="method method-patch">PATCH</span><code>/api/cod-ledger/:id/rider-responded</code></td>
+            <td>Clear <code>wa_deadline</code>; recovers <code>unreachable</code> &rarr; <code>needs_attention</code></td>
+            <td>Ops Staff/PIC, Ops Lead</td>
+          </tr>
+          <tr>
+            <td><span class="method method-patch">PATCH</span><code>/api/cod-ledger/:id/timeout</code></td>
+            <td>System-triggered on <code>wa_deadline</code> expiry &mdash; moves to <code>unreachable</code>, logs a <code>window_expired</code> contact event</td>
+            <td>System / scheduled job</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Query Parameters — GET <code>/api/cod-ledger</code></h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>client</code></td><td>string</td><td>No</td><td><code>zalora</code> / <code>sayurbox</code></td></tr>
+          <tr><td><code>status</code></td><td>string</td><td>No</td><td>One of the 8 status values</td></tr>
+          <tr><td><code>hub_id</code></td><td>string</td><td>No</td><td></td></tr>
+          <tr><td><code>owner_id</code></td><td>string</td><td>No</td><td></td></tr>
+          <tr><td><code>amount_min</code> / <code>amount_max</code></td><td>number</td><td>No</td><td></td></tr>
+          <tr><td><code>has_discrepancy</code></td><td>boolean</td><td>No</td><td>True if either confirmation leg has a non-zero discrepancy</td></tr>
+          <tr><td><code>page</code></td><td>number</td><td>No</td><td>Default: 1</td></tr>
+          <tr><td><code>limit</code></td><td>number</td><td>No</td><td>Default: 20, options 10/20/30/40/50</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <!-- ── 11. Tech Stack ── -->
+  <section id="tech-stack">
+    <h2>11. Tech Stack</h2>
+
+    <p class="fill-note">Not fabricated here — XDOCK's actual stack isn't confirmed in this thread, consistent with v1 of this PRD.</p>
+    <div class="callout callout-info">
+      <strong>To confirm with Aldi:</strong> existing back-office framework/DB; a scheduled job mechanism for checking <code>wa_deadline</code> timeouts (this needs to run continuously, not just on page load); and whether the Slack escalation tiers discussed in scoping (routine ping / 🚨 escalate-tier / auto-escalation to Ops Lead) have an existing Slack API integration to build on, since that's a new dependency this version introduces.
+    </div>
+  </section>
+
+
+  <!-- ── 12. Implementation Notes ── -->
+  <section id="impl-notes">
+    <h2>12. Implementation Notes</h2>
+
+    <h3>The 30-minute window is a server-side timeout, not a client-side one</h3>
+    <p><code>wa_deadline</code> must be checked by a scheduled job on the backend — never by relying on someone's browser tab staying open. The mockup's live countdown is a UI convenience; the actual status transition to <code>unreachable</code> has to fire independent of anyone watching the screen.</p>
+
+    <h3>Discrepancy baseline differs by leg — don't reuse one field</h3>
+    <p>Leg 1 (Rider &rarr; PIC) checks the confirmed amount against <code>cod_ledger.amount_expected</code>. Leg 2 (PIC &rarr; Finance) checks the deposited amount against <strong>Leg 1's confirmed amount</strong> — not the original expected amount. A rider under-delivering and a PIC under-depositing are two different failure modes and need two different baselines, or a real discrepancy at one leg could get silently absorbed into rounding against the wrong number.</p>
+
+    <h3>Settlement source / deposit proof are hard gates, enforced server-side</h3>
+    <p>Neither confirmation endpoint should accept a submission missing its required proof file or a required discrepancy note — this needs enforcement in the backend guard, not just hidden/shown in the frontend, the same principle already applied to the original Confirm flow in v1.</p>
+
+    <h3>Client and Status filters must write to shared state, not duplicate it</h3>
+    <p>The Filter panel's Client and Status fields aren't independent — they read from, and write back to, the exact same state as the top-level Client dropdown and status tabs. If implemented as separate state, the two controls can silently contradict each other (panel says Sayurbox, dropdown still shows Zalora) with no error, just a query that returns nothing. Whatever wraps this in the real API layer needs the same discipline: one filter state, multiple entry points to set it.</p>
+  </section>
+
+
+  <!-- ── 13. Work Remaining ── -->
+  <section id="work-remaining">
+    <h2>13. Work Remaining</h2>
+    <p class="fill-note">Check off items as they are completed. Split into separate checklists by area.</p>
+
+    <div class="card-grid">
+
+      <div class="card">
+        <h4>Backend</h4>
+        <ul class="checklist">
+          <li>Confirm endpoint must reject (not just the frontend disable) requests where the row's current status is <code>on_track</code>, <code>needs_attention</code>, or <code>unreachable</code> — the frontend fix in §edge-cases removed the button, but a disabled button is not a server-side guarantee. Same principle as the settlement-source/proof hard gates elsewhere in this doc: enforce it where it can't be bypassed by calling the API directly.</li>
+          <li>Migrations: <code>cod_ledger</code>, <code>cod_confirmations</code>, <code>cod_contact_log</code></li>
+          <li>Confirm endpoint (Leg 1) — hard gate on settlement_source + proof, writes <code>rider_to_pic</code> confirmation</li>
+          <li>Confirm Deposit endpoint (Leg 2) — discrepancy baseline against Leg 1's amount, not original expected</li>
+          <li>WhatsApp send endpoint — starts <code>wa_deadline</code> for in-delivery statuses only</li>
+          <li>Scheduled job: check <code>wa_deadline</code> expiry server-side, transition to <code>unreachable</code>, log <code>window_expired</code></li>
+          <li>Rider Responded endpoint — clears deadline, recovers status</li>
+          <li>Filter query support: hub, owner, amount range, has_discrepancy</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h4>Frontend</h4>
+        <ul class="checklist">
+          <li>List view: stage-grouped stat cards (count + Rp each), 1:1 status tabs, pagination</li>
+          <li>Filter panel synced to Client dropdown / status tabs (not independent state)</li>
+          <li>Confirm COD modal, Confirm Deposit modal (fixed Bank Transfer, no dropdown)</li>
+          <li>WhatsApp modal with live countdown + Rider Responded modal</li>
+          <li>Detail modal — two-leg display, dual lightbox</li>
+          <li>Control Tower map — Zalora-only pins, dual hyperlinked IDs per card, click-isolation between ID links and card selection</li>
+          <li>Provider Order ID / Delivery ID as separate hyperlinked columns, two different back-office URL shapes</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h4>Dependencies — Not This PRD</h4>
+        <ul class="checklist">
+          <li>Ops &amp; Risk: define PIC negligence investigation criteria</li>
+          <li>Finance: historical write-off sizing, tribe financial statement cross-reference</li>
+          <li>Legal: salary deduction clause review — deferred</li>
+          <li>Ops: validate the 30-min WhatsApp window and 24h deposit window — both currently placeholders</li>
+          <li>Account team: confirm Sayurbox Provider Order ID format — currently an unconfirmed placeholder</li>
+          <li>Slack API integration for tiered escalation — agreed in principle, not built</li>
+          <li>"Escalate as Suspected Fraud" mechanism (Unreachable rows, Ops &amp; Risk only, routes into Confirm pre-set to Tribe Write-off) — proposed in §edge-cases, not built; blocked on deciding single vs. dual approval before it's worth building</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // ── Active nav highlight via IntersectionObserver ──
+  const sections = document.querySelectorAll('section[id]');
+  const links    = document.querySelectorAll('nav#sidebar a');
+
+  const obs = new IntersectionObserver(
+    entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const active = document.querySelector(`nav#sidebar a[href="#${e.target.id}"]`);
+          if (active) active.classList.add('active');
+        }
+      });
+    },
+    { rootMargin: '-20% 0px -70% 0px' }
+  );
+
+  sections.forEach(s => obs.observe(s));
+
+  // ── Sidebar collapse/expand ──
+  (function(){
+    const btn = document.getElementById('nav-toggle');
+    let collapsed = false;
+    function apply(){
+      document.body.classList.toggle('nav-collapsed', collapsed);
+      btn.setAttribute('aria-expanded', String(!collapsed));
+      btn.title = collapsed ? 'Expand sidebar (\\)' : 'Collapse sidebar (\\)';
+    }
+    btn.addEventListener('click', ()=>{ collapsed = !collapsed; apply(); });
+    // keyboard shortcut: backslash toggles (ignored while typing in a field)
+    document.addEventListener('keydown', (e)=>{
+      const tag=(e.target.tagName||'').toLowerCase();
+      if(e.key==='\\' && !e.metaKey && !e.ctrlKey && !e.altKey && tag!=='input' && tag!=='textarea'){
+        e.preventDefault(); collapsed=!collapsed; apply();
+      }
+    });
+    apply();
+  })();
+
+</script>
+
+</body>
+</html>
