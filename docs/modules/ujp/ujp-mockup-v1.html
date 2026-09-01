@@ -1,0 +1,919 @@
+<!--
+title: UJP Creation — Mockup
+module: ujp
+doctype: mockup
+version: 1
+status: draft            # draft | in-review | approved | shipped | superseded
+owner: muhamad.zulfikar@dashelectric.co
+created: 2026-09-01
+links:
+  prd-trd: ./ujp-prd-trd-v1.md
+  context: ./ujp-context-v1.md
+
+Follows docs/brand/gsm.md: one accent (Dash Purple) used like punctuation,
+hairline rules, no gradients/glow, Plus Jakarta Sans + JetBrains Mono.
+Interactive: the running-cost formula (km/0.95 → litres → BBM → Flazz/Transfer
+split) is ported verbatim from logisticdash ujp-calculations.ts and recomputes
+live in the right-hand Ringkasan panel. Driver/Subcon toggle, e-money "no" flip,
+conditional PER_RING picker, multidrop, and the submit payload are all wired.
+Scope: the CREATE flow only — list/detail/approval are specified in the PRD/TRD.
+-->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UJP Creation · Mockup · Dash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ink: #171717;
+    --paper: #ffffff;
+    --surface: #ffffff;
+    --panel: #faf9fc;
+    --muted: #6b6675;
+    --faint: #9a95a4;
+    --rule: rgba(23,23,23,0.10);
+    --rule-strong: rgba(23,23,23,0.20);
+    --tint: rgba(23,23,23,0.035);
+    --tint-strong: rgba(23,23,23,0.06);
+    --accent: #5E2AAC;
+    --accent-weak: rgba(94,42,172,0.09);
+    --accent-ink: #4a2088;
+    --flazz: #0e7a54;
+    --flazz-bg: rgba(14,122,84,0.09);
+    --transfer: #5E2AAC;
+    --transfer-bg: rgba(94,42,172,0.09);
+    --warn: #a25a00;
+    --warn-bg: rgba(180,110,0,0.10);
+    --danger: #b42318;
+    --field: #ffffff;
+    --field-border: rgba(23,23,23,0.16);
+    --locked: #f2eff7;
+    --shadow: 0 1px 2px rgba(23,23,23,0.05), 0 8px 24px -12px rgba(23,23,23,0.14);
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --ink: #f3f1f6;
+      --paper: #131016;
+      --surface: #1b1720;
+      --panel: #17131d;
+      --muted: #a49db0;
+      --faint: #776f84;
+      --rule: rgba(255,255,255,0.12);
+      --rule-strong: rgba(255,255,255,0.22);
+      --tint: rgba(255,255,255,0.045);
+      --tint-strong: rgba(255,255,255,0.08);
+      --accent: #b491ec;
+      --accent-weak: rgba(180,145,236,0.16);
+      --accent-ink: #cbb2f2;
+      --flazz: #4cc999;
+      --flazz-bg: rgba(76,201,153,0.14);
+      --transfer: #b491ec;
+      --transfer-bg: rgba(180,145,236,0.16);
+      --warn: #e0a24a;
+      --warn-bg: rgba(224,162,74,0.14);
+      --danger: #f0857a;
+      --field: #221d2b;
+      --field-border: rgba(255,255,255,0.18);
+      --locked: #211b2a;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 32px -14px rgba(0,0,0,0.7);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #f3f1f6; --paper: #131016; --surface: #1b1720; --panel: #17131d;
+    --muted: #a49db0; --faint: #776f84; --rule: rgba(255,255,255,0.12);
+    --rule-strong: rgba(255,255,255,0.22); --tint: rgba(255,255,255,0.045);
+    --tint-strong: rgba(255,255,255,0.08); --accent: #b491ec; --accent-weak: rgba(180,145,236,0.16);
+    --accent-ink: #cbb2f2; --flazz: #4cc999; --flazz-bg: rgba(76,201,153,0.14);
+    --transfer: #b491ec; --transfer-bg: rgba(180,145,236,0.16); --warn: #e0a24a;
+    --warn-bg: rgba(224,162,74,0.14); --danger: #f0857a; --field: #221d2b;
+    --field-border: rgba(255,255,255,0.18); --locked: #211b2a;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 32px -14px rgba(0,0,0,0.7);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 40;
+  }
+  .brand-dot { width: 26px; height: 26px; border-radius: 6px; background: var(--ink); color: var(--paper);
+    display: grid; place-items: center; font-weight: 800; font-size: 13px; flex: none; }
+  .brand-dot span { color: var(--accent); }
+  .topbar h1 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .crumb { color: var(--faint); font-size: 12px; font-weight: 500; }
+  .topbar .spacer { flex: 1; }
+  .simtag {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--accent-ink); background: var(--accent-weak);
+    padding: 4px 9px; border-radius: 999px;
+  }
+  .themebtn {
+    border: 1px solid var(--rule-strong); background: var(--surface); color: var(--muted);
+    border-radius: 6px; width: 34px; height: 30px; cursor: pointer; font-size: 15px;
+    display: grid; place-items: center;
+  }
+  .themebtn:hover { color: var(--ink); border-color: var(--ink); }
+
+  /* ---------- step rail ---------- */
+  .steprail {
+    display: flex; gap: 6px; align-items: stretch;
+    padding: 12px 22px; border-bottom: 1px solid var(--rule);
+    background: var(--surface); overflow-x: auto;
+    position: sticky; top: 55px; z-index: 30;
+  }
+  .step {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    padding: 6px 12px 6px 8px; border-radius: 6px; white-space: nowrap;
+    border: 1px solid transparent; color: var(--muted); font-size: 12.5px; font-weight: 600;
+    background: none;
+  }
+  .step:hover { background: var(--tint); color: var(--ink); }
+  .step.active { background: var(--accent-weak); color: var(--accent-ink); }
+  .step .idx {
+    width: 20px; height: 20px; border-radius: 999px; flex: none;
+    display: grid; place-items: center; font-size: 11px; font-weight: 700;
+    background: var(--tint-strong); color: var(--muted);
+  }
+  .step.active .idx { background: var(--accent); color: #fff; }
+  .step.done .idx { background: var(--flazz); color: #fff; }
+
+  /* ---------- layout ---------- */
+  .wrap {
+    display: grid; grid-template-columns: minmax(0,1fr) 340px;
+    gap: 26px; max-width: 1180px; margin: 0 auto; padding: 26px 22px 80px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .wrap { grid-template-columns: 1fr; }
+    .summary { position: static !important; }
+  }
+
+  /* ---------- sections ---------- */
+  .sec {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 8px; margin-bottom: 18px; overflow: hidden;
+    scroll-margin-top: 120px;
+  }
+  .sec > header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 18px; border-bottom: 1px solid var(--rule); background: var(--panel);
+  }
+  .sec > header .n {
+    font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 600;
+    color: var(--accent-ink); background: var(--accent-weak); padding: 3px 7px; border-radius: 5px;
+  }
+  .sec > header h2 { margin: 0; font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; }
+  .sec > header .hint { margin-left: auto; font-size: 11px; color: var(--faint); font-weight: 500; }
+  .sec .body { padding: 18px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 14px 16px; }
+  .grid.three { grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); }
+
+  label.f { display: flex; flex-direction: column; gap: 5px; }
+  label.f > .lab {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.13em;
+    color: var(--muted);
+  }
+  label.f > .lab .req { color: var(--danger); }
+  label.f > .lab .lock { color: var(--accent-ink); font-weight: 600; letter-spacing: 0.04em; text-transform: none; }
+  input, select {
+    font-family: inherit; font-size: 13.5px; color: var(--ink);
+    background: var(--field); border: 1px solid var(--field-border);
+    border-radius: 6px; padding: 8px 10px; width: 100%;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+  input.locked, select.locked, input[readonly] { background: var(--locked); color: var(--muted); border-style: dashed; }
+  input.num, input.money { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+  .autoval {
+    font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--ink);
+    background: var(--tint); border: 1px dashed var(--rule-strong); border-radius: 6px; padding: 8px 10px;
+  }
+
+  /* payee toggle */
+  .seg { display: inline-flex; background: var(--tint); border: 1px solid var(--rule); border-radius: 7px; padding: 3px; gap: 3px; }
+  .seg button {
+    border: none; background: none; font-family: inherit; font-size: 12.5px; font-weight: 600;
+    color: var(--muted); padding: 6px 14px; border-radius: 5px; cursor: pointer;
+  }
+  .seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+  .note {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 12px; color: var(--muted); background: var(--tint);
+    border-left: 3px solid var(--accent); border-radius: 4px; padding: 9px 12px; margin-top: 4px;
+  }
+  .note.warn { border-left-color: var(--warn); color: var(--warn); background: var(--warn-bg); }
+  .note .i { flex: none; }
+
+  .hide { display: none !important; }
+
+  /* extra drops */
+  .drop {
+    border: 1px solid var(--rule); border-radius: 7px; padding: 13px; margin-top: 12px; background: var(--panel);
+  }
+  .drop .dh { display: flex; align-items: center; gap: 8px; margin-bottom: 11px; }
+  .drop .dh .chip { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--accent-ink); background: var(--accent-weak); padding: 3px 8px; border-radius: 999px; }
+  .drop .dh button { margin-left: auto; }
+  .btn {
+    font-family: inherit; font-weight: 600; font-size: 12.5px; cursor: pointer;
+    border-radius: 6px; padding: 7px 13px; border: 1px solid var(--field-border);
+    background: var(--surface); color: var(--ink); display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { border-color: var(--ink); }
+  .btn.ghost { border-color: transparent; background: var(--tint); }
+  .btn.ghost:hover { background: var(--tint-strong); }
+  .btn.danger { color: var(--danger); border-color: transparent; background: none; padding: 4px 8px; }
+  .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .btn.primary:hover { background: #000; }
+  .btn.sm { padding: 5px 10px; font-size: 12px; }
+
+  /* ---------- summary panel ---------- */
+  .summary { position: sticky; top: 128px; }
+  .card { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; }
+  .card > .ch { padding: 15px 18px 13px; border-bottom: 1px solid var(--rule); }
+  .card > .ch .eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: var(--faint); }
+  .card > .ch .ref { font-family: "JetBrains Mono", monospace; font-size: 14px; font-weight: 600; margin-top: 3px; color: var(--ink); }
+  .card > .cb { padding: 14px 18px; }
+
+  .kv { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 5px 0; font-size: 12.5px; }
+  .kv .k { color: var(--muted); }
+  .kv .v { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .kv.sub .k { padding-left: 12px; color: var(--faint); font-size: 12px; }
+  .divider { height: 1px; background: var(--rule); margin: 10px 0; }
+
+  .bigrow { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }
+  .bigtile {
+    border-radius: 8px; padding: 12px 14px; border: 1px solid transparent;
+  }
+  .bigtile .tl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; display: flex; align-items: center; gap: 6px; }
+  .bigtile .amt { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; font-size: 21px; font-weight: 700; margin-top: 3px; letter-spacing: -0.01em; }
+  .bigtile .amt .cur { font-size: 12px; font-weight: 500; color: var(--faint); margin-right: 3px; }
+  .tile-flazz { background: var(--flazz-bg); color: var(--flazz); }
+  .tile-tf { background: var(--transfer-bg); color: var(--transfer); }
+  .tile-flazz .amt, .tile-tf .amt { color: var(--ink); }
+  .dot { width: 7px; height: 7px; border-radius: 999px; flex: none; }
+
+  .total-final {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 13px 18px; background: var(--ink); color: var(--paper);
+  }
+  .total-final .tl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.75; font-weight: 600; }
+  .total-final .amt { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 700; }
+
+  .valid { margin-top: 14px; }
+  .valid .vt { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--faint); margin-bottom: 7px; }
+  .valid .vrow { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 3px 0; }
+  .valid .vrow .mk { width: 15px; height: 15px; border-radius: 999px; flex: none; display: grid; place-items: center; font-size: 10px; font-weight: 700; }
+  .valid .vrow.ok { color: var(--muted); }
+  .valid .vrow.ok .mk { background: var(--flazz-bg); color: var(--flazz); }
+  .valid .vrow.bad { color: var(--ink); }
+  .valid .vrow.bad .mk { background: var(--warn-bg); color: var(--warn); }
+
+  .submitwrap { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .submitwrap .big { width: 100%; justify-content: center; padding: 11px; font-size: 13.5px; }
+  .flowhint { font-size: 11px; color: var(--faint); line-height: 1.6; }
+  .flowhint b { color: var(--muted); font-weight: 600; }
+
+  /* payload dialog */
+  .backdrop { position: fixed; inset: 0; background: rgba(10,8,14,0.55); z-index: 60; display: grid; place-items: center; padding: 24px; }
+  .dialog { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; box-shadow: var(--shadow); width: min(560px,100%); max-height: 84vh; display: flex; flex-direction: column; overflow: hidden; }
+  .dialog .dh2 { display: flex; align-items: center; gap: 11px; padding: 16px 20px; border-bottom: 1px solid var(--rule); }
+  .dialog .dh2 .ic { width: 32px; height: 32px; border-radius: 8px; background: var(--flazz-bg); color: var(--flazz); display: grid; place-items: center; flex: none; }
+  .dialog .dh2 h3 { margin: 0; font-size: 15px; font-weight: 700; }
+  .dialog .dh2 p { margin: 1px 0 0; font-size: 12px; color: var(--muted); }
+  .dialog .db { padding: 16px 20px; overflow: auto; }
+  .dialog .db .step-log { list-style: none; margin: 0 0 14px; padding: 0; }
+  .dialog .db .step-log li { display: flex; gap: 9px; font-size: 12.5px; padding: 5px 0; color: var(--muted); }
+  .dialog .db .step-log li b { color: var(--ink); font-weight: 600; }
+  .dialog .db .step-log .m { color: var(--flazz); flex: none; }
+  pre { margin: 0; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 13px; font-family: "JetBrains Mono", monospace; font-size: 11.5px; line-height: 1.55; overflow: auto; color: var(--ink); }
+  .dialog .df { padding: 13px 20px; border-top: 1px solid var(--rule); display: flex; justify-content: flex-end; gap: 8px; }
+  .badge-status { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 3px 9px; border-radius: 999px; background: var(--warn-bg); color: var(--warn); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand-dot">D<span>.</span></div>
+  <div>
+    <h1>Buat Pengajuan UJP</h1>
+    <div class="crumb">Logistic · UJP · Pengajuan · <span class="mono">new</span></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="simtag">Simulasi Interaktif</div>
+  <button class="themebtn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◑</button>
+</div>
+
+<nav class="steprail" id="steprail" aria-label="Sections"></nav>
+
+<div class="wrap">
+  <form id="form" autocomplete="off">
+
+    <!-- 1 · Informasi Pengajuan -->
+    <section class="sec" id="s-info" data-step="Pengajuan">
+      <header><span class="n">01</span><h2>Informasi Pengajuan</h2><span class="hint">identitas & tanggal</span></header>
+      <div class="body">
+        <div class="grid three">
+          <label class="f"><span class="lab">Tanggal Pengajuan <span class="lock">auto</span></span><div class="autoval" id="tglPengajuan"></div></label>
+          <label class="f"><span class="lab">Reference ID <span class="lock">auto</span></span><div class="autoval mono" id="refId"></div></label>
+          <label class="f"><span class="lab">Tanggal Delivery <span class="req">*</span></span><input type="date" id="tanggalDelivery"></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 · Kendaraan & Driver -->
+    <section class="sec" id="s-unit" data-step="Unit & Driver">
+      <header><span class="n">02</span><h2>Informasi Kendaraan &amp; Driver</h2><span class="hint">pilih plat → autofill baseline & driver</span></header>
+      <div class="body">
+        <div class="grid">
+          <label class="f"><span class="lab">Nama Ops Team <span class="lock">auto</span></span><div class="autoval" id="opsTeam">Zulfikar (Ops)</div></label>
+          <label class="f"><span class="lab">Client / Project <span class="req">*</span></span>
+            <select id="client"><option value="">— pilih client —</option></select>
+          </label>
+          <label class="f"><span class="lab">Penerima Pembayaran <span class="req">*</span></span>
+            <div class="seg" id="payeeSeg" role="tablist">
+              <button type="button" data-payee="driver" class="on">Driver internal</button>
+              <button type="button" data-payee="subcon">Subcon vendor</button>
+            </div>
+          </label>
+        </div>
+
+        <div class="grid" id="driverFields" style="margin-top:14px">
+          <label class="f"><span class="lab">Plat Nomor <span class="req dr">*</span></span>
+            <select id="plat"><option value="">— pilih unit —</option></select>
+          </label>
+          <label class="f"><span class="lab">Jenis Unit <span class="req dr">*</span></span><input id="jenisUnit" class="locked" readonly placeholder="auto dari unit"></label>
+          <label class="f"><span class="lab">Tipe Energi <span class="lock">auto</span></span><input id="vehicleType" class="locked" readonly placeholder="—"></label>
+          <label class="f"><span class="lab">E-Money <span class="req dr">*</span></span>
+            <select id="emoney"><option value="">— pilih —</option><option>Flazz BCA</option><option>Mandiri e-Toll</option><option>BRIZZI</option><option value="No">No (tanpa e-money)</option></select>
+          </label>
+          <label class="f"><span class="lab">Nama Driver <span class="req dr">*</span></span>
+            <select id="driver"><option value="">— pilih driver —</option></select>
+          </label>
+          <label class="f"><span class="lab">Bank Driver <span class="req">*</span></span><input id="bank" class="locked" readonly placeholder="auto dari driver"></label>
+          <label class="f"><span class="lab">No. Rekening <span class="req">*</span></span><input id="rek" class="locked mono" readonly placeholder="auto"></label>
+          <label class="f"><span class="lab">Atas Nama <span class="req">*</span></span><input id="atasNama" class="locked" readonly placeholder="auto"></label>
+        </div>
+
+        <div class="grid hide" id="subconFields" style="margin-top:14px">
+          <label class="f"><span class="lab">Vendor Subcon <span class="req">*</span></span>
+            <select id="subcon"><option value="">— pilih vendor —</option></select>
+          </label>
+          <label class="f"><span class="lab">Jenis Unit</span><input id="jenisUnitSub" placeholder="mis. CDD Box"></label>
+          <label class="f"><span class="lab">Bank Vendor <span class="req">*</span></span><input id="bankSub" class="locked" readonly placeholder="auto dari vendor"></label>
+          <label class="f"><span class="lab">No. Rekening <span class="req">*</span></span><input id="rekSub" class="locked mono" readonly placeholder="auto"></label>
+        </div>
+        <div class="note" id="subconNote" style="margin-top:12px"><span class="i">ℹ️</span><span>Subcon dibayar <b>100% transfer manual</b> — komponen Flazz = 0, nominal diisi manual di bagian Biaya. Trip subcon dilewati saat forward ke Dispatch API.</span></div>
+      </div>
+    </section>
+
+    <!-- 3 · Layanan -->
+    <section class="sec" id="s-service" data-step="Layanan">
+      <header><span class="n">03</span><h2>Layanan &amp; Shift</h2><span class="hint">shift memprefill jam</span></header>
+      <div class="body">
+        <div class="grid three">
+          <label class="f"><span class="lab">Tipe Layanan <span class="req">*</span></span>
+            <select id="tipeLayanan"><option value="">—</option><option>Same Day</option><option>Regular</option><option>Instant</option><option>Dedicated</option></select>
+          </label>
+          <label class="f"><span class="lab">Tipe Pengiriman <span class="req">*</span></span>
+            <select id="tipePengiriman"><option value="">—</option><option value="Single">Single</option><option value="Multi">Multi (Multidrop)</option></select>
+          </label>
+          <label class="f"><span class="lab">Shift <span class="req">*</span></span>
+            <select id="shift"><option value="">—</option><option data-m="06:00" data-s="14:00">Morning</option><option data-m="14:00" data-s="22:00">Noon</option><option data-m="22:00" data-s="06:00">Night</option><option data-m="04:00" data-s="12:00">Dawn</option></select>
+          </label>
+          <label class="f"><span class="lab">Jam Mulai <span class="req">*</span></span><input type="time" id="jamMulai"></label>
+          <label class="f"><span class="lab">Jam Selesai <span class="req">*</span></span><input type="time" id="jamSelesai"></label>
+          <label class="f"><span class="lab">Service Type <span class="req">*</span></span>
+            <select id="serviceType"><option value="">—</option><option>DISTANCE_TIER</option><option>PER_TRIP_FLAT</option><option>PER_RING</option><option>FIXED</option></select>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 · Rute & Jarak -->
+    <section class="sec" id="s-route" data-step="Rute & Jarak">
+      <header><span class="n">04</span><h2>Rute &amp; Jarak</h2><span class="hint">km diajukan menggerakkan biaya</span></header>
+      <div class="body">
+        <div class="grid">
+          <label class="f"><span class="lab">Origin <span class="req">*</span></span><input id="origin" placeholder="alamat / titik jemput"></label>
+          <label class="f"><span class="lab">Destination <span class="req">*</span></span><input id="destination" placeholder="alamat tujuan"></label>
+          <label class="f"><span class="lab">KM Yang Diajukan <span class="req">*</span></span><input type="number" min="0" step="0.1" id="km" class="num" value="0"></label>
+          <label class="f"><span class="lab">KM Antaran <span class="lock">billing</span></span><input type="number" min="0" step="0.1" id="kmAntaran" class="num" value="0"></label>
+        </div>
+        <label class="f" style="margin-top:12px;flex-direction:row;align-items:center;gap:9px">
+          <input type="checkbox" id="originDepot" checked style="width:auto"><span class="lab" style="text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--ink)">Origin = depot Dash (leg depot→jemput tidak ditagih)</span>
+        </label>
+
+        <!-- ring -->
+        <div id="ringWrap" class="hide" style="margin-top:14px">
+          <label class="f" style="max-width:340px"><span class="lab">Ring / Area <span class="req">*</span> <span class="lock">tarif PER_RING</span></span>
+            <select id="ring"><option value="">— pilih ring —</option></select>
+          </label>
+          <div class="note" id="ringNote"><span class="i">🎯</span><span id="ringNoteTxt"></span></div>
+        </div>
+
+        <!-- multidrop -->
+        <div id="multiWrap" class="hide" style="margin-top:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
+            <span class="lab" style="font-size:11px">Destinasi tambahan (multidrop)</span>
+            <button type="button" class="btn sm" id="addDrop">＋ Tambah drop</button>
+          </div>
+          <div id="drops"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 · Biaya -->
+    <section class="sec" id="s-cost" data-step="Biaya">
+      <header><span class="n">05</span><h2>Biaya Operasional (Uang Jalan)</h2><span class="hint">live → panel kanan</span></header>
+      <div class="body">
+        <!-- driver cost -->
+        <div id="costDriver">
+          <div class="grid three">
+            <label class="f"><span class="lab" id="baselineLab">Baseline (km/L) <span class="req">*</span></span><input type="number" min="0" step="0.1" id="baseline" class="num" value="0"></label>
+            <label class="f"><span class="lab" id="hargaLab">Harga BBM (Rp/L) <span class="req">*</span></span><input type="number" min="0" step="100" id="harga" class="num" value="0"></label>
+            <label class="f"><span class="lab">Total BBM Cost <span class="lock" id="bbmMode">computed</span></span><div class="autoval mono" id="bbmCost">Rp 0</div></label>
+            <label class="f"><span class="lab">Toll (Flazz)</span><input type="number" min="0" step="1000" id="toll" class="num" value="0"></label>
+            <label class="f"><span class="lab">Parkir Tap Machine</span><input type="number" min="0" step="1000" id="parkirTap" class="num" value="0"></label>
+            <label class="f"><span class="lab">Parkir Manual</span><input type="number" min="0" step="1000" id="parkirManual" class="num" value="0"></label>
+            <label class="f"><span class="lab">Bongkar / Muat</span><input type="number" min="0" step="1000" id="bongkar" class="num" value="0"></label>
+            <label class="f"><span class="lab">Uang Makan</span><input type="number" min="0" step="1000" id="uangMakan" class="num" value="0"></label>
+            <label class="f"><span class="lab">Biaya Lain-Lain</span><input type="number" min="0" step="1000" id="lain" class="num" value="0"></label>
+          </div>
+          <label class="f" id="justifWrap" style="margin-top:13px" ><span class="lab">Justifikasi Biaya Lain-Lain <span class="req">*</span></span><input id="justif" placeholder="wajib diisi bila biaya lain-lain > 0"></label>
+        </div>
+        <!-- subcon cost -->
+        <div id="costSubcon" class="hide">
+          <label class="f" style="max-width:320px"><span class="lab">Nominal Transfer (100%) <span class="req">*</span></span><input type="number" min="0" step="10000" id="nominalTransfer" class="num" value="0"></label>
+          <div class="note"><span class="i">💸</span><span>Untuk subcon seluruh nominal masuk ke <b>Uang Jalan Transfer</b>; komponen BBM/Flazz tidak dihitung.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 · Detail Pengiriman -->
+    <section class="sec" id="s-cargo" data-step="Detail Kirim">
+      <header><span class="n">06</span><h2>Detail Pengiriman</h2><span class="hint">pengirim · penerima · barang</span></header>
+      <div class="body">
+        <div class="grid">
+          <label class="f"><span class="lab">Nama Pengirim <span class="req">*</span></span><input id="senderName" placeholder="nama pengirim"></label>
+          <label class="f"><span class="lab">No. HP Pengirim <span class="req">*</span></span><input id="senderPhone" class="mono" placeholder="08…"></label>
+          <label class="f"><span class="lab">Nama Penerima <span class="req">*</span></span><input id="receiverName" placeholder="nama penerima"></label>
+          <label class="f"><span class="lab">No. HP Penerima <span class="req">*</span></span><input id="receiverPhone" class="mono" placeholder="08…"></label>
+          <label class="f"><span class="lab">Nama Item <span class="req">*</span></span><input id="itemName" placeholder="mis. Sparepart EV"></label>
+          <label class="f"><span class="lab">Bobot (kg) <span class="req">*</span></span><input type="number" min="0" step="0.5" id="bobot" class="num" value="0"></label>
+          <label class="f" style="grid-column:1/-1"><span class="lab">Deskripsi Item</span><input id="itemDesc" placeholder="opsional"></label>
+        </div>
+      </div>
+    </section>
+
+    <div class="note" style="border-left-color:var(--accent)"><span class="i">🔗</span><span><b style="color:var(--ink)">Combine (opsional)</b> — di app asli kamu bisa menambah rute kedua yang tersimpan sebagai pengajuan terpisah & ter-link (<span class="mono">combineOfRequestId</span>). Disederhanakan di simulasi ini.</span></div>
+  </form>
+
+  <!-- ===== summary panel ===== -->
+  <aside class="summary">
+    <div class="card">
+      <div class="ch">
+        <div class="eyebrow">Ringkasan UJP</div>
+        <div class="ref" id="refIdMirror">UJP-…</div>
+      </div>
+      <div class="cb">
+        <div class="kv"><span class="k">KM diajukan</span><span class="v" id="oKm">0</span></div>
+        <div class="kv sub"><span class="k">+ margin 5% (÷0.95)</span><span class="v" id="oKmMargin">0</span></div>
+        <div class="kv"><span class="k" id="litLab">Estimasi BBM</span><span class="v" id="oLiter">0 L</span></div>
+        <div class="kv"><span class="k">Total BBM Cost</span><span class="v" id="oBbm">Rp 0</span></div>
+        <div class="divider"></div>
+        <div class="kv sub"><span class="k">+ Toll Flazz</span><span class="v" id="oToll">Rp 0</span></div>
+        <div class="kv sub"><span class="k">+ Parkir tap</span><span class="v" id="oPtap">Rp 0</span></div>
+        <div class="kv sub"><span class="k">+ Parkir manual</span><span class="v" id="oPman">Rp 0</span></div>
+        <div class="kv sub"><span class="k">+ Bongkar/muat</span><span class="v" id="oBong">Rp 0</span></div>
+        <div class="kv sub"><span class="k">+ Uang makan</span><span class="v" id="oMakan">Rp 0</span></div>
+        <div class="kv sub"><span class="k">+ Lain-lain</span><span class="v" id="oLain">Rp 0</span></div>
+
+        <div class="bigrow">
+          <div class="bigtile tile-flazz">
+            <div class="tl"><span class="dot" style="background:var(--flazz)"></span>Uang Jalan Flazz</div>
+            <div class="amt"><span class="cur">Rp</span><span id="oFlazz">0</span></div>
+          </div>
+          <div class="bigtile tile-tf">
+            <div class="tl"><span class="dot" style="background:var(--transfer)"></span>Uang Jalan Transfer</div>
+            <div class="amt"><span class="cur">Rp</span><span id="oTransfer">0</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="total-final">
+        <span class="tl">Estimasi Total</span>
+        <span class="amt"><span style="font-size:12px;opacity:.7;font-weight:500">Rp </span><span id="oTotal">0</span></span>
+      </div>
+    </div>
+
+    <div class="valid">
+      <div class="vt">Kelengkapan · <span id="validCount">0/0</span></div>
+      <div id="validList"></div>
+    </div>
+
+    <div class="submitwrap">
+      <button type="button" class="btn primary big" id="submitBtn">Ajukan UJP →</button>
+      <div class="flowhint">Saat diajukan: <b>insert travel_requests (submitted)</b> → <b>approval_logs</b> → <b>auto-create schedule</b> → <b>mirror Google Sheet</b>. Dispatch &amp; Spend-Control menyusul saat <b>approved</b>.</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* ---------- master data (realistic dummies) ---------- */
+  var CLIENTS = [
+    { id:"cl-eva",  name:"EVA Motors",       ring:true },
+    { id:"cl-swx",  name:"SwipeRX",          ring:false },
+    { id:"cl-aql",  name:"Aqua Logistik",    ring:true },
+    { id:"cl-ptb",  name:"Patimban Port",    ring:false }
+  ];
+  var RINGS = {
+    "cl-eva":[{id:"r-jkt",nama:"Jabodetabek",rate:185000},{id:"r-bdg",nama:"Bandung",rate:420000},{id:"r-sby",nama:"Surabaya",rate:1250000}],
+    "cl-aql":[{id:"a-jkt",nama:"Jakarta Area",rate:150000},{id:"a-bks",nama:"Bekasi",rate:175000},{id:"a-tng",nama:"Tangerang",rate:170000}]
+  };
+  var VEHICLES = [
+    { plat:"B 9012 UJP", jenis:"CDD Box",  type:"ICE", baseline:8.5, harga:6800 },
+    { plat:"B 2244 EVX", jenis:"MPV EV",   type:"EV",  baseline:7.2, harga:2500 },
+    { plat:"B 7788 KLM", jenis:"Blind Van",type:"ICE", baseline:11,  harga:6800 },
+    { plat:"B 3391 ZTA", jenis:"Pickup",   type:"ICE", baseline:10,  harga:6800 }
+  ];
+  var DRIVERS = [
+    { name:"Andi Saputra",   bank:"BCA",     rek:"7455012233", atas:"Andi Saputra" },
+    { name:"Budi Hartono",   bank:"Mandiri", rek:"1300099887", atas:"Budi Hartono" },
+    { name:"Cecep Ramdani",  bank:"BRI",     rek:"0021455678", atas:"Cecep Ramdani" }
+  ];
+  var SUBCONS = [
+    { id:"sc-1", name:"CV Laju Trans",     bank:"BCA",     rek:"8811223344" },
+    { id:"sc-2", name:"PT Sinar Angkut",   bank:"Mandiri", rek:"1770556699" }
+  ];
+
+  /* ---------- state ---------- */
+  var payee = "driver";
+
+  /* ---------- helpers ---------- */
+  function fmt(n){ return new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(Math.round(n)||0); }
+  function fmtDec(n,d){ return new Intl.NumberFormat("id-ID",{maximumFractionDigits:d,minimumFractionDigits:d}).format(n||0); }
+  function num(id){ var v=parseFloat($(id).value); return isNaN(v)?0:v; }
+  function todayWIB(){
+    var f=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"});
+    var p={}; f.formatToParts(new Date()).forEach(function(x){p[x.type]=x.value;});
+    return p.year+"-"+p.month+"-"+p.day;
+  }
+  function genRef(){
+    var t=todayWIB().replace(/-/g,"");
+    return "UJP-"+t+"-"+Math.floor(1000+Math.random()*9000);
+  }
+
+  /* ===== CORE FORMULA — ported verbatim from ujp-calculations.ts ===== */
+  function calc(inp){
+    var totalKmWithMargin = inp.km / 0.95;
+    var estimasiBbmLiter = inp.baseline>0 ? Math.round((totalKmWithMargin/inp.baseline)*10)/10 : 0;
+    var computed = Math.round(estimasiBbmLiter*inp.harga);
+    var totalBbm = inp.bbmFix!==null ? inp.bbmFix : computed;
+    var noEmoney = String(inp.emoney).trim().toLowerCase()==="no";
+    var flazzComp = totalBbm + inp.toll + inp.parkirTap;
+    var manualComp = inp.parkirManual + inp.bongkar + inp.lain + inp.makan;
+    var flazz = noEmoney ? 0 : flazzComp;
+    var transfer = noEmoney ? flazzComp+manualComp : manualComp;
+    return { totalKmWithMargin:totalKmWithMargin, estimasiBbmLiter:estimasiBbmLiter, totalBbm:totalBbm, flazz:flazz, transfer:transfer };
+  }
+
+  /* ---------- populate selects ---------- */
+  function opt(sel,label,val){ var o=document.createElement("option"); o.textContent=label; if(val!==undefined)o.value=val; sel.appendChild(o); return o; }
+  CLIENTS.forEach(function(c){ opt($("client"), c.name + (c.ring?"  · PER_RING":""), c.id); });
+  VEHICLES.forEach(function(v){ opt($("plat"), v.plat+"  ("+v.jenis+", "+v.type+")", v.plat); });
+  DRIVERS.forEach(function(d){ opt($("driver"), d.name, d.name); });
+  SUBCONS.forEach(function(s){ opt($("subcon"), s.name, s.id); });
+
+  /* ---------- init auto fields ---------- */
+  var REF = genRef();
+  $("tglPengajuan").textContent = new Date().toLocaleDateString("id-ID",{day:"2-digit",month:"long",year:"numeric"});
+  $("refId").textContent = REF;
+  $("refIdMirror").textContent = REF;
+  $("tanggalDelivery").min = todayWIB();
+
+  /* ---------- payee toggle ---------- */
+  $("payeeSeg").addEventListener("click", function(e){
+    var b=e.target.closest("button[data-payee]"); if(!b) return;
+    payee=b.getAttribute("data-payee");
+    Array.prototype.forEach.call($("payeeSeg").children,function(x){x.classList.toggle("on",x===b);});
+    $("driverFields").classList.toggle("hide", payee!=="driver");
+    $("subconFields").classList.toggle("hide", payee!=="subcon");
+    $("subconNote").classList.toggle("hide", payee!=="subcon");
+    $("costDriver").classList.toggle("hide", payee==="subcon");
+    $("costSubcon").classList.toggle("hide", payee!=="subcon");
+    update();
+  });
+
+  /* ---------- vehicle autofill ---------- */
+  $("plat").addEventListener("change", function(){
+    var v=VEHICLES.filter(function(x){return x.plat===this.value;}.bind(this))[0];
+    if(!v){ return; }
+    $("jenisUnit").value=v.jenis;
+    $("vehicleType").value = v.type==="EV" ? "EV (listrik)" : "ICE (BBM)";
+    $("baseline").value=v.baseline;
+    $("harga").value=v.harga;
+    var ev = v.type==="EV";
+    $("baselineLab").firstChild.textContent = ev ? "Baseline (km/kWh) " : "Baseline (km/L) ";
+    $("hargaLab").firstChild.textContent = ev ? "Harga listrik (Rp/kWh) " : "Harga BBM (Rp/L) ";
+    $("litLab").textContent = ev ? "Estimasi listrik" : "Estimasi BBM";
+    update();
+  });
+  $("driver").addEventListener("change", function(){
+    var d=DRIVERS.filter(function(x){return x.name===this.value;}.bind(this))[0];
+    if(!d) return;
+    $("bank").value=d.bank; $("rek").value=d.rek; $("atasNama").value=d.atas; update();
+  });
+  $("subcon").addEventListener("change", function(){
+    var s=SUBCONS.filter(function(x){return x.id===this.value;}.bind(this))[0];
+    if(!s) return;
+    $("bankSub").value=s.bank; $("rekSub").value=s.rek; update();
+  });
+
+  /* ---------- shift → jam ---------- */
+  $("shift").addEventListener("change", function(){
+    var o=this.selectedOptions[0];
+    if(o && o.dataset.m){ $("jamMulai").value=o.dataset.m; $("jamSelesai").value=o.dataset.s; }
+    update();
+  });
+
+  /* ---------- client → ring requirement ---------- */
+  var litLabIsEv=false;
+  $("client").addEventListener("change", function(){
+    var c=CLIENTS.filter(function(x){return x.id===this.value;}.bind(this))[0];
+    var ringSel=$("ring"); ringSel.innerHTML='<option value="">— pilih ring —</option>';
+    var rings = c && RINGS[c.id] ? RINGS[c.id] : [];
+    var needsRing = !!(c && c.ring && rings.length);
+    $("ringWrap").classList.toggle("hide", !needsRing);
+    if(needsRing){
+      rings.forEach(function(r){ opt(ringSel, r.nama+"  · Rp"+fmt(r.rate)+"/trip", r.id); });
+      trySuggestRing();
+    }
+    update();
+  });
+
+  /* ---------- naive ring suggestion from destination ---------- */
+  var RING_KW={ "Jabodetabek":["jakarta","bogor","depok","tangerang","bekasi","cibubur"],"Jakarta Area":["jakarta"],"Bandung":["bandung","cimahi"],"Surabaya":["surabaya","sidoarjo"],"Bekasi":["bekasi","cikarang"],"Tangerang":["tangerang","serpong","bsd"] };
+  function trySuggestRing(){
+    var addr=($("destination").value||"").toLowerCase();
+    if(!addr) { $("ringNoteTxt").textContent="Pilih ring sesuai area tujuan — atau isi Destination untuk saran otomatis."; return; }
+    var ringSel=$("ring"), best=null, bestLen=0, tie=false;
+    Array.prototype.forEach.call(ringSel.options,function(o){
+      if(!o.value) return;
+      var nm=o.textContent.split("  ·")[0].trim();
+      var kws=RING_KW[nm]||[nm.toLowerCase()];
+      kws.forEach(function(k){ if(addr.indexOf(k)>=0){ if(k.length>bestLen){best=o.value;bestLen=k.length;tie=false;} else if(k.length===bestLen){tie=true;} } });
+    });
+    if(best && !tie){ ringSel.value=best; $("ringNoteTxt").textContent="Saran otomatis dari alamat tujuan diterapkan — bisa diubah manual."; }
+    else { $("ringNoteTxt").textContent = best? "Ambigu — pilih ring manual." : "Tidak ada saran cocok — pilih ring manual."; }
+  }
+  $("destination").addEventListener("input", function(){ if(!$("ringWrap").classList.contains("hide")) trySuggestRing(); update(); });
+
+  /* ---------- tipe pengiriman → multidrop ---------- */
+  var dropN=0;
+  $("tipePengiriman").addEventListener("change", function(){
+    var multi=this.value==="Multi";
+    $("multiWrap").classList.toggle("hide", !multi);
+    if(multi && $("drops").children.length===0) addDrop();
+    update();
+  });
+  function addDrop(){
+    dropN++;
+    var n=dropN;
+    var el=document.createElement("div"); el.className="drop";
+    el.innerHTML=''
+      +'<div class="dh"><span class="chip">Drop #'+(n+1)+'</span><button type="button" class="btn danger sm">✕ hapus</button></div>'
+      +'<div class="grid"><label class="f"><span class="lab">Alamat <span class="req">*</span></span><input class="d-addr" placeholder="alamat drop"></label>'
+      +'<label class="f"><span class="lab">Penerima <span class="req">*</span></span><input class="d-recv" placeholder="nama"></label>'
+      +'<label class="f"><span class="lab">Item <span class="req">*</span></span><input class="d-item" placeholder="item"></label>'
+      +'<label class="f"><span class="lab">Bobot (kg) <span class="req">*</span></span><input type="number" min="0" class="num d-bobot" value="0"></label></div>';
+    el.querySelector(".danger").addEventListener("click",function(){ el.remove(); update(); });
+    el.addEventListener("input", update);
+    $("drops").appendChild(el);
+    update();
+  }
+  $("addDrop").addEventListener("click", addDrop);
+
+  /* ---------- bbmFix override (route-plan style) — simulated off by default ---------- */
+  function bbmFixOverride(){ return null; } // in real app: locked route-plan destination
+
+  /* ---------- main update ---------- */
+  function update(){
+    // justif visibility
+    var showJustif = num("lain")>0;
+    $("justifWrap").style.display = (payee==="driver" && showJustif) ? "" : "none";
+
+    var fix=bbmFixOverride();
+    $("bbmMode").textContent = fix!==null ? "locked" : "computed";
+
+    var out;
+    if(payee==="subcon"){
+      out = { totalKmWithMargin:num("km")/0.95, estimasiBbmLiter:0, totalBbm:0, flazz:0, transfer:num("nominalTransfer") };
+    } else {
+      out = calc({
+        km:num("km"), baseline:num("baseline"), harga:num("harga"), bbmFix:fix,
+        emoney:$("emoney").value, toll:num("toll"), parkirTap:num("parkirTap"),
+        parkirManual:num("parkirManual"), bongkar:num("bongkar"), lain:num("lain"), makan:num("uangMakan")
+      });
+    }
+
+    // cost section mirror
+    $("bbmCost").textContent = "Rp "+fmt(out.totalBbm);
+
+    // summary
+    var ev = $("vehicleType").value.indexOf("EV")>=0;
+    $("oKm").textContent = fmtDec(num("km"),1)+" km";
+    $("oKmMargin").textContent = fmtDec(out.totalKmWithMargin,1)+" km";
+    $("oLiter").textContent = fmtDec(out.estimasiBbmLiter,1)+(ev?" kWh":" L");
+    $("oBbm").textContent = "Rp "+fmt(out.totalBbm);
+    $("oToll").textContent="Rp "+fmt(payee==="subcon"?0:num("toll"));
+    $("oPtap").textContent="Rp "+fmt(payee==="subcon"?0:num("parkirTap"));
+    $("oPman").textContent="Rp "+fmt(payee==="subcon"?0:num("parkirManual"));
+    $("oBong").textContent="Rp "+fmt(payee==="subcon"?0:num("bongkar"));
+    $("oMakan").textContent="Rp "+fmt(payee==="subcon"?0:num("uangMakan"));
+    $("oLain").textContent="Rp "+fmt(payee==="subcon"?0:num("lain"));
+    $("oFlazz").textContent=fmt(out.flazz);
+    $("oTransfer").textContent=fmt(out.transfer);
+    $("oTotal").textContent=fmt(out.flazz+out.transfer);
+
+    validate();
+    window.__ujp = { out:out };
+  }
+
+  /* ---------- validation checklist ---------- */
+  function validate(){
+    var checks=[];
+    function add(ok,label){ checks.push({ok:ok,label:label}); }
+    add(!!$("tanggalDelivery").value && $("tanggalDelivery").value>=todayWIB(), "Tanggal delivery (≥ hari ini)");
+    add(!!$("client").value, "Client / project");
+    if(payee==="driver"){
+      add(!!$("plat").value, "Plat nomor");
+      add(!!$("emoney").value, "E-money");
+      add(!!$("driver").value, "Driver");
+      add(bbmFixOverride()!==null || (num("baseline")>0 && num("harga")>0), "Baseline & harga BBM > 0");
+      add(!(num("lain")>0) || !!$("justif").value.trim(), "Justifikasi lain-lain");
+    } else {
+      add(!!$("subcon").value, "Vendor subcon");
+      add(num("nominalTransfer")>0, "Nominal transfer > 0");
+    }
+    add(!!$("tipeLayanan").value && !!$("tipePengiriman").value, "Tipe layanan & pengiriman");
+    add(!!$("shift").value && !!$("jamMulai").value && !!$("jamSelesai").value, "Shift & jam");
+    add(!!$("origin").value.trim() && !!$("destination").value.trim(), "Origin & destination");
+    add(num("km")>0, "KM diajukan > 0");
+    add(!!$("serviceType").value, "Service type");
+    add(!!$("senderName").value.trim() && !!$("receiverName").value.trim(), "Pengirim & penerima");
+    add(!!$("itemName").value.trim() && num("bobot")>0, "Item & bobot > 0");
+    if(!$("ringWrap").classList.contains("hide")) add(!!$("ring").value, "Ring / area");
+    if(!$("multiWrap").classList.contains("hide")){
+      var drops=$("drops").children, allok=drops.length>0;
+      Array.prototype.forEach.call(drops,function(d){
+        if(!d.querySelector(".d-addr").value.trim()||!d.querySelector(".d-recv").value.trim()||!d.querySelector(".d-item").value.trim()||parseFloat(d.querySelector(".d-bobot").value)<=0) allok=false;
+      });
+      add(allok,"Semua drop lengkap");
+    }
+
+    var done=checks.filter(function(c){return c.ok;}).length;
+    $("validCount").textContent=done+"/"+checks.length;
+    var list=$("validList"); list.innerHTML="";
+    checks.forEach(function(c){
+      var r=document.createElement("div"); r.className="vrow "+(c.ok?"ok":"bad");
+      r.innerHTML='<span class="mk">'+(c.ok?"✓":"!")+'</span><span>'+c.label+'</span>';
+      list.appendChild(r);
+    });
+    $("submitBtn").disabled = done!==checks.length;
+    $("submitBtn").style.opacity = done!==checks.length ? .5 : 1;
+    return done===checks.length;
+  }
+
+  /* ---------- step rail ---------- */
+  var secs=Array.prototype.slice.call(document.querySelectorAll(".sec[data-step]"));
+  var rail=$("steprail");
+  secs.forEach(function(s,i){
+    var b=document.createElement("button"); b.type="button"; b.className="step"+(i===0?" active":"");
+    b.innerHTML='<span class="idx">'+(i+1)+'</span>'+s.getAttribute("data-step");
+    b.addEventListener("click",function(){ s.scrollIntoView({behavior:"smooth",block:"start"}); });
+    b.dataset.target=s.id; rail.appendChild(b);
+  });
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        Array.prototype.forEach.call(rail.children,function(b){ b.classList.toggle("active", b.dataset.target===e.target.id); });
+      }
+    });
+  },{rootMargin:"-45% 0px -50% 0px"});
+  secs.forEach(function(s){ io.observe(s); });
+
+  /* ---------- submit → payload dialog ---------- */
+  $("submitBtn").addEventListener("click", function(){
+    if(!validate()) return;
+    var o=window.__ujp.out;
+    var isSub=payee==="subcon";
+    var payload={
+      referenceId:REF, status:"SUBMITTED",
+      tanggalDelivery:$("tanggalDelivery").value,
+      namaProjectClient:(CLIENTS.filter(function(c){return c.id===$("client").value;})[0]||{}).name,
+      payeeType:isSub?"SUBCON":"DRIVER",
+      platNomor:isSub?null:$("plat").value, jenisUnit:isSub?$("jenisUnitSub").value:$("jenisUnit").value,
+      eMoney:isSub?null:$("emoney").value,
+      namaDriver:isSub?null:$("driver").value,
+      subconVendorId:isSub?$("subcon").value:null,
+      tipeLayanan:$("tipeLayanan").value, tipePengiriman:$("tipePengiriman").value,
+      shift:$("shift").value, jamMulai:$("jamMulai").value, jamSelesai:$("jamSelesai").value,
+      origin:$("origin").value, destination:$("destination").value,
+      kmYangDiajukan:num("km"), kmAntaran:num("kmAntaran"), originIsDepot:$("originDepot").checked,
+      ringId:$("ring").value||null,
+      baseline:isSub?null:num("baseline"), hargaBbm:isSub?null:num("harga"),
+      totalKmWithMargin:Math.round(o.totalKmWithMargin*10)/10,
+      estimasiBbmLiter:o.estimasiBbmLiter, totalBbmCost:o.totalBbm,
+      totalUangJalanFlazz:o.flazz, totalUangJalanTransfer:o.transfer,
+      estimatedAmount:o.flazz+o.transfer,
+      itemName:$("itemName").value, bobot:num("bobot"),
+      senderName:$("senderName").value, receiverName:$("receiverName").value
+    };
+    showDialog(payload,isSub);
+  });
+
+  function showDialog(payload,isSub){
+    var bd=document.createElement("div"); bd.className="backdrop";
+    bd.innerHTML=''
+      +'<div class="dialog" role="dialog" aria-modal="true">'
+      +'  <div class="dh2"><div class="ic">✓</div><div><h3>UJP diajukan <span class="badge-status">submitted</span></h3><p>'+payload.referenceId+' · menunggu approval finance/manager</p></div></div>'
+      +'  <div class="db">'
+      +'    <ul class="step-log">'
+      +'      <li><span class="m">✓</span><span><b>INSERT travel_requests</b> — status <span class="mono">submitted</span></span></li>'
+      +'      <li><span class="m">✓</span><span><b>INSERT approval_logs</b> — action <span class="mono">submitted</span></span></li>'
+      +'      <li><span class="m">✓</span><span><b>autoCreateScheduleFromUjp()</b> — '+(isSub?'jadwal subcon (tanpa driver)':'match/insert schedule + ring')+'</span></li>'
+      +'      <li><span class="m">✓</span><span><b>appendUjpToSheet()</b> — mirror ke Google Sheet (best-effort)</span></li>'
+      +'    </ul>'
+      +'    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--faint);margin-bottom:6px">Payload → POST /v1/ujp</div>'
+      +'    <pre>'+JSON.stringify(payload,null,2).replace(/</g,"&lt;")+'</pre>'
+      +'  </div>'
+      +'  <div class="df"><button type="button" class="btn ghost" id="dlgClose">Tutup</button><button type="button" class="btn primary" id="dlgNew">Buat lagi</button></div>'
+      +'</div>';
+    document.body.appendChild(bd);
+    function close(){ bd.remove(); }
+    bd.addEventListener("click",function(e){ if(e.target===bd) close(); });
+    bd.querySelector("#dlgClose").addEventListener("click",close);
+    bd.querySelector("#dlgNew").addEventListener("click",function(){ close(); location.reload(); });
+  }
+
+  /* ---------- theme ---------- */
+  $("themeBtn").addEventListener("click",function(){
+    var r=document.documentElement;
+    var cur=r.getAttribute("data-theme");
+    var next = cur==="dark" ? "light" : cur==="light" ? "dark" : (matchMedia("(prefers-color-scheme: dark)").matches?"light":"dark");
+    r.setAttribute("data-theme",next);
+  });
+
+  /* ---------- wire live update ---------- */
+  ["input","change"].forEach(function(ev){ $("form").addEventListener(ev, update); });
+
+  /* ---------- preload a realistic scenario ---------- */
+  (function seed(){
+    var t=new Date(Date.now()+86400000);
+    $("tanggalDelivery").value=[t.getFullYear(),String(t.getMonth()+1).padStart(2,"0"),String(t.getDate()).padStart(2,"0")].join("-");
+    $("client").value="cl-eva"; $("client").dispatchEvent(new Event("change"));
+    $("plat").value="B 9012 UJP"; $("plat").dispatchEvent(new Event("change"));
+    $("driver").value="Andi Saputra"; $("driver").dispatchEvent(new Event("change"));
+    $("emoney").value="Flazz BCA";
+    $("tipeLayanan").value="Same Day"; $("tipePengiriman").value="Single";
+    $("shift").value="Morning"; $("shift").dispatchEvent(new Event("change"));
+    $("serviceType").value="PER_RING";
+    $("origin").value="Depot Dash - Cakung"; $("destination").value="Gudang EVA, Bekasi";
+    $("km").value=42; $("kmAntaran").value=31;
+    $("toll").value=28000; $("parkirTap").value=6000; $("uangMakan").value=25000; $("bongkar").value=15000;
+    $("senderName").value="Gudang EVA Pusat"; $("senderPhone").value="081200011122";
+    $("receiverName").value="Toko Mitra Bekasi"; $("receiverPhone").value="081344455566";
+    $("itemName").value="Baterai EV pack"; $("bobot").value=120;
+    $("destination").dispatchEvent(new Event("input"));
+    update();
+  })();
+})();
+</script>
+
+</body>
+</html>
