@@ -1,0 +1,446 @@
+<title>Self Handover Mitra</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Papan mockup — satu tema terang yang disengaja: layar HP menampilkan UI
+     terang aplikasi apa adanya, kanvas netral supaya warna token terbaca jujur. */
+  :root{
+    /* kanvas halaman */
+    --ground:#F3F2F7; --panel:#FFFFFF; --ink:#343B4B; --sub:#5E6368; --line:#E0E0E0;
+    /* token asli core/designsystem theme/Color.kt */
+    --purple:#5E2AAC; --purple-500:#9567E5; --purple-700:#4A1F8A;
+    --purple-50:#EFEAF7; --purple-surface:#F4F0FC; --purple-border:#9370C7;
+    --n700:#343B4B; --n600:#5E6368; --n500:#99A0B4; --n300:#D5DFF0; --n200:#E8EDF5; --n100:#F5F5F5; --nborder:#E0E0E0;
+    --success:#1FC16B; --success-bg:#E0FAEC; --success-text:#398123;
+    --warning:#FA7319; --warning-bg:#FFF3EB; --warning-text:#DD7208;
+    --error:#E53935; --error-bg:#FFEBEE;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--ground);color:var(--ink);font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:14px;line-height:1.55;padding:40px 32px 56px}
+  .wrap{max-width:2200px;margin:0 auto}
+
+  /* ── header papan ─────────────────────────────────────────── */
+  header.board{max-width:860px;margin-bottom:8px}
+  .eyebrow{font:500 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--purple);margin-bottom:12px}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.02em;text-wrap:balance}
+  .lede{color:var(--sub);margin-top:10px;max-width:62ch}
+  .lede code{font:500 12px var(--mono);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+  .branches{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .branch{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:600}
+  .branch .dot{width:8px;height:8px;border-radius:50%}
+  .branch small{font-weight:500;color:var(--sub)}
+
+  /* ── rail journey ─────────────────────────────────────────── */
+  .rail-scroll{overflow-x:auto;margin:28px -32px 0;padding:6px 32px 12px}
+  .rail{display:flex;align-items:flex-start;gap:0;width:max-content}
+  .step{width:322px;flex:none}
+  .connector{flex:none;width:44px;display:flex;align-items:center;justify-content:center;margin-top:330px;color:var(--n500)}
+  .connector svg{display:block}
+  .connector.branch-back{color:var(--purple-500)}
+  .step-label{display:flex;align-items:baseline;gap:8px;margin:0 2px 10px}
+  .step-num{font:500 11px var(--mono);color:var(--purple);letter-spacing:.08em}
+  .step-name{font-size:13px;font-weight:700}
+  .step-tag{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;margin-left:auto}
+  .tag-in{background:var(--purple-50);color:var(--purple)}
+  .tag-out{background:var(--warning-bg);color:var(--warning-text)}
+
+  /* ── frame HP ─────────────────────────────────────────────── */
+  .phone{width:322px;background:#101014;border-radius:34px;padding:7px;box-shadow:0 14px 34px rgba(52,32,92,.16),0 2px 6px rgba(52,32,92,.10)}
+  .screen{background:#fff;border-radius:28px;overflow:hidden;height:648px;display:flex;flex-direction:column;position:relative}
+  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:10px 20px 6px;font-size:11.5px;font-weight:600;color:var(--n700)}
+  .statusbar .sig{display:flex;gap:4px;align-items:center}
+  .sig i{display:inline-block;width:13px;height:9px;border-radius:2px;background:linear-gradient(to top,var(--n700) 60%,var(--n300) 60%)}
+  .sig b{display:inline-block;width:17px;height:9px;border:1px solid var(--n700);border-radius:2.5px;position:relative}
+  .sig b::after{content:"";position:absolute;inset:1px 5px 1px 1px;background:var(--n700);border-radius:1px}
+  .dark .statusbar{color:#fff}
+  .dark .sig i{background:linear-gradient(to top,#fff 60%,rgba(255,255,255,.35) 60%)}
+  .dark .sig b{border-color:#fff}.dark .sig b::after{background:#fff}
+
+  /* app bar — CenterAlignedTopAppBar */
+  .appbar{display:flex;align-items:center;padding:8px 8px 10px;position:relative}
+  .appbar .title{position:absolute;left:0;right:0;text-align:center;font-size:15px;font-weight:700;color:var(--n700);pointer-events:none}
+  .backbtn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--n700);z-index:1}
+  .body-scroll{flex:1;overflow:hidden;padding:0 16px}
+  .divider{height:1px;background:var(--nborder)}
+
+  /* ProfileMenuItem — padding 16/18, bodyMedium medium, chevron kanan */
+  .menu-item{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+  .menu-item .mi-title{font-size:14px;font-weight:500;color:var(--n700)}
+  .menu-item .mi-sub{font-size:12.5px;color:var(--n600);margin-top:3px}
+  .chev{color:var(--n500);flex:none}
+  .menu-item.hilite{background:var(--purple-surface);margin:0 -16px;padding:18px 16px;border-left:3px solid var(--purple)}
+  .section-label{font-size:11.5px;font-weight:700;letter-spacing:.08em;color:var(--n600);text-transform:uppercase;margin:18px 0 4px}
+
+  /* tombol — RoundedCornerShape(8dp), LARGE 48dp */
+  .btn{height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14.5px;font-weight:600;width:100%}
+  .btn-primary{background:var(--purple);color:#fff}
+  .btn-outline{background:#fff;color:var(--purple);border:1px solid var(--purple-border)}
+  .btn-sm{height:40px;font-size:13.5px}
+
+  .card{border:1px solid var(--nborder);border-radius:16px;background:#fff}
+  .card-sm{border:1px solid var(--nborder);border-radius:12px;background:#fff}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 10px}
+  .chip-success{background:var(--success-bg);color:var(--success-text)}
+  .chip-warn{background:var(--warning-bg);color:var(--warning-text)}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;font-size:13px}
+  .kv .k{color:var(--n600)}.kv .v{font-weight:600;color:var(--n700);text-align:right}
+
+  .footer-cta{padding:12px 16px 18px;border-top:1px solid var(--nborder);background:#fff}
+
+  /* layar scanner */
+  .dark{background:#101014}
+  .scan-view{flex:1;position:relative;background:
+    radial-gradient(140px 90px at 62% 38%,rgba(149,103,229,.18),transparent 70%),
+    linear-gradient(160deg,#23222b 0%,#17161d 55%,#111016 100%)}
+  .scan-frame{position:absolute;top:84px;left:50%;transform:translateX(-50%);width:200px;height:200px}
+  .scan-frame i{position:absolute;width:34px;height:34px;border:3px solid #fff;border-radius:2px}
+  .scan-frame i:nth-child(1){top:0;left:0;border-right:0;border-bottom:0;border-top-left-radius:14px}
+  .scan-frame i:nth-child(2){top:0;right:0;border-left:0;border-bottom:0;border-top-right-radius:14px}
+  .scan-frame i:nth-child(3){bottom:0;left:0;border-right:0;border-top:0;border-bottom-left-radius:14px}
+  .scan-frame i:nth-child(4){bottom:0;right:0;border-left:0;border-top:0;border-bottom-right-radius:14px}
+  .scan-line{position:absolute;left:10px;right:10px;top:52%;height:2px;background:var(--purple-500);box-shadow:0 0 12px var(--purple-500);border-radius:2px}
+  .scan-hint{position:absolute;top:300px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:13px;padding:0 32px}
+  .sheet{background:#fff;border-radius:20px 20px 0 0;padding:8px 16px 18px}
+  .sheet .grab{width:36px;height:4px;border-radius:2px;background:var(--n300);margin:4px auto 14px}
+
+  /* form */
+  .input{border:1px solid var(--nborder);border-radius:8px;padding:12px 14px;font-size:14px;display:flex;justify-content:space-between;color:var(--n700)}
+  .input .ph{color:#757575}
+  .input .unit{color:var(--n500);font-weight:600}
+  .check-row{display:flex;align-items:center;gap:10px;padding:11px 0;font-size:13.5px}
+  .check-row .cb{width:20px;height:20px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center}
+  .cb.on{background:var(--purple);color:#fff}
+  .cb.off{border:1.5px solid var(--n500)}
+  .check-row .cr-note{margin-left:auto;font-size:11.5px;color:var(--warning-text);font-weight:600}
+  .sig-box{border:1px dashed var(--n500);border-radius:12px;height:104px;position:relative;background:#fff}
+  .sig-box svg{position:absolute;inset:0;width:100%;height:100%}
+  .sig-box .clear{position:absolute;top:8px;right:12px;font-size:12px;color:var(--n600);font-weight:600}
+  .field-label{font-size:12.5px;font-weight:700;color:var(--n700);margin:14px 0 7px}
+  .field-label small{font-weight:500;color:var(--n500)}
+
+  /* slide button (components/SlideButton.kt) */
+  .slide{height:52px;border-radius:26px;background:var(--purple-50);border:1px solid var(--purple-border);position:relative;display:flex;align-items:center;justify-content:center;color:var(--purple);font-weight:600;font-size:13.5px}
+  .slide .thumb{position:absolute;left:4px;top:4px;bottom:4px;width:44px;border-radius:22px;background:var(--purple);color:#fff;display:flex;align-items:center;justify-content:center}
+
+  /* hero unit (pola RentQrCard / PurpleSurface) */
+  .unit-hero{background:var(--purple-surface);border:1px solid var(--purple-border);border-radius:16px;padding:16px}
+  .plate{font-size:24px;font-weight:800;letter-spacing:.03em;color:var(--purple-700)}
+  .unit-model{font-size:13px;color:var(--n600);margin-top:2px}
+  .doc-row{display:flex;align-items:center;gap:10px;padding:12px 14px}
+  .doc-ico{width:34px;height:34px;border-radius:8px;background:var(--error-bg);color:var(--error);display:flex;align-items:center;justify-content:center;font:700 9px var(--mono)}
+  .doc-t{font-size:13px;font-weight:600;color:var(--n700)}
+  .doc-s{font-size:11.5px;color:var(--n600)}
+
+  .empty-illo{margin:36px auto 0;width:150px;color:var(--n300)}
+  .empty-illo svg{display:block;width:100%}
+
+  /* ── anotasi bawah tiap layar ─────────────────────────────── */
+  .notes{margin:14px 2px 0;display:flex;flex-direction:column;gap:7px}
+  .note{font-size:12px;color:var(--sub);padding-left:14px;position:relative}
+  .note::before{content:"";position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:var(--purple-500)}
+  .note code{font:500 11px var(--mono);color:var(--purple-700);background:var(--purple-50);border-radius:4px;padding:1px 5px;white-space:nowrap}
+  .note.api::before{background:var(--warning)}
+  .note.api code{background:var(--warning-bg);color:var(--warning-text)}
+
+  /* ── strip provenance ─────────────────────────────────────── */
+  .prov{margin-top:44px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px 28px}
+  .prov h2{font-size:15px;font-weight:800;margin-bottom:4px}
+  .prov .sub{color:var(--sub);font-size:12.5px;margin-bottom:18px}
+  .prov-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+  .prov h3{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:10px}
+  .swatches{display:flex;flex-wrap:wrap;gap:8px}
+  .sw{display:flex;align-items:center;gap:7px;font:500 11px var(--mono);color:var(--sub)}
+  .sw i{width:20px;height:20px;border-radius:6px;border:1px solid rgba(0,0,0,.08)}
+  .prov ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+  .prov li{font-size:12.5px;color:var(--sub)}
+  .prov li code{font:500 11px var(--mono);color:var(--ink)}
+  .prov li b{color:var(--ink);font-weight:600}
+</style>
+
+<div class="wrap">
+<header class="board">
+  <div class="eyebrow">kotlin-driver-mobile · feature/profile → self handover</div>
+  <h1>Self Handover Mitra — journey Motor di Profil</h1>
+  <p class="lede">Fleet rider hari ini justru <em>tidak</em> melihat menu "Data Motor" (<code>canViewBikeData = !isFleetBike</code>) — journey ini mengisi celah itu: menu <b>Motor</b> menampilkan unit yang sedang dipegang, serah terima lewat scan QR label unit (label yang dicetak dari FMS), pengembalian dari layar yang sama. Semua warna, tipografi, dan komponen diambil dari design system repo. Seluruh fitur di-gate <code>isEligibilityToSelfHandover</code> dari profil driver (allowlist provider via env driver-service).</p>
+  <div class="branches">
+    <span class="branch"><span class="dot" style="background:var(--purple)"></span>Belum pegang unit <small>→ scan QR → serah terima (01–05)</small></span>
+    <span class="branch"><span class="dot" style="background:var(--warning)"></span>Sedang pegang unit <small>→ pengembalian (05–06)</small></span>
+  </div>
+</header>
+
+<div class="rail-scroll"><div class="rail">
+
+  <!-- ════ 01 PROFIL ════ -->
+  <div class="step">
+    <div class="step-label"><span class="step-num">01</span><span class="step-name">Profil</span><span class="step-tag tag-in">entry point</span></div>
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>09.41</span><span class="sig"><i></i><b></b></span></div>
+      <div class="appbar"><div class="backbtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div><div class="title">Profil</div></div>
+      <div class="body-scroll">
+        <div style="display:flex;align-items:center;gap:14px;padding:10px 0 18px">
+          <div style="width:54px;height:54px;border-radius:50%;background:var(--purple-50);color:var(--purple);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">BS</div>
+          <div>
+            <div style="font-size:15.5px;font-weight:700;color:var(--n700)">Budi Santoso</div>
+            <div style="font-size:12.5px;color:var(--n600)">DRV-0421 · Hub Kemang</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="section-label">Aktivitas Kerja</div>
+        <div class="menu-item"><div><div class="mi-title">Area Reservasi</div></div><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+        <div class="divider"></div>
+        <div class="menu-item"><div><div class="mi-title">Titik Tempat Tinggal</div></div><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+        <div class="divider"></div>
+        <div class="menu-item"><div><div class="mi-title">Jadwal &amp; Waktu Kerja</div></div><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+        <div class="divider"></div>
+        <div class="menu-item hilite"><div><div class="mi-title">Motor</div><div class="mi-sub">Belum ada unit di tanganmu</div></div><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--purple)"><path d="M9 6l6 6-6 6"/></svg></div>
+        <div class="section-label">Lainnya</div>
+        <div class="menu-item"><div><div class="mi-title">Riwayat Pengantaran</div></div><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+        <div class="divider"></div>
+        <div class="menu-item"><div><div class="mi-title">Riwayat Kehadiran</div></div><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+      </div>
+    </div></div>
+    <div class="notes">
+      <div class="note">Baris baru <code>Motor</code> memakai <code>ProfileMenuItem</code> apa adanya (judul + subtitle + chevron) di section Aktivitas Kerja — menggantikan "Data Motor" yang disembunyikan untuk fleet rider.</div>
+      <div class="note api">Menu hanya muncul bila profil (<code>GET driver/v1/me/profile</code>) mengembalikan <code>isEligibilityToSelfHandover: true</code> — dihitung driver-service dari allowlist <code>SELF_HANDOVER_PROVIDER_IDS</code>.</div>
+      <div class="note">Subtitle = ringkasan state: <em>"Belum ada unit di tanganmu"</em> atau plat nomor unit aktif.</div>
+    </div>
+  </div>
+
+  <div class="connector"><svg width="28" height="16" viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M0 8h24m0 0l-6-6m6 6l-6 6"/></svg></div>
+
+  <!-- ════ 02 MOTOR KOSONG ════ -->
+  <div class="step">
+    <div class="step-label"><span class="step-num">02</span><span class="step-name">Motor — belum ada unit</span><span class="step-tag tag-in">serah terima</span></div>
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>09.41</span><span class="sig"><i></i><b></b></span></div>
+      <div class="appbar"><div class="backbtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div><div class="title">Motor</div></div>
+      <div class="body-scroll" style="display:flex;flex-direction:column;align-items:center;text-align:center">
+        <div class="empty-illo">
+          <svg viewBox="0 0 150 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round">
+            <circle cx="34" cy="72" r="17"/><circle cx="116" cy="72" r="17"/>
+            <path d="M34 72h38l16-30h14"/><path d="M96 42l10 30"/>
+            <path d="M88 27h18l6 8"/><path d="M50 47h26"/>
+          </svg>
+        </div>
+        <div style="font-size:16.5px;font-weight:700;color:var(--n700);margin-top:22px">Belum ada motor di tanganmu</div>
+        <p style="font-size:13px;color:var(--n600);margin-top:8px;max-width:240px">Ambil unit di hub, lalu scan QR pada label motor untuk memulai serah terima.</p>
+        <div class="card-sm" style="margin-top:22px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--n100);border-color:var(--n200)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--n600)" stroke-width="2" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 8v.5M12 11v5"/></svg>
+          <span style="font-size:12px;color:var(--n600)">QR ada pada stiker label unit — berisi ID kendaraan, dicetak dari halaman Vehicles di FMS.</span>
+        </div>
+      </div>
+      <div class="footer-cta">
+        <button class="btn btn-primary"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>Scan QR Motor</button>
+      </div>
+    </div></div>
+    <div class="notes">
+      <div class="note">Empty state + satu CTA <code>ButtonPrimary</code> (LARGE 48dp, radius 8) — pola yang sama dengan gate KYC di Dash Rent.</div>
+      <div class="note">Scanner memakai dependency yang sudah ada: <code>mlkit-barcode-scanning 17.3.0</code> + CameraX (<code>feature/camera</code>).</div>
+    </div>
+  </div>
+
+  <div class="connector"><svg width="28" height="16" viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M0 8h24m0 0l-6-6m6 6l-6 6"/></svg></div>
+
+  <!-- ════ 03 SCAN QR ════ -->
+  <div class="step">
+    <div class="step-label"><span class="step-num">03</span><span class="step-name">Scan QR label unit</span><span class="step-tag tag-in">serah terima</span></div>
+    <div class="phone"><div class="screen dark">
+      <div class="statusbar"><span>09.42</span><span class="sig"><i></i><b></b></span></div>
+      <div class="scan-view">
+        <div class="scan-frame"><i></i><i></i><i></i><i></i><div class="scan-line"></div></div>
+        <div class="scan-hint">Arahkan kamera ke QR pada label motor</div>
+      </div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px"><span class="plate" style="font-size:19px">B 1234 ABC</span><span class="chip chip-success">IDLE</span></div>
+            <div class="unit-model">ALVA Cervo · Matte Black · Hub Kemang</div>
+          </div>
+        </div>
+        <div style="margin-top:14px"><button class="btn btn-primary btn-sm">Lanjut Serah Terima</button></div>
+      </div>
+    </div></div>
+    <div class="notes">
+      <div class="note api">QR berisi <b>vehicle ID</b> → <code>GET /v1/handovers/self/vehicles/:id</code>. <code>200</code> = sheet konfirmasi (<code>FlexibleBottomSheet</code>).</div>
+      <div class="note">409 "sedang Anda booking" → navigate ke layar 05; 409 "dipakai mitra lain" → tampilkan pesan (ops otomatis dapat alert Slack); kamera tetap jalan.</div>
+    </div>
+  </div>
+
+  <div class="connector"><svg width="28" height="16" viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M0 8h24m0 0l-6-6m6 6l-6 6"/></svg></div>
+
+  <!-- ════ 04 FORM SERAH TERIMA ════ -->
+  <div class="step">
+    <div class="step-label"><span class="step-num">04</span><span class="step-name">Serah terima + tanda tangan</span><span class="step-tag tag-in">serah terima</span></div>
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>09.44</span><span class="sig"><i></i><b></b></span></div>
+      <div class="appbar"><div class="backbtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div><div class="title">Serah Terima Unit</div></div>
+      <div class="body-scroll">
+        <div class="unit-hero" style="padding:12px 14px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="plate" style="font-size:18px">B 1234 ABC</span>
+            <span style="font:500 10.5px var(--mono);color:var(--n600)">VIN …K000001</span>
+          </div>
+          <div class="unit-model">ALVA Cervo · Hub Kemang</div>
+        </div>
+        <div class="field-label">Client &amp; Pitstop <small>· otomatis dari profil</small></div>
+        <div style="display:flex;gap:8px">
+          <div class="input" style="flex:1.2;padding:9px 11px;font-size:12px"><span>PT Maju Bersama…</span></div>
+          <div class="input" style="flex:1;padding:9px 11px;font-size:12px"><span>Hub Kemang</span></div>
+        </div>
+        <div class="field-label">Odometer saat ini</div>
+        <div class="input"><span>1.250</span><span class="unit">km</span></div>
+        <div class="field-label">Kelengkapan unit <small>· 14/16 lengkap</small></div>
+        <div class="check-row"><span class="cb off"></span>Kunci Cadangan<span class="cr-note">tidak ada</span></div>
+        <div class="divider"></div>
+        <div class="check-row" style="color:var(--n500);font-size:12.5px;padding:8px 0">+ 14 item lainnya…</div>
+        <div class="field-label" style="margin-top:8px">Tanda tangan mitra</div>
+        <div class="sig-box" style="height:88px">
+          <span class="clear">Hapus</span>
+          <svg viewBox="0 0 290 88"><path d="M28 60 C 52 18, 78 76, 104 44 S 152 20, 176 52 S 232 72, 264 30" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+        <div style="height:10px"></div>
+      </div>
+      <div class="footer-cta"><button class="btn btn-primary">Kirim Serah Terima</button></div>
+    </div></div>
+    <div class="notes">
+      <div class="note">Client &amp; pitstop dipilih dari <code>driverProviders[].pitstops</code> di profil — auto-fill saat masing-masing hanya satu, picker bila lebih.</div>
+      <div class="note">Tanda tangan memakai <code>SignatureCanvas</code> yang sudah ada di design system — output diserialisasi ke <b>SVG</b>.</div>
+      <div class="note api">Submit → <code>POST /v1/handovers/self</code> (JWT driver; identitas dari token). Respons <code>bastPending: true</code>.</div>
+    </div>
+  </div>
+
+  <div class="connector"><svg width="28" height="16" viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M0 8h24m0 0l-6-6m6 6l-6 6"/></svg></div>
+
+  <!-- ════ 05 MOTOR AKTIF ════ -->
+  <div class="step">
+    <div class="step-label"><span class="step-num">05</span><span class="step-name">Motor — unit aktif</span><span class="step-tag tag-out">pengembalian</span></div>
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>09.45</span><span class="sig"><i></i><b></b></span></div>
+      <div class="appbar"><div class="backbtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div><div class="title">Motor</div></div>
+      <div class="body-scroll">
+        <div class="unit-hero">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="plate">B 1234 ABC</span>
+            <span class="chip chip-success">Aktif</span>
+          </div>
+          <div class="unit-model">ALVA Cervo · Matte Black</div>
+          <div class="divider" style="background:var(--purple-border);opacity:.4;margin:12px 0 2px"></div>
+          <div class="kv"><span class="k">Serah terima</span><span class="v">3 Sep 2026 · 09.44</span></div>
+          <div class="kv" style="padding-top:0"><span class="k">Odometer awal</span><span class="v">1.250 km</span></div>
+          <div class="kv" style="padding-top:0"><span class="k">Hub</span><span class="v">Hub Kemang</span></div>
+        </div>
+        <div class="field-label">Dokumen</div>
+        <div class="card-sm">
+          <div class="doc-row">
+            <div class="doc-ico">PDF</div>
+            <div style="flex:1">
+              <div class="doc-t">BAST Serah Terima</div>
+              <div class="doc-s">9F3A21C4/BAST/FL-DE/IX/26</div>
+            </div>
+            <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+          </div>
+        </div>
+        <div class="card-sm" style="margin-top:10px;background:var(--n100);border-color:var(--n200);padding:11px 14px;display:flex;gap:9px;align-items:center">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--n600)" stroke-width="2" style="flex:none"><circle cx="12" cy="12" r="10"/><path d="M12 8v.5M12 11v5"/></svg>
+          <span style="font-size:12px;color:var(--n600)">Rusak atau ada masalah? Lapor lewat hub — pengembalian tetap dari halaman ini.</span>
+        </div>
+      </div>
+      <div class="footer-cta"><button class="btn btn-outline">Kembalikan Motor</button></div>
+    </div></div>
+    <div class="notes">
+      <div class="note">Hero unit memakai pola kartu rent (<code>PurpleSurface</code> + border, radius 16) dan baris label/nilai ala <code>PaymentRow</code> di <code>RentalDetailScreen</code>.</div>
+      <div class="note">Saat <code>bastPending</code>, baris dokumen menampilkan chip <span class="chip chip-warn" style="font-size:10px">Sedang dibuat…</span> lalu berubah jadi PDF setelah <code>bastLink</code> terisi.</div>
+    </div>
+  </div>
+
+  <div class="connector"><svg width="28" height="16" viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M0 8h24m0 0l-6-6m6 6l-6 6"/></svg></div>
+
+  <!-- ════ 06 PENGEMBALIAN ════ -->
+  <div class="step">
+    <div class="step-label"><span class="step-num">06</span><span class="step-name">Pengembalian + tanda tangan</span><span class="step-tag tag-out">pengembalian</span></div>
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>16.02</span><span class="sig"><i></i><b></b></span></div>
+      <div class="appbar"><div class="backbtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></div><div class="title">Kembalikan Motor</div></div>
+      <div class="body-scroll">
+        <div class="field-label" style="margin-top:6px">Kondisi unit</div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1;border:1.5px solid var(--purple);background:var(--purple-surface);border-radius:10px;padding:10px 6px;text-align:center;font-size:12.5px;font-weight:700;color:var(--purple)">Baik</div>
+          <div style="flex:1;border:1px solid var(--nborder);border-radius:10px;padding:10px 6px;text-align:center;font-size:12.5px;font-weight:600;color:var(--n600)">Rusak ringan</div>
+          <div style="flex:1;border:1px solid var(--nborder);border-radius:10px;padding:10px 6px;text-align:center;font-size:12.5px;font-weight:600;color:var(--n600)">Rusak berat</div>
+        </div>
+        <div class="field-label">Odometer akhir</div>
+        <div class="input"><span>4.321</span><span class="unit">km</span></div>
+        <div class="field-label">Foto bukti <small>· wajib 2</small></div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1;aspect-ratio:4/3;border-radius:10px;background:var(--n200);position:relative;overflow:hidden">
+            <div style="position:absolute;inset:0;background:linear-gradient(145deg,var(--n300),var(--n200))"></div>
+            <span style="position:absolute;left:8px;bottom:6px;font-size:10.5px;font-weight:700;color:var(--n600);background:#fff;border-radius:4px;padding:1px 6px">Unit</span>
+          </div>
+          <div style="flex:1;aspect-ratio:4/3;border-radius:10px;border:1.5px dashed var(--n500);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--n600);gap:4px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            <span style="font-size:11px;font-weight:600">Mitra + Unit</span>
+          </div>
+        </div>
+        <div class="field-label">Kelengkapan <small>· Kaca Spion Kanan: rusak (retak)</small></div>
+        <div class="field-label" style="margin-top:10px">Tanda tangan mitra</div>
+        <div class="sig-box" style="height:86px">
+          <span class="clear">Hapus</span>
+          <svg viewBox="0 0 290 86"><path d="M30 56 C 60 18, 92 74, 126 40 S 190 22, 222 58 S 252 66, 266 34" fill="none" stroke="#111827" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+        <div style="height:12px"></div>
+      </div>
+      <div class="footer-cta">
+        <div class="slide"><div class="thumb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg></div>Geser untuk kembalikan</div>
+      </div>
+    </div></div>
+    <div class="notes">
+      <div class="note">Kondisi = <code>RadioTileGroup</code>; konfirmasi akhir memakai <code>SlideButton</code> (aksi permanen, pola konfirmasi yang sudah ada di app).</div>
+      <div class="note api">Submit → <code>PATCH /v1/handovers/self/:id/return</code> — hanya pemilik unit (403 untuk rider lain). Selesai → kembali ke state 02.</div>
+    </div>
+  </div>
+
+</div></div>
+
+<!-- ── provenance ── -->
+<section class="prov">
+  <h2>Semua diambil dari repo — bukan karangan</h2>
+  <p class="sub">Sumber: <code style="font:500 11px var(--mono)">core/designsystem/theme/Color.kt · Type.kt</code>, komponen di <code style="font:500 11px var(--mono)">core/designsystem/components/</code>, pola layar <code style="font:500 11px var(--mono)">feature/rent</code> &amp; <code style="font:500 11px var(--mono)">feature/profile</code>.</p>
+  <div class="prov-grid">
+    <div>
+      <h3>Token warna (Color.kt)</h3>
+      <div class="swatches">
+        <span class="sw"><i style="background:#5E2AAC"></i>PurplePrimary</span>
+        <span class="sw"><i style="background:#9567E5"></i>Purple500</span>
+        <span class="sw"><i style="background:#F4F0FC"></i>PurpleSurface</span>
+        <span class="sw"><i style="background:#343B4B"></i>Neutral700</span>
+        <span class="sw"><i style="background:#5E6368"></i>Neutral600</span>
+        <span class="sw"><i style="background:#E0E0E0"></i>NeutralBorder</span>
+        <span class="sw"><i style="background:#1FC16B"></i>SuccessBase</span>
+        <span class="sw"><i style="background:#FA7319"></i>WarningBase</span>
+      </div>
+      <ul style="margin-top:12px"><li>Tipografi: <b>Plus Jakarta Sans</b> (Type.kt) — sama dengan FMS web.</li></ul>
+    </div>
+    <div>
+      <h3>Komponen existing yang dipakai ulang</h3>
+      <ul>
+        <li><code>ProfileMenuItem</code> — baris menu Profil (16/18dp, chevron)</li>
+        <li><code>ButtonPrimary / ButtonOutline</code> — radius 8dp, LARGE 48dp</li>
+        <li><code>SignatureCanvas</code> — pad tanda tangan (tambah export SVG)</li>
+        <li><code>SlideButton</code> · <code>FlexibleBottomSheet</code> · <code>RadioTileGroup</code> · <code>TagComponents</code></li>
+        <li><code>mlkit-barcode-scanning 17.3.0</code> + CameraX — scanner QR</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Kontrak backend</h3>
+      <ul>
+        <li><code>GET driver/v1/me/profile</code> — eligibility + client/pitstop</li>
+        <li><code>GET /v1/handovers/self/vehicles/:id</code> — gate pasca-scan</li>
+        <li><code>POST /v1/handovers/self</code> — serah terima (JWT driver)</li>
+        <li><code>PATCH /v1/handovers/self/:id/return</code> — pengembalian</li>
+        <li>BAST asinkron → <code>bastPending</code> lalu link PDF · Dok: <b>nest-fleet-service/docs/self-handover/</b></li>
+      </ul>
+    </div>
+  </div>
+</section>
+</div>
