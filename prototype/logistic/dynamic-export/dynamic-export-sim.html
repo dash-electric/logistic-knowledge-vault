@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dynamic Export Simulator</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #fff; --ink: #1c2330; --muted: #6b7683;
+    --line: #e3e7ec; --accent: #5e2aac; --accent-ink: #fff;
+    --ok: #1a7f45; --err: #c02626; --warn: #9a6a00;
+    --code-bg: #0f1420; --code-ink: #d7e0ea;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { background: var(--ink); color: #fff; padding: 14px 20px; }
+  header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+  header p { margin: 2px 0 0; color: #aeb7c4; font-size: 12px; }
+  main { max-width: 1040px; margin: 0 auto; padding: 20px; display: grid; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--muted); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input, select { font: inherit; padding: 8px 10px; border: 1px solid var(--line);
+    border-radius: 8px; background: #fff; color: var(--ink); }
+  input { min-width: 160px; }
+  .grow { flex: 1; }
+  button { font: inherit; font-weight: 600; padding: 8px 14px; border: 1px solid var(--line);
+    border-radius: 8px; background: #fff; color: var(--ink); cursor: pointer; }
+  button:hover { border-color: #c7ced6; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.primary:hover { filter: brightness(1.08); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px;
+    font-weight: 600; border: 1px solid var(--line); background: #f0f2f5; }
+  .status.up { color: var(--ok); } .status.down { color: var(--err); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .preview { display: grid; gap: 6px; }
+  .kv { display: grid; grid-template-columns: 110px 1fr; gap: 8px; }
+  .kv .k { color: var(--muted); } .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .switch-hi { background: #f3ecff; border: 1px solid #d9c8ff; border-radius: 8px; padding: 8px 10px; }
+  pre#log { background: var(--code-bg); color: var(--code-ink); border-radius: 10px; padding: 14px;
+    margin: 0; max-height: 340px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px; white-space: pre-wrap; word-break: break-word; }
+  .log-ok { color: #7ee2a8; } .log-err { color: #ff8a8a; } .log-warn { color: #ffcf7a; }
+  .log-dim { color: #8b97a8; }
+  .hint { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Dynamic Shipment Export — Simulator</h1>
+  <p>Drives the real <span class="mono">nest-logistic-service</span> endpoints on your local server. Nothing is stored except in this browser.</p>
+</header>
+
+<main>
+  <!-- connection -->
+  <section class="card">
+    <h2>Connection</h2>
+    <div class="row">
+      <div class="grow"><label>Base URL</label>
+        <input id="baseUrl" class="grow" style="width:100%" placeholder="http://localhost:3000" /></div>
+      <div><label>Client ID</label><input id="clientId" style="width:110px" placeholder="566" /></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="grow"><label>Admin bearer token</label>
+        <input id="token" type="password" class="grow" style="width:100%" placeholder="paste ADMIN token" /></div>
+      <button id="pingBtn">Test connection</button>
+      <span id="status" class="pill status">unknown</span>
+    </div>
+    <p class="hint" style="margin:10px 0 0">Endpoints are ADMIN-guarded. Migrate the DB to <span class="mono">0090_client_export_templates</span> and run <span class="mono">pnpm start:dev</span> first.</p>
+  </section>
+
+  <!-- templates + mapping -->
+  <section class="card">
+    <h2>1 · Templates &amp; mapping</h2>
+    <div class="row">
+      <button id="listTplBtn">List templates</button>
+      <div><label>Set client → template</label>
+        <select id="tplSelect"><option value="">(list templates first)</option></select></div>
+      <button id="setBtn" class="primary">Set mapping</button>
+      <button id="clearBtn">Clear mapping</button>
+      <button id="listMapBtn">Refresh mappings</button>
+    </div>
+    <div id="mappings" style="margin-top:14px"></div>
+  </section>
+
+  <!-- export -->
+  <section class="card">
+    <h2>2 · Export (real download)</h2>
+    <div class="row">
+      <button id="exportBtn" class="primary">Export &amp; preview</button>
+      <button id="downloadBtn" disabled>Download last CSV</button>
+      <button id="autoBtn">▶ Run full auto flow</button>
+    </div>
+    <div id="exportPreview" style="margin-top:14px"></div>
+  </section>
+
+  <!-- log -->
+  <section class="card">
+    <h2>Activity log</h2>
+    <pre id="log"><span class="log-dim">Ready. Set your Base URL + token, then Test connection.</span></pre>
+  </section>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const LS = 'dyn-export-sim';
+  const cfg = { baseUrl: 'http://localhost:3000', token: '', clientId: '566' };
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem(LS) || '{}')); } catch {}
+  $('baseUrl').value = cfg.baseUrl; $('token').value = cfg.token; $('clientId').value = cfg.clientId;
+  const save = () => { cfg.baseUrl = $('baseUrl').value.trim().replace(/\/$/, '');
+    cfg.token = $('token').value.trim(); cfg.clientId = $('clientId').value.trim();
+    try { localStorage.setItem(LS, JSON.stringify(cfg)); } catch {} };
+  ['baseUrl','token','clientId'].forEach(id => $(id).addEventListener('change', save));
+
+  let lastExport = null; // { filename, text }
+
+  function log(msg, cls) {
+    const el = $('log'); const time = new Date().toLocaleTimeString();
+    const span = document.createElement('span');
+    span.className = cls ? 'log-' + cls : '';
+    span.textContent = `[${time}] ${msg}\n`;
+    el.appendChild(span); el.scrollTop = el.scrollHeight;
+  }
+  function headers() { return { 'Authorization': `Bearer ${cfg.token}` }; }
+
+  async function api(method, path, body) {
+    save();
+    const opts = { method, headers: { ...headers() } };
+    if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    log(`${method} ${path}`, 'dim');
+    const res = await fetch(cfg.baseUrl + path, opts);
+    let payload; const text = await res.text();
+    try { payload = JSON.parse(text); } catch { payload = text; }
+    if (res.ok) log(`  ← ${res.status} ${typeof payload === 'string' ? payload.slice(0,120) : JSON.stringify(payload)}`, 'ok');
+    else log(`  ← ${res.status} ${typeof payload === 'string' ? payload : JSON.stringify(payload)}`, 'err');
+    return { ok: res.ok, status: res.status, payload };
+  }
+
+  async function ping() {
+    save();
+    if (!cfg.token) { $('status').textContent = 'no token'; $('status').className = 'pill status down'; log('Set a token first.', 'warn'); return false; }
+    try {
+      const res = await fetch(cfg.baseUrl + '/v1/export-templates', { headers: headers() });
+      const up = res.ok;
+      $('status').textContent = up ? 'connected' : `HTTP ${res.status}`;
+      $('status').className = 'pill status ' + (up ? 'up' : 'down');
+      log(up ? 'Connection OK.' : `Connection failed (HTTP ${res.status}).`, up ? 'ok' : 'err');
+      if (up) await listTemplates();
+      return up;
+    } catch (e) {
+      $('status').textContent = 'unreachable'; $('status').className = 'pill status down';
+      log(`Cannot reach ${cfg.baseUrl} — is the server running? (${e.message})`, 'err');
+      return false;
+    }
+  }
+
+  async function listTemplates() {
+    const { ok, payload } = await api('GET', '/v1/export-templates');
+    if (!ok) return;
+    const tpls = (payload.data && payload.data.templates) || [];
+    const sel = $('tplSelect');
+    sel.innerHTML = tpls.map(t => `<option value="${t.key}">${t.key}</option>`).join('') || '<option value="">(none)</option>';
+    log(`Registered templates: ${tpls.map(t => t.key).join(', ') || '(none)'}`);
+  }
+
+  async function listMappings() {
+    const { ok, payload } = await api('GET', '/v1/client-export-templates');
+    if (!ok) return;
+    const rows = (payload.data && payload.data.data) || [];
+    $('mappings').innerHTML = rows.length
+      ? `<table><thead><tr><th>Client ID</th><th>Template</th><th>Updated by</th><th>Updated at</th></tr></thead><tbody>`
+        + rows.map(r => `<tr><td class="mono">${r.clientId}</td><td><span class="pill">${r.templateKey}</span></td><td>${r.updatedBy||''}</td><td>${(r.updatedAt||'').slice(0,19).replace('T',' ')}</td></tr>`).join('')
+        + `</tbody></table>`
+      : `<p class="hint">No mappings — every client uses <span class="mono">default</span>.</p>`;
+  }
+
+  async function setMapping() {
+    const key = $('tplSelect').value; if (!key) { log('Pick a template first.', 'warn'); return; }
+    const { ok } = await api('PUT', `/v1/client-export-templates/${cfg.clientId}`, { templateKey: key });
+    if (ok) log(`Client ${cfg.clientId} now exports with '${key}'.`, 'ok');
+    await listMappings();
+  }
+  async function clearMapping() {
+    await api('DELETE', `/v1/client-export-templates/${cfg.clientId}`);
+    await listMappings();
+  }
+
+  async function exportPreview() {
+    save();
+    log(`GET /v1/shipments/export?clientId=${cfg.clientId}`, 'dim');
+    let res;
+    try { res = await fetch(`${cfg.baseUrl}/v1/shipments/export?clientId=${cfg.clientId}`, { headers: headers() }); }
+    catch (e) { log(`Export failed: ${e.message}`, 'err'); return; }
+    const text = await res.text();
+    if (!res.ok) { log(`  ← ${res.status} ${text.slice(0,160)}`, 'err');
+      $('exportPreview').innerHTML = `<p class="hint" style="color:var(--err)">Export failed (HTTP ${res.status}).</p>`; return; }
+    const dispo = res.headers.get('content-disposition') || '';
+    const m = dispo.match(/filename="?([^"]+)"?/i);
+    const filename = (m && m[1]) || `shipments-${cfg.clientId}.csv`;
+    const clean = text.replace(/^﻿/, '');
+    const lines = clean.split(/\r?\n/).filter(l => l.length);
+    const headerLine = lines[0] || '(empty)';
+    const dataRows = Math.max(0, lines.length - 1);
+    const cols = headerLine.split(',').length;
+    lastExport = { filename, text };
+    $('downloadBtn').disabled = false;
+    log(`  ← 200  ${filename}  ·  ${cols} columns  ·  ${dataRows} data rows`, 'ok');
+    $('exportPreview').innerHTML = `
+      <div class="preview">
+        <div class="switch-hi"><div class="kv"><span class="k">Filename</span><span class="mono">${filename}</span></div>
+          <div class="kv"><span class="k">Columns</span><b>${cols}</b> <span class="hint">(default = 19, compact = 8)</span></div>
+          <div class="kv"><span class="k">Data rows</span>${dataRows}</div></div>
+        <div><div class="k hint" style="margin-bottom:4px">Header row (this is what changes per client):</div>
+          <pre class="mono" style="background:#f0f2f5;border:1px solid var(--line);border-radius:8px;padding:10px;margin:0;white-space:pre-wrap;font-size:12px">${headerLine.replace(/</g,'&lt;')}</pre></div>
+      </div>`;
+  }
+
+  function downloadLast() {
+    if (!lastExport) return;
+    const blob = new Blob(['﻿' + lastExport.text.replace(/^﻿/, '')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = lastExport.filename;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    log(`Downloaded ${lastExport.filename}.`, 'ok');
+  }
+
+  async function autoFlow() {
+    log('──── AUTO FLOW START ────', 'warn');
+    if (!(await ping())) { log('Aborted — no connection.', 'err'); return; }
+    log('Step 2: baseline export (expect default / 19 cols)');
+    await clearMapping(); await exportPreview();
+    log('Step 3: map client → compact');
+    const has = [...$('tplSelect').options].some(o => o.value === 'compact');
+    if (!has) { log("No 'compact' template registered — mapping to it will 400. Skipping switch demo.", 'warn'); }
+    else { await api('PUT', `/v1/client-export-templates/${cfg.clientId}`, { templateKey: 'compact' }); await listMappings(); }
+    log('Step 5: export again (expect compact / 8 cols) ← THE SWITCH');
+    await exportPreview();
+    log('Step 6: negative — map to an unknown key (expect 400)');
+    await api('PUT', `/v1/client-export-templates/${cfg.clientId}`, { templateKey: 'does-not-exist' });
+    log('Step 7: clear mapping'); await clearMapping();
+    log('Step 8: export (expect default again)'); await exportPreview();
+    log('──── AUTO FLOW DONE — compare the two header rows above ────', 'warn');
+  }
+
+  $('pingBtn').onclick = ping;
+  $('listTplBtn').onclick = listTemplates;
+  $('listMapBtn').onclick = listMappings;
+  $('setBtn').onclick = setMapping;
+  $('clearBtn').onclick = clearMapping;
+  $('exportBtn').onclick = exportPreview;
+  $('downloadBtn').onclick = downloadLast;
+  $('autoBtn').onclick = autoFlow;
+</script>
+</body>
+</html>
