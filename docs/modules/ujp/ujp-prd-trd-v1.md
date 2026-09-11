@@ -10,6 +10,8 @@ created: 2026-09-01
 links:
   context: ./ujp-context-v1.md
   mockup: ./ujp-mockup-v1.html
+  prototype: ./ujp-prototype-v1.html
+  simulation: ./ujp-flow-simulation-v1.html
   presentation:
 ---
 
