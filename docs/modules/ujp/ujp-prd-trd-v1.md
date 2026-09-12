@@ -4,7 +4,7 @@ module: ujp
 doctype: prd-trd
 version: 1
 status: superseded
-superseded_by: ./ujp-prd-trd-v2.md
+superseded_by: ./ujp-prd-v2.md
 product_owner: muhamad.zulfikar@dashelectric.co
 engineer:
 created: 2026-09-01
@@ -18,7 +18,7 @@ links:
 
 # UJP Creation in react-logistic-web — PRD/TRD v1
 
-> **Superseded by [ujp-prd-trd-v2.md](./ujp-prd-trd-v2.md)** (2026-09-11) after the engineering and design reviews. Kept for history; decisions D1–D5 here were revised.
+> **Superseded by [ujp-prd-v2.md](./ujp-prd-v2.md) and [ujp-trd-v2.md](./ujp-trd-v2.md)** (2026-09-11) after the engineering and design reviews. Kept for history; decisions D1–D5 here were revised.
 
 > Port the `logisticdash` UJP (running-cost transport request) creation flow into the REST-based `react-logistic-web` console. Background and the current flow live in [ujp-context-v1.md](./ujp-context-v1.md) — this doc is what we build and how.
 
