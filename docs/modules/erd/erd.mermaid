@@ -503,3 +503,55 @@ erDiagram
         string override_note
         datetime created_at
     }
+
+    %% ── UJP (ujp-prd-trd-v2) ─────────────────────────────────────
+    ujp {
+        uuid id PK
+        text reference_id UK "UJP-YYYYMMDD-NNNN, daily counter"
+        text status "SUBMITTED|APPROVED|REJECTED|CANCELLED"
+        int client_id "CoreService provider; jsonb snapshot"
+        date delivery_date
+        text payee_type "driver|subcon"
+        numeric nominal_transfer
+        text plate_number "vehicle snapshot + baseline, energy_price"
+        uuid[] source_lane_ids "read-only refs to addresses"
+        numeric distance_km_calculated
+        numeric km_yang_diajukan
+        numeric total_uang_jalan_flazz
+        numeric total_uang_jalan_transfer
+        numeric estimated_amount
+        jsonb stops
+        jsonb rider
+        text requester_email
+        text decided_by
+        text reason_code FK
+        uuid shipment_id FK "UNIQUE, set on approve"
+        text search_text "STORED, GIN trgm"
+    }
+    ujp_status_history {
+        uuid id PK
+        uuid ujp_id FK
+        text from_status
+        text to_status
+        text changed_by
+        text reason_code
+        timestamptz changed_at
+    }
+    ujp_daily_counters {
+        date day PK
+        int next
+    }
+    ujp_vehicles {
+        uuid id PK
+        text plate_number UK
+        text unit_type
+        text energy_type "ICE|EV"
+        numeric baseline
+        numeric energy_price
+        boolean active
+    }
+    ujp ||--o{ ujp_status_history : "audit"
+    ujp ||--o| shipments : "shipments.ujp_id (approve creates)"
+    ujp }o--|| reasons : "reason_code, type=UJP_REJECTION"
+    ujp }o--o{ addresses : "lanes (read-only)"
+    ujp }o--o| ujp_vehicles : "snapshot at create"

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UJP Flow Simulation</title>
-<!-- Standalone interactive HTML. Data contoh, tidak terhubung ke server. Sumber keputusan: ASSESSMENT-UJP-PORT-4W.md (dash workspace) / ujp-prd-trd. -->
+<!-- Standalone interactive HTML. Satu klik menjalankan 12 adegan dengan narasi. Data contoh. Keputusan: ujp-trd-v2.md. -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
 :root{--paper:#fff;--page:#f6f5f8;--ink:#171717;--ink2:#374151;--muted:#6b7280;--faint:#9ca3af;--rule:rgba(23,23,23,.10);--rule2:rgba(23,23,23,.22);--tint:rgba(23,23,23,.04);--tint2:rgba(23,23,23,.07);--locked:#f2eff7;--accent:#5E2AAC;--accent10:rgba(94,42,172,.10);--em:#047857;--em10:#ecfdf5;--am:#b45309;--am10:#fffbeb;--rd:#b91c1c;--rd10:#fef2f2;--sky:#0369a1;--sky10:#f0f9ff;--shadow:0 1px 2px rgba(23,23,23,.05),0 12px 32px -12px rgba(23,23,23,.18)}
@@ -188,6 +188,23 @@ td .sub{color:var(--muted);font-size:11.5px}
 .toast .mono{opacity:.9}
 .spin2{width:14px;height:14px;border:2px solid var(--rule2);border-top-color:var(--ink);border-radius:999px;animation:s .8s linear infinite;display:inline-block;vertical-align:middle}
 a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
+/* autoplay narrator + highlight */
+.runbtn{width:100%;height:40px;justify-content:center;font-size:13px;margin-bottom:12px}
+.runrow{display:flex;gap:8px;margin-bottom:12px}.runrow .btn{flex:1;justify-content:center}
+.todo{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.todo li{display:grid;grid-template-columns:18px 1fr;gap:8px;font-size:12.5px;color:var(--ink2);align-items:start}
+.todo li .m{width:16px;height:16px;border-radius:999px;border:1px solid var(--rule2);display:grid;place-items:center;font-size:9px;margin-top:2px;font-family:"JetBrains Mono",monospace}
+.todo li.done .m{background:var(--ink);color:#fff;border-color:var(--ink)}
+.todo li.cur{color:var(--ink);font-weight:600}.todo li.cur .m{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 3px var(--accent10)}
+#narr{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:70;width:min(560px,calc(100% - 32px));background:#1d1b24;color:#e9e6f0;border-radius:6px;box-shadow:0 12px 40px -12px rgba(0,0,0,.5);padding:12px 14px 12px 16px;display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:center}
+@media (min-width:901px){body.flowmode #narr{left:calc(50% + 160px)}}
+#narr .k{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#b195ea;font-weight:600}
+#narr .a{font-size:14px;font-weight:600;line-height:1.35;margin-top:2px}
+#narr .dots{display:flex;gap:4px;margin-top:8px}#narr .dots i{width:16px;height:3px;border-radius:2px;background:rgba(255,255,255,.2)}#narr .dots i.on{background:#b195ea}#narr .dots i.done{background:rgba(177,149,234,.55)}
+#narr .ctl{display:flex;flex-direction:column;gap:6px}
+#narr .ctl button{background:transparent;border:1px solid rgba(255,255,255,.25);color:#e9e6f0;border-radius:4px;padding:6px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+#narr .ctl button.pri{background:#e9e6f0;color:#1d1b24;border-color:#e9e6f0}
+.hl{outline:2px solid var(--accent) !important;outline-offset:3px;box-shadow:0 0 0 7px rgba(94,42,172,.14) !important;border-radius:4px;transition:box-shadow .3s}
 </style>
 </head>
 <body>
@@ -199,6 +216,7 @@ a.lnk{color:var(--accent);font-weight:600;text-decoration:none}
 </div>
 <div id="layer"></div>
 <div class="toasts" id="toasts"></div>
+<div id="narr" role="status" aria-live="polite" hidden></div>
 
 <script>
 const MODE = 'flow'; // 'free' | 'flow'
@@ -520,34 +538,77 @@ function bindDecision(){const d=S.ui.decision;if(!d)return;const u=S.ujps.find(x
 
 /* ───────────────────────── flow rail ───────────────────────── */
 const SCENES=[
- {t:'Antrian UJP',c:'Ops opens the queue. The default tab is Menunggu with counts, and each waiting request shows its age so finance sees what is oldest. Nothing about the old app\'s CSV round-trip remains.',dd:['DD6','D12'],run:s=>{s.persona='ops';s.ui.tab='SUBMITTED'}},
- {t:'Langkah 1 · Info',c:'Buat UJP opens a 5-step FormModal. The reference number is a placeholder: the server assigns UJP-YYYYMMDD-NNNN from a daily counter when the request is submitted, so numbering is sequential and collision-free.',dd:['DD2','D4'],run:s=>{s.ui.wizard=Object.assign(blankForm(),{clientId:566,deliveryType:'MULTI_DROP',shift:'Morning',step:1})}},
- {t:'Langkah 2 · Rute',c:'Lanes come read-only from the Addresses page. Two lanes sharing the same origin become one pickup and two drops; the lane distances add up to an editable km estimate. Money will use the proposed km, never the lane sum blindly.',dd:['DD10','D16','D17'],run:s=>{const f=s.ui.wizard;f.step=2;f.laneIds=['l1','l2'];applyLanes(f)}},
- {t:'Langkah 3 · Biaya',c:'Pick a plate and baseline plus fuel price fill in from the vehicle master, locked until edited. Type the cost lines and the server-computed breakdown appears: km with margin, litres, BBM, then the Flazz and Transfer split. The browser never does money math.',dd:['DD1','DD8','D5','D7'],run:s=>{const f=s.ui.wizard;f.step=3;applyVehicle(f,VEHICLES[0]);f.costs={toll:185000,parkirTap:20000,parkirManual:30000,bongkar:150000,lain:0,makan:75000};estimateNow()}},
- {t:'Biaya · jika subcon',c:'Flip the payee to Subcon and the seven cost fields are disabled in place with the reason on screen. Nothing typed is lost. The whole nominal goes to Transfer and Flazz reads zero.',dd:['DD9'],run:s=>{const f=s.ui.wizard;f.payee='subcon';f.nominalTransfer=1800000;estimateNow()}},
- {t:'Langkah 4 · Driver',c:'Back to a driver payee. The rider picker searches active DRIVER talent only and auto-selects on a unique match; bank details prefill from the driver record. The footer strip keeps the total in view on this step.',dd:['DD1','D8'],run:s=>{const f=s.ui.wizard;f.payee='driver';f.step=4;applyRider(f,RIDERS[0]);f.cargo={sender:'PT Patimban Logistik',receiver:'Gudang Karawang',item:'1 × 40ft FCL',bobot:'18500'};estimateNow()}},
- {t:'Langkah 5 · Review',c:'Hairline sections with an Ubah link back to each step, one tile row, and the total at 28px. Ajukan stays disabled until the server confirms the latest estimate.',dd:['DD7','D13'],run:s=>{const f=s.ui.wizard;f.step=5;estimateNow()}},
- {t:'Diajukan',c:'Submit closes the modal, the queue gains a row, and the detail panel opens on it. The requester sees Menunggu persetujuan finance and a Batalkan pengajuan action, nothing else.',dd:['DD6','D2'],run:s=>{const f=s.ui.wizard;const snap=JSON.parse(JSON.stringify(f));const u={id:'scene-u',ref:`UJP-${ymd(new Date())}-0004`,status:'SUBMITTED',form:snap,totals:calc(snap),createdAt:NOW-2*60e3,requester:USERS.ops.email,client:CLIENTS[0],rider:RIDERS[0],history:[{at:NOW-2*60e3,by:USERS.ops.email,from:null,to:'SUBMITTED'}],shipmentId:null};s.ujps.push(u);s.ui.wizard=null;s.ui.detailId=u.id;s.ui.tab='SUBMITTED'}},
- {t:'Finance membuka panel',c:'Same request, approver persona. Money first, then the shipment that approval will create, then the breakdown and the full account number with Salin. The primary button says exactly what it does.',dd:['DD3','DD5','D6'],run:s=>{s.persona='finance'}},
- {t:'Disetujui → shipment',c:'Approve runs one transaction: lock the row, write history, create shipment, route and stops through the shared 4W writer, link shipment_id. The panel refetches and the preview row becomes a waybill link the driver app can already see.',dd:['D2','D3','D9'],run:s=>{const u=s.ujps.find(x=>x.id==='scene-u');const sh=mkShipment(u,s);u.shipmentId=sh.id;u.status='APPROVED';u.decidedBy=USERS.finance.email;u.decidedAt=NOW;u.history.push({at:NOW,by:USERS.finance.email,from:'SUBMITTED',to:'APPROVED',note:`Shipment ${sh.waybill} dibuat`});s.ui.tab='APPROVED'}},
- {t:'Jalur tolak',c:'On another waiting request, Tolak opens a small danger modal. A reason from the UJP_REJECTION master is required, including route and driver disagreement, so the approver never has to reject a correct cost to object to the trip.',dd:['DD3','D9'],run:s=>{const u=s.ujps.find(x=>x.status==='SUBMITTED'&&x.id!=='scene-u');s.ui.tab='SUBMITTED';s.ui.detailId=u.id;s.ui.decision={id:u.id,mode:'reject',reason:'RUTE_TIDAK_SESUAI',note:'Drop kedua tidak ada di surat jalan.'}}},
- {t:'Pengguna lain',c:'Any other ops user can open the approved request but sees the account number masked to its last four digits with a lock, and the total hidden. Enforced in the server response mapper, so no client change can leak it.',dd:['DD5','D15'],run:s=>{s.persona='other';s.ui.decision=null;s.ui.tab='APPROVED';s.ui.detailId='scene-u'}},
+ {t:'Antrian UJP',c:'Ops opens the queue. The default tab is Menunggu with counts, and each waiting request shows its age so finance sees what is oldest. Nothing about the old app\'s CSV round-trip remains.',dd:['DD6','D12'],
+  do:[{t:'Buka menu Logistic · UJP. Tab Menunggu terpilih otomatis dengan jumlah antrian.',hl:'.tabs button.on'},{t:'Chip umur menandai yang lama: amber lebih dari 2 hari, merah lebih dari 5.',hl:'td .badge.b-am'},{t:'Klik Buat UJP untuk mulai mengajukan.',hl:'#new'}],
+  run:s=>{s.persona='ops';s.ui.tab='SUBMITTED'}},
+ {t:'Langkah 1 · Info',c:'Buat UJP opens a 5-step FormModal. The reference number is a placeholder: the server assigns UJP-YYYYMMDD-NNNN from a daily counter when the request is submitted, so numbering is sequential and collision-free.',dd:['DD2','D4'],
+  do:[{t:'Client: PT Patimban Logistik.',hl:'#cl'},{t:'Tanggal kirim: besok. Tanggal sebelum hari ini (WIB) ditolak.',hl:'#dd'},{t:'Tipe pengiriman: Multi drop, karena ada dua tujuan.',hl:'[data-dt="MULTI_DROP"]'},{t:'Shift Morning, jam 07:00–15:00. Tim ops dan layanan pakai nilai bawaan.',hl:'#sh'},{t:'Nomor UJP masih ····: server yang menetapkan saat diajukan.',hl:'.mh .ref'}],
+  run:s=>{s.ui.wizard=Object.assign(blankForm(),{clientId:566,deliveryType:'MULTI_DROP',shift:'Morning',step:1})}},
+ {t:'Langkah 2 · Rute',c:'Lanes come read-only from the Addresses page. Two lanes sharing the same origin become one pickup and two drops; the lane distances add up to an editable km estimate. Money will use the proposed km, never the lane sum blindly.',dd:['DD10','D16','D17'],
+  do:[{t:'Cari lane client, pilih Patimban Port → Gudang Karawang (141,2 km).',hl:'#lq'},{t:'Tambah lane kedua dengan origin sama: Patimban Port → Gudang Cikarang (128,4 km).',hl:'.chips'},{t:'Stops terisi otomatis: 1 pickup, 2 drop, workflow default per stop. Nama dan alamat bisa disunting.',hl:'.stops'},{t:'Jarak lane (estimasi) 269,6 km mengisi KM diajukan. Angka ini yang dipakai untuk BBM; sesuaikan bila rute berantai.',hl:'#km'}],
+  run:s=>{const f=s.ui.wizard;f.step=2;f.laneIds=['l1','l2'];applyLanes(f)}},
+ {t:'Langkah 3 · Biaya',c:'Pick a plate and baseline plus fuel price fill in from the vehicle master, locked until edited. Type the cost lines and the server-computed breakdown appears: km with margin, litres, BBM, then the Flazz and Transfer split. The browser never does money math.',dd:['DD1','DD8','D5','D7'],
+  do:[{t:'Payee: Driver internal.',hl:'[data-py="driver"]'},{t:'Plat nomor: B 9021 UYT. Baseline 4,5 km/L dan harga BBM Rp 6.800 terisi dari kendaraan, terkunci sampai diubah.',hl:'#plate'},{t:'E-money: Ya, jadi BBM, toll dan parkir tap masuk kartu Flazz.',hl:'#em'},{t:'Toll Rp 185.000 · parkir tap Rp 20.000 · parkir manual Rp 30.000.',hl:'#c_toll'},{t:'Bongkar/muat Rp 150.000 · uang makan Rp 75.000 · lain-lain 0.',hl:'#c_bongkar'},{t:'Rincian estimasi dihitung server: 269,6 km ÷ 0,95 → liter → BBM → Flazz / Transfer.',hl:'#breakdown'}],
+  run:s=>{const f=s.ui.wizard;f.step=3;applyVehicle(f,VEHICLES[0]);f.costs={toll:185000,parkirTap:20000,parkirManual:30000,bongkar:150000,lain:0,makan:75000};estimateNow()}},
+ {t:'Biaya · jika subcon',c:'Flip the payee to Subcon and the seven cost fields are disabled in place with the reason on screen. Nothing typed is lost. The whole nominal goes to Transfer and Flazz reads zero.',dd:['DD9'],
+  do:[{t:'Ubah payee ke Subcon.',hl:'[data-py="subcon"]'},{t:'Isi Nominal transfer Rp 1.800.000. Seluruhnya masuk uang jalan Transfer.',hl:'#nom'},{t:'Blok biaya driver dinonaktifkan di tempat dengan alasannya. Nilai yang sudah diketik tidak hilang.',hl:'.sec.off'}],
+  run:s=>{const f=s.ui.wizard;f.payee='subcon';f.nominalTransfer=1800000;estimateNow()}},
+ {t:'Langkah 4 · Driver',c:'Back to a driver payee. The rider picker searches active DRIVER talent only and auto-selects on a unique match; bank details prefill from the driver record. The footer strip keeps the total in view on this step.',dd:['DD1','D8'],
+  do:[{t:'Kembalikan payee ke Driver internal, lalu Lanjut ke langkah Driver.'},{t:'Ketik nama driver: "Agus Setiawan" cocok unik, jadi terpilih otomatis.',hl:'#rq'},{t:'Rekening driver terisi dari data driver: BCA · 8290112344 · Agus Setiawan.',hl:'#ba'},{t:'Detail pengiriman opsional: 1 × 40ft FCL, 18.500 kg.',hl:'#ci'},{t:'Strip estimasi total tetap terlihat di footer.',hl:'#strip'}],
+  run:s=>{const f=s.ui.wizard;f.payee='driver';f.step=4;applyRider(f,RIDERS[0]);f.cargo={sender:'PT Patimban Logistik',receiver:'Gudang Karawang',item:'1 × 40ft FCL',bobot:'18500'};estimateNow()}},
+ {t:'Langkah 5 · Review',c:'Hairline sections with an Ubah link back to each step, one tile row, and the total at 28px. Ajukan stays disabled until the server confirms the latest estimate.',dd:['DD7','D13'],
+  do:[{t:'Periksa tiap bagian. Tombol Ubah kembali ke langkahnya tanpa kehilangan isian.',hl:'[data-go="2"]'},{t:'Satu baris tile Flazz / Transfer dan total besar.',hl:'#rvtiles'},{t:'Ajukan UJP aktif setelah server mengonfirmasi estimasi terbaru.',hl:'#submit'}],
+  run:s=>{const f=s.ui.wizard;f.step=5;estimateNow()}},
+ {t:'Diajukan',c:'Submit closes the modal, the queue gains a row, and the detail panel opens on it. The requester sees Menunggu persetujuan finance and a Batalkan pengajuan action, nothing else.',dd:['DD6','D2'],
+  do:[{t:'Klik Ajukan UJP. Server memberi nomor UJP-…-0004 dan menghitung ulang total.'},{t:'Modal tertutup; baris baru muncul di tab Menunggu.',hl:'tr.row.sel'},{t:'Panel detail terbuka. Requester melihat "Menunggu persetujuan finance" dan hanya tombol Batalkan pengajuan.',hl:'#pcancel'}],
+  run:s=>{const f=s.ui.wizard;const snap=JSON.parse(JSON.stringify(f));const u={id:'scene-u',ref:`UJP-${ymd(new Date())}-0004`,status:'SUBMITTED',form:snap,totals:calc(snap),createdAt:NOW-2*60e3,requester:USERS.ops.email,client:CLIENTS[0],rider:RIDERS[0],history:[{at:NOW-2*60e3,by:USERS.ops.email,from:null,to:'SUBMITTED'}],shipmentId:null};s.ujps.push(u);s.ui.wizard=null;s.ui.detailId=u.id;s.ui.tab='SUBMITTED'}},
+ {t:'Finance membuka panel',c:'Same request, approver persona. Money first, then the shipment that approval will create, then the breakdown and the full account number with Salin. The primary button says exactly what it does.',dd:['DD3','DD5','D6'],
+  do:[{t:'Ganti persona ke Finance (approver) di bar atas.',hl:'.simbar .seg button.on'},{t:'Uang jalan dulu: tile Flazz / Transfer dan total.',hl:'.pb section:first-child'},{t:'"Dibuat saat disetujui": preview shipment, stops dan driver yang akan dibuat.',hl:'.badge.b-sky'},{t:'Rekening lengkap dengan tombol Salin. Tombol utama: Setujui & buat shipment.',hl:'#papprove'}],
+  run:s=>{s.persona='finance'}},
+ {t:'Disetujui → shipment',c:'Approve runs one transaction: lock the row, write history, create shipment, route and stops through the shared 4W writer, link shipment_id. The panel refetches and the preview row becomes a waybill link the driver app can already see.',dd:['D2','D3','D9'],
+  do:[{t:'Klik Setujui & buat shipment. Satu transaksi: kunci baris, riwayat, shipment + rute + stops.'},{t:'Badge menjadi Disetujui; preview berubah jadi link waybill yang sudah terlihat di aplikasi driver.',hl:'.pb section:nth-child(2)'},{t:'Riwayat mencatat approver dan nomor waybill.',hl:'.hist'}],
+  run:s=>{const u=s.ujps.find(x=>x.id==='scene-u');const sh=mkShipment(u,s);u.shipmentId=sh.id;u.status='APPROVED';u.decidedBy=USERS.finance.email;u.decidedAt=NOW;u.history.push({at:NOW,by:USERS.finance.email,from:'SUBMITTED',to:'APPROVED',note:`Shipment ${sh.waybill} dibuat`});s.ui.tab='APPROVED'}},
+ {t:'Jalur tolak',c:'On another waiting request, Tolak opens a small danger modal. A reason from the UJP_REJECTION master is required, including route and driver disagreement, so the approver never has to reject a correct cost to object to the trip.',dd:['DD3','D9'],
+  do:[{t:'Masih sebagai Finance, buka UJP lain yang menunggu, lalu klik Tolak.'},{t:'Pilih alasan dari master UJP_REJECTION: "Rute tidak sesuai".',hl:'#rsn'},{t:'Tulis catatan untuk requester: apa yang harus diperbaiki.',hl:'#nt'},{t:'Tombol Tolak UJP aktif hanya setelah alasan dipilih.',hl:'#dyes'}],
+  run:s=>{const u=s.ujps.find(x=>x.status==='SUBMITTED'&&x.id!=='scene-u');s.ui.tab='SUBMITTED';s.ui.detailId=u.id;s.ui.decision={id:u.id,mode:'reject',reason:'RUTE_TIDAK_SESUAI',note:'Drop kedua tidak ada di surat jalan.'}}},
+ {t:'Pengguna lain',c:'Any other ops user can open the approved request but sees the account number masked to its last four digits with a lock, and the total hidden. Enforced in the server response mapper, so no client change can leak it.',dd:['DD5','D15'],
+  do:[{t:'Ganti persona ke Ops lain dan buka UJP yang sudah disetujui.',hl:'.simbar .seg button.on'},{t:'No. rekening tersamar •••• 4456 dengan ikon kunci; total disembunyikan.',hl:'.pb section:nth-child(4)'},{t:'Tidak ada tombol aksi: hanya approver yang memutuskan, hanya requester yang membatalkan.',hl:'.pf'}],
+  run:s=>{s.persona='other';s.ui.decision=null;s.ui.tab='APPROVED';s.ui.detailId='scene-u'}},
 ];
 let scene=0;
+const auto={on:false,paused:false,k:0,i:0,t:null,done:false};
+const ACT_MS=2600, SCENE_GAP_MS=1100;
 function applyScene(i){scene=Math.max(0,Math.min(SCENES.length-1,i));S=seed();est={status:'idle'};for(let k=0;k<=scene;k++)SCENES[k].run(S);if(S.ui.wizard)estimateNow();renderAll()}
-function renderRail(){if(MODE!=='flow'){$('#rail').hidden=true;$('#shell').classList.remove('flow');return}$('#rail').hidden=false;$('#shell').classList.add('flow');const sc=SCENES[scene];
-  $('#rail').innerHTML=`<h2>Alur Buat UJP</h2><div class="sub">Ops mengajukan, finance menyetujui, shipment dibuat. Setiap adegan dapat dicoba langsung.</div>
+function highlight(sel){document.querySelectorAll('.hl').forEach(e=>e.classList.remove('hl'));if(!sel)return;const el=document.querySelector(sel);if(el){el.classList.add('hl');try{el.scrollIntoView({block:'center',behavior:'smooth'})}catch(_){}}}
+function autoStart(){clearTimeout(auto.t);Object.assign(auto,{on:true,paused:false,k:0,i:0,done:false});applyScene(0);autoTick()}
+function autoTick(){if(!auto.on||auto.paused)return;const sc=SCENES[auto.k];const acts=sc.do||[];
+  if(auto.i<acts.length){renderNarr();renderRail();highlight(acts[auto.i].hl);auto.t=setTimeout(()=>{auto.i++;autoTick()},ACT_MS)}
+  else{auto.t=setTimeout(()=>{if(auto.k<SCENES.length-1){auto.k++;auto.i=0;applyScene(auto.k);autoTick()}else{auto.on=false;auto.done=true;highlight(null);renderNarr();renderRail()}},SCENE_GAP_MS)}}
+function autoPause(){if(!auto.on)return;auto.paused=!auto.paused;clearTimeout(auto.t);if(!auto.paused)autoTick();else{renderNarr();renderRail()}}
+function autoStop(){clearTimeout(auto.t);auto.on=false;auto.paused=false;auto.done=false;highlight(null);renderNarr();renderRail()}
+function renderNarr(){const n=$('#narr');if(!n)return;if(!auto.on&&!auto.done){n.hidden=true;return}n.hidden=false;
+  if(auto.done){n.innerHTML=`<div><div class="k">Selesai · 12 adegan</div><div class="a">Alur lengkap: ops mengajukan, finance menyetujui, shipment DIRECT_4W dibuat. Layar sekarang bebas dicoba.</div></div><div class="ctl"><button type="button" class="pri" id="nAgain">↻ Ulangi alur</button><button type="button" id="nClose">Tutup</button></div>`;
+    $('#nAgain').onclick=autoStart;$('#nClose').onclick=autoStop;return}
+  const sc=SCENES[auto.k];const acts=sc.do||[];const a=acts[Math.min(auto.i,acts.length-1)];
+  n.innerHTML=`<div><div class="k">Adegan ${auto.k+1}/${SCENES.length} · ${esc(sc.t)}${auto.paused?' · jeda':''}</div><div class="a">${esc(a?.t||'')}</div><div class="dots" aria-hidden="true">${acts.map((_,j)=>`<i class="${j<auto.i?'done':j===auto.i?'on':''}"></i>`).join('')}</div></div>
+   <div class="ctl"><button type="button" class="pri" id="nPause">${auto.paused?'▶ Lanjutkan':'⏸ Jeda'}</button><button type="button" id="nStop">■ Berhenti</button></div>`;
+  $('#nPause').onclick=autoPause;$('#nStop').onclick=autoStop}
+function renderRail(){if(MODE!=='flow'){$('#rail').hidden=true;$('#shell').classList.remove('flow');document.body.classList.remove('flowmode');return}$('#rail').hidden=false;$('#shell').classList.add('flow');document.body.classList.add('flowmode');const sc=SCENES[scene];const acts=sc.do||[];const running=auto.on;
+  $('#rail').innerHTML=`<h2>Alur Buat UJP</h2><div class="sub">Satu klik menjalankan seluruh alur: ops mengajukan, finance menyetujui, shipment dibuat. Narasi menjelaskan apa yang diisi di tiap langkah.</div>
+  ${running?`<div class="runrow"><button type="button" class="btn primary" id="rPause">${auto.paused?'▶ Lanjutkan':'⏸ Jeda'}</button><button type="button" class="btn" id="rStop">■ Berhenti</button></div>`:`<button type="button" class="btn primary runbtn" id="run">▶ Jalankan alur (1 klik)</button>`}
   <ol class="scenes">${SCENES.map((s,i)=>`<li><button type="button" class="${i===scene?'on':''}" data-s="${i}"><span class="n">${pad(i+1,2)}</span>${s.t}</button></li>`).join('')}</ol>
-  <div class="cap"><div class="k">Apa yang terjadi</div><p>${sc.c}</p><div class="dd">${sc.dd.map(d=>`<span class="badge b-ne mono" style="font-size:10px">${d}</span>`).join('')}</div></div>
-  <div class="nav"><button type="button" class="btn" id="prev" ${scene===0?'disabled':''}>‹ Sebelumnya</button><button type="button" class="btn primary" id="nxt" ${scene===SCENES.length-1?'disabled':''}>Berikutnya ›</button></div>
-  <div class="hint" style="margin-top:12px">Panah ← → di keyboard juga berfungsi. Persona dan latensi di bar atas mengubah adegan yang sama.</div>`;
-  $('#rail').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>applyScene(+b.dataset.s));$('#prev').onclick=()=>applyScene(scene-1);$('#nxt').onclick=()=>applyScene(scene+1)}
+  <div class="cap"><div class="k">Yang dilakukan</div><ol class="todo">${acts.map((a,j)=>{const st=running&&auto.k===scene?(j<auto.i?'done':j===auto.i?'cur':''):'';return `<li class="${st}"><span class="m">${st==='done'?'✓':j+1}</span><span>${esc(a.t)}</span></li>`}).join('')}</ol>
+   <div class="k" style="margin-top:14px">Mengapa begini</div><p>${sc.c}</p><div class="dd">${sc.dd.map(d=>`<span class="badge b-ne mono" style="font-size:10px">${d}</span>`).join('')}</div></div>
+  <div class="nav"><button type="button" class="btn" id="prev" ${scene===0?'disabled':''}>‹ Sebelumnya</button><button type="button" class="btn ${running?'':'primary'}" id="nxt" ${scene===SCENES.length-1?'disabled':''}>Berikutnya ›</button></div>
+  <div class="hint" style="margin-top:12px">Panah ← → di keyboard juga berfungsi. Setiap adegan tetap bisa dicoba langsung; persona dan latensi di bar atas mengubah adegan yang sama.</div>`;
+  const run=$('#run');if(run)run.onclick=autoStart;const rp=$('#rPause');if(rp)rp.onclick=autoPause;const rs=$('#rStop');if(rs)rs.onclick=autoStop;
+  $('#rail').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{autoStop();applyScene(+b.dataset.s)});$('#prev').onclick=()=>{autoStop();applyScene(scene-1)};$('#nxt').onclick=()=>{autoStop();applyScene(scene+1)}}
 
 /* ───────────────────────── root ───────────────────────── */
 function renderAll(){renderSim();renderRail();renderPage();$('#layer').innerHTML=renderPanel()+renderWizard()+renderDecision();bindPanel();bindWizard();bindDecision();
   const first=document.querySelector('#wzb .err input,#wzb .err select');if(first&&document.activeElement===document.body)first.focus()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(S.ui.decision){S.ui.decision=null;renderAll()}else if(S.ui.wizard&&S.ui.busy!=='submit'){closeWizard()}else if(S.ui.detailId){S.ui.detailId=null;renderAll()}}
-  if(MODE==='flow'&&!e.target.matches('input,select,textarea')){if(e.key==='ArrowRight')applyScene(scene+1);if(e.key==='ArrowLeft')applyScene(scene-1)}});
+  if(MODE==='flow'&&!e.target.matches('input,select,textarea')){if(e.key==='ArrowRight'){autoStop();applyScene(scene+1)}if(e.key==='ArrowLeft'){autoStop();applyScene(scene-1)}if(e.key===' '&&auto.on){e.preventDefault();autoPause()}}});
 S=seed();if(MODE==='flow')applyScene(0);else renderAll();
 </script>
 </body>

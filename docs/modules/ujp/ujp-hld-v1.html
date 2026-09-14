@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UJP Native Design</title>
+<!-- High-level design. Companion to ujp-trd-v2.md and ujp-prd-v2.md; diagrams are inline SVG. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#ffffff; --panel:#f6f5f8; --ink:#171717; --ink-2:#3f3b47; --muted:#6b6675; --faint:#9a95a4;
+  --rule:rgba(23,23,23,.12); --rule-strong:rgba(23,23,23,.26); --tint:rgba(23,23,23,.045);
+  --accent:#5E2AAC; --accent-ink:#4a2088; --accent-soft:rgba(94,42,172,.10);
+  --money:#047857; --money-soft:rgba(4,120,87,.10); --warn:#b45309; --warn-soft:rgba(180,83,9,.10); --danger:#b91c1c;
+  --code-bg:#f2f0f6; --shadow:0 1px 2px rgba(23,23,23,.05),0 10px 30px -14px rgba(23,23,23,.18);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#141319; --panel:#1b1a21; --ink:#efedf3; --ink-2:#cfcad9; --muted:#a29cb0; --faint:#6f6a7c;
+  --rule:rgba(239,237,243,.14); --rule-strong:rgba(239,237,243,.3); --tint:rgba(239,237,243,.06);
+  --accent:#b195ea; --accent-ink:#c9b6f2; --accent-soft:rgba(177,149,234,.16);
+  --money:#34d399; --money-soft:rgba(52,211,153,.14); --warn:#f0a34a; --warn-soft:rgba(240,163,74,.14); --danger:#f87171;
+  --code-bg:#1f1d27; --shadow:none;
+}}
+:root[data-theme="dark"]{
+  --paper:#141319; --panel:#1b1a21; --ink:#efedf3; --ink-2:#cfcad9; --muted:#a29cb0; --faint:#6f6a7c;
+  --rule:rgba(239,237,243,.14); --rule-strong:rgba(239,237,243,.3); --tint:rgba(239,237,243,.06);
+  --accent:#b195ea; --accent-ink:#c9b6f2; --accent-soft:rgba(177,149,234,.16);
+  --money:#34d399; --money-soft:rgba(52,211,153,.14); --warn:#f0a34a; --warn-soft:rgba(240,163,74,.14); --danger:#f87171;
+  --code-bg:#1f1d27; --shadow:none;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.6}
+.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 28px 80px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:1fr;gap:24px}.toc{position:static;display:none}}
+.toc{position:sticky;top:24px;align-self:start;font-size:12.5px}
+.toc .eyebrow{margin-bottom:10px}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:4px 0;border-left:1px solid var(--rule);padding-left:12px}
+.toc a:hover{color:var(--ink)}
+main{min-width:0}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-size:40px;line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:10px 0 14px;text-wrap:balance}
+.lede{font-size:17px;color:var(--ink-2);max-width:66ch;margin:0 0 8px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:12.5px;padding:14px 0 26px;border-bottom:1px solid var(--rule)}
+h2{font-size:22px;letter-spacing:-.02em;font-weight:800;margin:56px 0 10px;text-wrap:balance}
+h2 .n{color:var(--accent);font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.14em;margin-right:12px;vertical-align:middle}
+h3{font-size:15px;font-weight:700;margin:26px 0 8px;letter-spacing:-.01em}
+p{max-width:70ch;margin:0 0 12px;color:var(--ink-2)}
+ul{max-width:70ch;padding-left:20px;color:var(--ink-2);margin:0 0 12px}li{margin:4px 0}
+strong{color:var(--ink)}
+code{font-family:"JetBrains Mono",monospace;font-size:.86em;background:var(--tint);padding:1px 5px;border-radius:3px}
+pre{font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.6;background:var(--code-bg);border:1px solid var(--rule);border-radius:6px;padding:16px 18px;overflow-x:auto;margin:12px 0}
+pre code{background:none;padding:0;font-size:inherit}
+figure{margin:18px 0 26px;padding:18px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;color:var(--ink)}
+figcaption{font-size:12.5px;color:var(--muted);margin-top:12px;max-width:80ch}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden;margin:26px 0 8px}
+.summary>div{background:var(--paper);padding:16px 18px}
+.summary .k{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.summary .v{font-size:14px;color:var(--ink-2);line-height:1.5}
+@media (max-width:760px){.summary{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0 8px}
+th{text-align:left;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--rule-strong)}
+td{padding:9px 10px;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--ink-2)}
+td:first-child{color:var(--ink);font-weight:600;white-space:nowrap}
+.tbl{overflow-x:auto}
+.pill{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.06em;padding:2px 7px;border-radius:3px;background:var(--tint);color:var(--ink-2)}
+.pill.acc{background:var(--accent-soft);color:var(--accent-ink)}.pill.money{background:var(--money-soft);color:var(--money)}.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.note{border-left:2px solid var(--accent);padding:6px 14px;margin:14px 0;color:var(--ink-2);max-width:70ch;background:var(--accent-soft);border-radius:0 4px 4px 0}
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+.links a{display:block;border:1px solid var(--rule);border-radius:6px;padding:14px 16px;text-decoration:none;color:var(--ink);background:var(--paper)}
+.links a:hover{border-color:var(--accent)}
+.links .k{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.links .t{font-weight:700;margin-top:4px}
+.links .d{font-size:12.5px;color:var(--muted);margin-top:4px}
+footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted)}
+a{color:var(--accent-ink)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<nav class="toc" aria-label="Sections">
+  <div class="eyebrow">Contents</div>
+  <a href="#ctx">1 The key move</a><a href="#comp">2 Components</a><a href="#data">3 Data model</a><a href="#state">4 Lifecycle</a>
+  <a href="#seq">5 Approve transaction</a><a href="#money">6 Money</a><a href="#api">7 API</a><a href="#sec">8 Security</a>
+  <a href="#scale">9 Scale</a><a href="#ui">10 UI contract</a><a href="#dec">11 Decisions</a><a href="#lanes">12 Delivery</a><a href="#art">13 Artifacts</a>
+</nav>
+
+<main>
+<div class="eyebrow">Logistic · UJP · High-level design · v1 · 2026-09-11</div>
+<h1>UJP Native Design</h1>
+<p class="lede">Port <em>Usulan Jasa Pengangkutan</em> (the per-trip running-cost request that authorizes a driver's <em>uang jalan</em>) from the Supabase app <code>logisticdash</code> into the logistics console. The approve step creates the DIRECT_4W shipment in the same transaction, so "forward to dispatch" stops being an integration and becomes a write.</p>
+<div class="meta"><span>Targets: <span class="mono">react-logistic-web</span> + <span class="mono">nest-logistic-service</span></span><span>Source: <span class="mono">winggarahmanda-bit/logisticdash</span></span><span>Reviews: eng CLEAR · design CLEAR</span><span>Owner: yogi.ermanto@dashelectric.co</span></div>
+
+<div class="summary">
+  <div><div class="k">What ships</div><div class="v">A <strong>ujp</strong> module (create, estimate, list, detail, approve/reject/cancel) and a console UI: queue list, 5-step wizard, approval panel. Approve writes the shipment, route and stops through the existing 4W writer.</div></div>
+  <div><div class="k">What changes hands</div><div class="v">Money math, reference numbering, side-effects and authorization move from the browser to the server. The browser only collects inputs and asks <span class="mono">/estimate</span> what they cost.</div></div>
+  <div><div class="k">What is deliberately out</div><div class="v">Google Sheet mirror, Basecamp forward, schedule auto-create, combine, revert, edit-after-submit, ring tariff, route-plan master, subcon vendor master. Each has a reason in §11.</div></div>
+</div>
+
+<h2 id="ctx"><span class="n">01</span>The key move</h2>
+<p>In the old app the browser was the orchestrator: it computed totals, picked a random reference number, inserted the row under row-level security, created a schedule, mirrored a Google Sheet, and on approve called Basecamp and the old two-wheel dispatch API. Every one of those was a separate way to drift. In the new stack the shipment <em>is</em> the dispatch and the route <em>is</em> the schedule, so most of that scaffolding has nothing left to do.</p>
+<figure>
+<svg viewBox="0 0 1040 330" role="img" aria-label="Before: the browser writes Supabase and calls four external systems. After: the console calls one service; approve writes the shipment in the same database transaction.">
+  <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+  <g font-family="JetBrains Mono,monospace" font-size="10.5" letter-spacing="1.2" fill="currentColor" opacity=".6"><text x="16" y="22">BEFORE · LOGISTICDASH</text><text x="560" y="22">AFTER · CONSOLE + NEST-LOGISTIC-SERVICE</text></g>
+  <g font-family="Plus Jakarta Sans,sans-serif" font-size="12.5" fill="currentColor" stroke="currentColor" stroke-width="1.1">
+    <!-- before -->
+    <rect x="16" y="120" width="150" height="54" rx="4" fill="none"/><text x="91" y="143" text-anchor="middle" stroke="none" font-weight="700">Browser</text><text x="91" y="161" text-anchor="middle" stroke="none" font-size="11" opacity=".7">money math · ref id</text>
+    <rect x="250" y="40" width="190" height="40" rx="4" fill="none"/><text x="345" y="65" text-anchor="middle" stroke="none">Supabase travel_requests</text>
+    <rect x="250" y="100" width="190" height="40" rx="4" fill="none"/><text x="345" y="125" text-anchor="middle" stroke="none">schedules (auto-create)</text>
+    <rect x="250" y="160" width="190" height="40" rx="4" fill="none"/><text x="345" y="185" text-anchor="middle" stroke="none">Google Sheet mirror</text>
+    <rect x="250" y="220" width="190" height="40" rx="4" fill="none"/><text x="345" y="245" text-anchor="middle" stroke="none">Basecamp spend-control</text>
+    <rect x="250" y="280" width="190" height="40" rx="4" fill="none"/><text x="345" y="305" text-anchor="middle" stroke="none">2W dispatch API (bulk)</text>
+    <g fill="none" marker-end="url(#a1)"><path d="M166 140 L250 60"/><path d="M166 145 L250 120"/><path d="M166 150 L250 180"/><path d="M166 155 L250 240"/><path d="M166 160 L250 300"/></g>
+    <g stroke="none" font-size="10" opacity=".65"><text x="200" y="92">insert</text><text x="200" y="128">match/insert</text><text x="200" y="168">best-effort</text><text x="200" y="208">on approve</text><text x="200" y="248">on approve</text></g>
+    <!-- after -->
+    <rect x="560" y="120" width="150" height="54" rx="4" fill="none"/><text x="635" y="143" text-anchor="middle" stroke="none" font-weight="700">Console</text><text x="635" y="161" text-anchor="middle" stroke="none" font-size="11" opacity=".7">inputs only</text>
+    <rect x="770" y="96" width="250" height="102" rx="4" fill="none" stroke-width="1.6"/><text x="895" y="118" text-anchor="middle" stroke="none" font-weight="700">nest-logistic-service</text>
+    <rect x="784" y="130" width="100" height="30" rx="3" fill="none" stroke-dasharray="3 3"/><text x="834" y="149" text-anchor="middle" stroke="none" font-size="11.5">ujp module</text>
+    <rect x="906" y="130" width="100" height="30" rx="3" fill="none" stroke-dasharray="3 3"/><text x="956" y="149" text-anchor="middle" stroke="none" font-size="11.5">shipment module</text>
+    <text x="895" y="186" text-anchor="middle" stroke="none" font-size="10.5" opacity=".7">one transaction: ujp + history + shipment/route/stops</text>
+    <rect x="770" y="230" width="250" height="40" rx="4" fill="none"/><text x="895" y="255" text-anchor="middle" stroke="none">Postgres</text>
+    <rect x="560" y="230" width="150" height="40" rx="4" fill="none"/><text x="635" y="255" text-anchor="middle" stroke="none">Driver app</text>
+    <g fill="none" marker-end="url(#a1)"><path d="M710 140 L770 140"/><path d="M895 198 L895 230"/><path d="M770 250 L710 250"/></g>
+    <g stroke="none" font-size="10" opacity=".65"><text x="716" y="132">estimate · create · decide</text><text x="903" y="218">writes</text><text x="722" y="244">reads route</text></g>
+    <path d="M884 145 L906 145" fill="none" marker-end="url(#a1)"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-opacity=".25"><line x1="500" y1="30" x2="500" y2="320" stroke-dasharray="4 4"/></g>
+</svg>
+<figcaption>Five outbound integrations collapse into one service call. The dispatch forward becomes the in-process creation of a DIRECT_4W shipment; the approve decision and the shipment commit or roll back together.</figcaption>
+</figure>
+
+<h2 id="comp"><span class="n">02</span>Components</h2>
+<p>The frontend owns presentation and input. The <code>ujp</code> module owns the entity, numbering, money and authorization. Shipment creation stays in the shipment module, reached through a shared domain service extracted from the existing 4W use case, because the repo rule is "share repositories and services, never another module's use case".</p>
+<figure>
+<svg viewBox="0 0 1040 400" role="img" aria-label="Component diagram: console pages call the UJP API; the UJP module's use cases call its repositories, the shared Direct4WCreationService in the shipment module, and the CoreService and DriverService clients; addresses and reasons are read-only inputs.">
+  <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+  <g font-family="Plus Jakarta Sans,sans-serif" font-size="12.5" fill="currentColor" stroke="currentColor" stroke-width="1.1">
+    <!-- FE -->
+    <rect x="16" y="40" width="260" height="320" rx="6" fill="none" stroke-width="1.6"/><text x="30" y="64" stroke="none" font-weight="700">react-logistic-web</text>
+    <rect x="30" y="80" width="232" height="34" rx="3" fill="none"/><text x="42" y="102" stroke="none" font-size="11.5">pages/ujp · list · wizard · panel</text>
+    <rect x="30" y="124" width="232" height="34" rx="3" fill="none"/><text x="42" y="146" stroke="none" font-size="11.5">shipments/steps · Stops · Rider (shared)</text>
+    <rect x="30" y="168" width="232" height="34" rx="3" fill="none"/><text x="42" y="190" stroke="none" font-size="11.5">services/api/ujp.ts · addresses · reasons</text>
+    <rect x="30" y="212" width="232" height="34" rx="3" fill="none" stroke-dasharray="3 3"/><text x="42" y="234" stroke="none" font-size="11.5">useUjpEstimate · debounce · abort · seq</text>
+    <text x="30" y="290" stroke="none" font-size="11" opacity=".7">No money math in the browser.</text>
+    <text x="30" y="308" stroke="none" font-size="11" opacity=".7">Totals come back from /estimate.</text>
+    <!-- BE -->
+    <rect x="380" y="40" width="644" height="320" rx="6" fill="none" stroke-width="1.6"/><text x="394" y="64" stroke="none" font-weight="700">nest-logistic-service</text>
+    <rect x="394" y="80" width="300" height="220" rx="4" fill="none"/><text x="406" y="100" stroke="none" font-weight="600" font-size="12">modules/ujp</text>
+    <rect x="406" y="112" width="276" height="30" rx="3" fill="none"/><text x="416" y="131" stroke="none" font-size="11.5">UjpController · nested DTOs · WEB auth</text>
+    <rect x="406" y="150" width="276" height="30" rx="3" fill="none"/><text x="416" y="169" stroke="none" font-size="11.5">use cases: create · estimate · list · get · decide · cancel</text>
+    <rect x="406" y="188" width="132" height="30" rx="3" fill="none"/><text x="416" y="207" stroke="none" font-size="11.5">UjpCostService</text>
+    <rect x="550" y="188" width="132" height="30" rx="3" fill="none"/><text x="560" y="207" stroke="none" font-size="11.5">Approver gate</text>
+    <rect x="406" y="226" width="276" height="30" rx="3" fill="none"/><text x="416" y="245" stroke="none" font-size="11.5">UjpRepository · UjpVehicleRepository</text>
+    <text x="406" y="284" stroke="none" font-size="10.5" opacity=".7">counter · lock · history · masking mapper</text>
+    <rect x="730" y="80" width="280" height="100" rx="4" fill="none"/><text x="742" y="100" stroke="none" font-weight="600" font-size="12">modules/shipment</text>
+    <rect x="742" y="112" width="256" height="30" rx="3" fill="none" stroke-width="1.6"/><text x="752" y="131" stroke="none" font-size="11.5" font-weight="600">Direct4WCreationService</text>
+    <text x="742" y="164" stroke="none" font-size="10.5" opacity=".7">prepare() outside tx · write(tx) inside · also used by POST /shipments/direct-4w</text>
+    <rect x="730" y="200" width="134" height="30" rx="3" fill="none"/><text x="740" y="219" stroke="none" font-size="11.5">CoreService</text>
+    <rect x="876" y="200" width="134" height="30" rx="3" fill="none"/><text x="886" y="219" stroke="none" font-size="11.5">DriverService</text>
+    <text x="730" y="250" stroke="none" font-size="10.5" opacity=".7">clients (nodejs core) · riders (/v3/drivers)</text>
+    <rect x="730" y="268" width="134" height="30" rx="3" fill="none" stroke-dasharray="3 3"/><text x="740" y="287" stroke="none" font-size="11.5">addresses (read)</text>
+    <rect x="876" y="268" width="134" height="30" rx="3" fill="none" stroke-dasharray="3 3"/><text x="886" y="287" stroke="none" font-size="11.5">reasons (read)</text>
+    <text x="730" y="330" stroke="none" font-size="10.5" opacity=".7">lanes → stops + km estimate · type=UJP_REJECTION</text>
+    <!-- arrows -->
+    <g fill="none" marker-end="url(#a2)">
+      <path d="M262 185 L394 128"/><path d="M682 165 L742 130"/><path d="M682 170 L730 214"/><path d="M682 175 L876 214"/>
+      <path d="M262 97 L730 283" stroke-dasharray="3 3"/><path d="M262 102 L876 288" stroke-dasharray="3 3"/>
+    </g>
+    <g stroke="none" font-size="10" opacity=".65"><text x="300" y="150">HTTPS /v1/ujp/*</text><text x="690" y="152">write(tx)</text><text x="500" y="116" opacity=".9">GET lanes · reasons</text></g>
+  </g>
+</svg>
+<figcaption>The UJP module never imports the route module and never calls another module's use case. The only new cross-module edge is the shared creation service, exported by the shipment module.</figcaption>
+</figure>
+
+<h2 id="data"><span class="n">03</span>Data model</h2>
+<p>One request table with typed columns, an append-only history, a daily counter for numbering, a small vehicle master, and one new column on shipments. Lanes and reasons are read from tables that already exist and are not changed. Money columns are <code>numeric(14,2)</code> handled as strings through <code>MoneyHelper</code>; never floats.</p>
+<figure>
+<svg viewBox="0 0 1040 380" role="img" aria-label="Entity diagram: ujp links one-to-one to shipments via ujp_id, one-to-many to ujp_status_history, references reasons by code, snapshots ujp_vehicles, reads addresses for lanes, and takes its number from ujp_daily_counters.">
+  <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+  <g font-family="JetBrains Mono,monospace" font-size="11" fill="currentColor" stroke="currentColor" stroke-width="1.1">
+    <!-- ujp -->
+    <rect x="360" y="40" width="320" height="300" rx="4" fill="none" stroke-width="1.6"/>
+    <rect x="360" y="40" width="320" height="26" fill="currentColor" fill-opacity=".08" stroke="none"/><text x="372" y="58" stroke="none" font-weight="600">ujp</text>
+    <g stroke="none"><text x="372" y="86">id uuid pk</text><text x="372" y="104">reference_id text UNIQUE  UJP-YYYYMMDD-NNNN</text><text x="372" y="122">status  SUBMITTED|APPROVED|REJECTED|CANCELLED</text><text x="372" y="140">client_id int + client jsonb snapshot</text><text x="372" y="158">delivery_date · header · payee · bank · nominal</text><text x="372" y="176">vehicle snapshot  plate · unit · baseline · price</text><text x="372" y="194">source_lane_ids uuid[] · distance_km_calculated</text><text x="372" y="212">cost inputs (9) · cost outputs (6)  numeric(14,2)</text><text x="372" y="230">stops jsonb · rider jsonb · requester_email</text><text x="372" y="248">decided_by/at · decision_note · reason_code</text><text x="372" y="266">shipment_id uuid UNIQUE (nullable)</text><text x="372" y="284">search_text STORED  →  GIN trgm</text><text x="372" y="302" opacity=".6">idx: (status, created_at) · (client_id, delivery_date)</text></g>
+    <!-- history -->
+    <rect x="40" y="40" width="240" height="96" rx="4" fill="none"/><rect x="40" y="40" width="240" height="26" fill="currentColor" fill-opacity=".08" stroke="none"/><text x="52" y="58" stroke="none" font-weight="600">ujp_status_history</text>
+    <g stroke="none"><text x="52" y="86">ujp_id fk · from_status · to_status</text><text x="52" y="104">changed_by · note · reason_code</text><text x="52" y="122">changed_at  (append-only)</text></g>
+    <!-- counters -->
+    <rect x="40" y="160" width="240" height="70" rx="4" fill="none"/><rect x="40" y="160" width="240" height="26" fill="currentColor" fill-opacity=".08" stroke="none"/><text x="52" y="178" stroke="none" font-weight="600">ujp_daily_counters</text>
+    <g stroke="none"><text x="52" y="206">day date pk · next int</text><text x="52" y="222" opacity=".6">INSERT … ON CONFLICT DO UPDATE RETURNING</text></g>
+    <!-- vehicles -->
+    <rect x="40" y="254" width="240" height="86" rx="4" fill="none"/><rect x="40" y="254" width="240" height="26" fill="currentColor" fill-opacity=".08" stroke="none"/><text x="52" y="272" stroke="none" font-weight="600">ujp_vehicles</text>
+    <g stroke="none"><text x="52" y="300">plate_number UNIQUE · unit_type</text><text x="52" y="318">energy_type ICE|EV · baseline · energy_price</text><text x="52" y="334" opacity=".6">SQL-seeded · autofill only</text></g>
+    <!-- shipments -->
+    <rect x="760" y="40" width="240" height="86" rx="4" fill="none"/><rect x="760" y="40" width="240" height="26" fill="currentColor" fill-opacity=".08" stroke="none"/><text x="772" y="58" stroke="none" font-weight="600">shipments</text>
+    <g stroke="none"><text x="772" y="86">… existing columns …</text><text x="772" y="104" font-weight="600">ujp_id uuid UNIQUE  (new)</text><text x="772" y="122" opacity=".6">booking_id = ujp.reference_id</text></g>
+    <!-- reasons -->
+    <rect x="760" y="160" width="240" height="70" rx="4" fill="none" stroke-dasharray="3 3"/><rect x="760" y="160" width="240" height="26" fill="currentColor" fill-opacity=".08" stroke="none"/><text x="772" y="178" stroke="none" font-weight="600">reasons  (existing)</text>
+    <g stroke="none"><text x="772" y="206">code pk · type = UJP_REJECTION</text><text x="772" y="222" opacity=".6">domain is a liability rollup, not a filter</text></g>
+    <!-- addresses -->
+    <rect x="760" y="254" width="240" height="86" rx="4" fill="none" stroke-dasharray="3 3"/><rect x="760" y="254" width="240" height="26" fill="currentColor" fill-opacity=".08" stroke="none"/><text x="772" y="272" stroke="none" font-weight="600">addresses  (existing, read-only)</text>
+    <g stroke="none"><text x="772" y="300">origin/destination name+coords</text><text x="772" y="318">distance int metres · client_id</text><text x="772" y="334" opacity=".6">lane picker · km estimate</text></g>
+    <!-- edges -->
+    <g fill="none" marker-end="url(#a3)"><path d="M360 90 L280 90"/><path d="M360 200 L280 200"/><path d="M360 290 L280 290" stroke-dasharray="3 3"/><path d="M680 86 L760 86"/><path d="M680 200 L760 200" stroke-dasharray="3 3"/><path d="M680 290 L760 290" stroke-dasharray="3 3"/></g>
+    <g stroke="none" font-size="10" opacity=".7"><text x="292" y="82">1 : n</text><text x="290" y="194">numbering</text><text x="292" y="284">snapshot</text><text x="690" y="80">1 : 0..1</text><text x="690" y="194">by code</text><text x="690" y="284">read</text></g>
+  </g>
+</svg>
+<figcaption>Solid edges are foreign keys or ownership; dashed edges are read-only references or value snapshots. A shipment carries <code>ujp_id</code>, so "created from a UJP" is a fact, not the unpersisted <code>importedFromUjp</code> flag the 4W endpoint accepts today.</figcaption>
+</figure>
+
+<h2 id="state"><span class="n">04</span>Lifecycle</h2>
+<figure>
+<svg viewBox="0 0 1040 200" role="img" aria-label="State machine: SUBMITTED goes to APPROVED, REJECTED, or CANCELLED. APPROVED sets shipment_id in the same transaction. All three end states are terminal; re-approving an APPROVED request returns the same result.">
+  <defs><marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+  <g font-family="JetBrains Mono,monospace" font-size="12" fill="currentColor" stroke="currentColor" stroke-width="1.2">
+    <circle cx="60" cy="100" r="6" fill="currentColor" stroke="none"/>
+    <rect x="200" y="76" width="170" height="48" rx="24" fill="none" stroke-width="1.6"/><text x="285" y="105" text-anchor="middle" stroke="none" font-weight="600">SUBMITTED</text>
+    <rect x="660" y="20" width="170" height="48" rx="24" fill="none" stroke="var(--money)" stroke-width="1.8"/><text x="745" y="49" text-anchor="middle" stroke="none" font-weight="600" fill="var(--money)">APPROVED</text>
+    <rect x="660" y="76" width="170" height="48" rx="24" fill="none"/><text x="745" y="105" text-anchor="middle" stroke="none" font-weight="600">REJECTED</text>
+    <rect x="660" y="132" width="170" height="48" rx="24" fill="none"/><text x="745" y="161" text-anchor="middle" stroke="none" font-weight="600">CANCELLED</text>
+    <g fill="none" marker-end="url(#a4)"><path d="M66 100 L200 100"/><path d="M370 92 C500 92 520 44 660 44"/><path d="M370 100 L660 100"/><path d="M370 108 C500 108 520 156 660 156"/></g>
+    <g stroke="none" font-size="10.5" opacity=".75"><text x="80" y="92">create (ops)</text><text x="80" y="118">counter → UJP-…-NNNN</text><text x="420" y="60">decision approved · approver ∉ requester</text><text x="420" y="76" fill="var(--money)">+ shipment_id set in same tx</text><text x="420" y="96">decision rejected · reason code required</text><text x="420" y="150">cancel · requester only</text></g>
+    <g stroke="none" font-size="10.5" opacity=".75"><text x="850" y="49">terminal · re-approve → same result</text><text x="850" y="105">terminal</text><text x="850" y="161">terminal</text></g>
+  </g>
+</svg>
+<figcaption>No DRAFT: the old UI never wrote one. Any transition from a terminal state answers 409. The decision use case takes a row lock (<code>FOR UPDATE</code>) so two approvers cannot both pass the status check.</figcaption>
+</figure>
+
+<h2 id="seq"><span class="n">05</span>Approve transaction</h2>
+<p>External reads happen before the transaction so no row lock is held across a network call. Inside the transaction the shared creation service writes shipment, status history, route, stops and links, then the UJP row gets its <code>shipment_id</code>. Any throw rolls everything back and the request stays SUBMITTED.</p>
+<figure>
+<svg viewBox="0 0 1040 420" role="img" aria-label="Sequence: approver posts decision; API checks allowlist and self-approval; re-fetches client and rider outside the transaction; then inside one transaction locks the row, checks state, writes history, calls Direct4WCreationService.write, sets shipment_id; returns the result with waybill.">
+  <defs><marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+  <g font-family="Plus Jakarta Sans,sans-serif" font-size="12" fill="currentColor" stroke="currentColor" stroke-width="1.1">
+    <g font-weight="700" stroke="none" text-anchor="middle"><text x="100" y="30">Approver UI</text><text x="340" y="30">DecideUjpUseCase</text><text x="600" y="30">Core / Driver services</text><text x="860" y="30">Postgres · Shipment module</text></g>
+    <g stroke-opacity=".3"><line x1="100" y1="44" x2="100" y2="400"/><line x1="340" y1="44" x2="340" y2="400"/><line x1="600" y1="44" x2="600" y2="400"/><line x1="860" y1="44" x2="860" y2="400"/></g>
+    <g fill="none" marker-end="url(#a5)">
+      <path d="M100 70 L340 70"/><path d="M340 130 L600 130"/><path d="M600 150 L340 150" stroke-dasharray="3 3"/><path d="M340 170 L600 170"/><path d="M600 190 L340 190" stroke-dasharray="3 3"/>
+      <path d="M340 240 L860 240"/><path d="M340 280 L860 280"/><path d="M340 300 L860 300"/><path d="M340 320 L860 320"/><path d="M340 340 L860 340"/><path d="M340 384 L100 384" stroke-dasharray="3 3"/>
+    </g>
+    <g stroke="none" font-size="10.5"><text x="110" y="64">POST /v1/ujp/:id/decision {action: approved}</text>
+      <text x="350" y="96" opacity=".8">email in allowlist? not the requester? else 403</text>
+      <text x="350" y="124">getProviderByID(clientId)</text><text x="350" y="164">getDriverByID(riderId)</text><text x="350" y="204" opacity=".8">404 / inactive → 400 with message, nothing written</text>
+      <text x="350" y="234">SELECT ujp FOR UPDATE</text><text x="350" y="256" opacity=".8">APPROVED+shipment_id → return same · else if ≠ SUBMITTED → 409</text>
+      <text x="350" y="274">UPDATE ujp SET status=APPROVED, decided_by/at</text><text x="350" y="294">INSERT ujp_status_history</text>
+      <text x="350" y="314">Direct4WCreationService.write(tx, prepared, {ujpId, bookingId: referenceId})</text><text x="350" y="334">UPDATE ujp SET shipment_id  (CREATED or EXISTS both link)</text>
+      <text x="110" y="378">200 {status, shipment: {waybill, routeCode}}</text></g>
+    <rect x="330" y="222" width="540" height="130" rx="4" fill="none" stroke-dasharray="4 4" stroke-width="1.4"/><text x="340" y="366" stroke="none" font-size="10.5" font-weight="600">one transaction · any throw → rollback, UJP stays SUBMITTED</text>
+    <rect x="330" y="108" width="540" height="104" rx="4" fill="none" stroke-opacity=".35"/><text x="850" y="122" stroke="none" font-size="10.5" text-anchor="end" opacity=".7">outside tx: no lock across network</text>
+  </g>
+</svg>
+<figcaption>Idempotency comes for free: the shipment's booking id is the UJP reference, so a retried approve finds the existing shipment (EXISTS) and links it instead of creating a duplicate.</figcaption>
+</figure>
+
+<h2 id="money"><span class="n">06</span>Money</h2>
+<p>The formula is ported from the old app's <code>ujp-calculations.ts</code> plus the subcon branch that lived in its form. It exists once, in <code>UjpCostService</code>. The browser calls <code>POST /v1/ujp/estimate</code> (debounced, aborting stale requests, sequence-checked) for the live preview; create recomputes from raw inputs and ignores any client-sent totals. The reconciliation oracle is a fixture of 30 real UJPs run through the old code with its half-up rounding reproduced.</p>
+<pre><code>totalKmWithMargin = kmYangDiajukan / 0.95                     # 5% buffer
+estimasiBbmLiter  = baseline &gt; 0 ? round1(totalKmWithMargin / baseline) : 0   # EV: baseline = 1 / konsumsiPerKm
+computedBbmCost   = round(estimasiBbmLiter × energyPrice)
+totalBbmCost      = bbmFixOverride ?? computedBbmCost
+
+flazz  = totalBbmCost + tollFlazz + parkirTapMachine
+manual = parkirManual + biayaBongkarMuat + biayaLainLain + uangMakan
+
+if payee == subcon:              Flazz = 0        Transfer = nominalTransfer
+elif eMoney.trim().lower == "no": Flazz = 0        Transfer = flazz + manual
+else:                            Flazz = flazz    Transfer = manual
+estimatedAmount = Flazz + Transfer</code></pre>
+<div class="note">The reference number is server-authoritative: <code>ujp_daily_counters</code> is upserted atomically inside the create transaction, giving finance gap-free daily numbering in the format they already reconcile against. The old app used a random 4-digit suffix with no unique constraint.</div>
+
+<h2 id="api"><span class="n">07</span>API surface</h2>
+<div class="tbl"><table>
+<tr><th>Endpoint</th><th>Who</th><th>What</th></tr>
+<tr><td class="mono">POST /v1/ujp/estimate</td><td>WEB</td><td><span class="mono">{vehicle, costs, payee.type}</span> → totals. Pure; nothing written.</td></tr>
+<tr><td class="mono">POST /v1/ujp</td><td>WEB</td><td>Nested DTO (header · payee · vehicle · costs · cargo · stops · rider). Server numbers it, recomputes money, snapshots rider and client, stores lane ids.</td></tr>
+<tr><td class="mono">GET /v1/ujp</td><td>WEB</td><td>Filters status · clientId · deliveryFrom/To · search · page/limit. One count + one rows query; linked shipment status via LEFT JOIN. Bank fields masked per caller.</td></tr>
+<tr><td class="mono">GET /v1/ujp/:id</td><td>WEB</td><td>Request + history + shipment summary. Masked per caller.</td></tr>
+<tr><td class="mono">POST /v1/ujp/:id/decision</td><td>Allowlisted</td><td><span class="mono">{action: approved|rejected, reasonCode?, note?}</span>. Approve creates the shipment (§5). Reject requires a <span class="mono">UJP_REJECTION</span> reason.</td></tr>
+<tr><td class="mono">POST /v1/ujp/:id/cancel</td><td>Requester</td><td>Only while SUBMITTED.</td></tr>
+<tr><td class="mono">GET /v1/ujp/masters/vehicles</td><td>WEB</td><td>Plate search → unit, energy type, baseline, price.</td></tr>
+<tr><td class="mono">reused</td><td>WEB</td><td><span class="mono">GET /v1/addresses?clientIds&amp;search</span> · <span class="mono">GET /v1/reasons?type=UJP_REJECTION</span> · <span class="mono">GET /v3/drivers</span> · <span class="mono">GET /v1/stop-workflows</span></td></tr>
+</table></div>
+<p>Errors keep the house envelope <code>{status:'Failed', error:&lt;message&gt;}</code>; the HTTP status carries the class (400 validation, 403 gate, 404, 409 terminal state).</p>
+
+<h2 id="sec"><span class="n">08</span>Security and trust</h2>
+<ul>
+<li><strong>Approver gate is server-side.</strong> <code>UJP_APPROVER_EMAILS</code> (Joi-validated, lower-cased) is checked against the JWT <code>email</code>, which the core service puts in every web user token. A missing claim or an empty list fails closed. The requester can never approve their own request. The frontend reads a mirror of the list only to hide buttons.</li>
+<li><strong>Read-side masking.</strong> Anyone who is neither an allowlisted approver nor the requester sees the account number as <span class="mono">•••• 1234</span> and the nominal as "Disembunyikan". Enforced in the response mapper, so no client change can leak it.</li>
+<li><strong>Money is never trusted from the client.</strong> Totals in the payload are ignored; the server recomputes.</li>
+<li><strong>Audit.</strong> Every transition writes <code>ujp_status_history</code> with actor email, from/to, reason code and note.</li>
+</ul>
+
+<h2 id="scale"><span class="n">09</span>Scale and performance</h2>
+<ul>
+<li>List: a STORED <code>search_text</code> column (reference, client, driver, plate, origin, destination) under a trigram GIN index; composite indexes on <code>(status, created_at DESC)</code>, <code>(client_id, delivery_date)</code>, <code>(delivery_date)</code>; page/limit with limit ≤ 200. The old app pulled every row and paginated in the browser, silently capped at 1,000.</li>
+<li>Estimate: one debounced call per input burst; previous request aborted; responses with a stale sequence discarded; the Review step recheck is the last word before submit.</li>
+<li>Approve: external reads pre-transaction; the row lock is held only for local writes.</li>
+<li>Numbering: one atomic upsert on today's counter row; no retry loop; contention limited to one row per day.</li>
+</ul>
+
+<h2 id="ui"><span class="n">10</span>UI contract</h2>
+<p>Bound to the console's design system (ink primary, purple accent as punctuation, hairline rules, Plus Jakarta Sans and JetBrains Mono, <code>rounded-gsm</code>). Flazz is rendered in the emerald data tone, Transfer in the accent tone; no new hexes.</p>
+<div class="tbl"><table>
+<tr><th>Surface</th><th>Shape</th><th>Anchor</th></tr>
+<tr><td>Queue list</td><td>Page shell · hairline status tabs with counts (default <em>Menunggu</em>) · TableData · Paginator · URL-backed filters</td><td>Age chip (amber &gt; 2 days) and Total in tabular numerals</td></tr>
+<tr><td>Create wizard</td><td>FormModal 2xl · 5 steps <em>Info → Rute → Biaya → Driver → Review</em>, forward-only dependencies · shared Stops and Rider steps from the 4W modal</td><td>Persistent estimate strip in the footer (hidden on Biaya and Review, which carry the breakdown and tiles)</td></tr>
+<tr><td>Approval panel</td><td>SideBarModal right, md · money first · "Dibuat saat disetujui" shipment preview · breakdown · masked rekening · stops · history</td><td>Primary button reads <em>Setujui &amp; buat shipment</em>; Tolak is outline-danger; Batalkan is ghost, requester only</td></tr>
+<tr><td>Reject</td><td>Modal sm danger · reason from <span class="mono">reasons?type=UJP_REJECTION</span> (incl. route/driver reasons) · optional note</td><td>Primary disabled until a reason is chosen</td></tr>
+</table></div>
+<p>Full state table, storyboard, copy set, responsive and accessibility contract: assessment doc §14 (DD1–DD14). The flow simulation and prototype in §13 render these decisions.</p>
+
+<h2 id="dec"><span class="n">11</span>Decisions register</h2>
+<div class="tbl"><table>
+<tr><th>#</th><th>Decision</th><th>Why</th></tr>
+<tr><td>D1</td><td>Vertical slice, not parity with the old app</td><td>The dropped pieces existed because the old app had no backend, no shipment, no native list</td></tr>
+<tr><td>D2</td><td>Shipment created on approve, in the decision transaction</td><td>No shipment ever exists for unapproved cash; reject/cancel never touch shipment tables</td></tr>
+<tr><td>D3</td><td>Extract <span class="mono">Direct4WCreationService</span>; both callers share it</td><td>One shipment writer; repo rule forbids cross-module use-case injection</td></tr>
+<tr><td>D4</td><td>Daily counter for <span class="mono">UJP-YYYYMMDD-NNNN</span></td><td>4-digit space collides at volume with random; finance reads the sequence</td></tr>
+<tr><td>D5</td><td>Money computed server-only; FE uses /estimate</td><td>Two implementations in two repos is the only way to drift</td></tr>
+<tr><td>D6</td><td>Email allowlist approver gate, server-enforced; masking for others</td><td>Roles claim carries only client roles today; RBAC is a follow-up</td></tr>
+<tr><td>D7</td><td><span class="mono">ujp_vehicles</span> master, SQL-seeded, autofill with override</td><td>No vehicle table exists; baseline and price are the riskiest hand-typed inputs</td></tr>
+<tr><td>D8</td><td>Lift 4W modal Steps 2/3 into shared components first</td><td>One implementation of stops, workflows, map, rider auto-select</td></tr>
+<tr><td>D9</td><td>Full state machine: lock, idempotent re-approve, re-validation, reason codes, no DRAFT</td><td>Every race and stale-reference case has a defined outcome</td></tr>
+<tr><td>D10</td><td>Nested DTOs mirroring wizard steps; stops/rider reuse 4W DTOs</td><td>One step = one DTO = one validation scope</td></tr>
+<tr><td>D11</td><td>Postgres service container in a PR test workflow + integration specs</td><td>Lock, rollback and counter races cannot be proven with mocks</td></tr>
+<tr><td>D12</td><td><span class="mono">search_text</span> + GIN + composite indexes; LEFT JOIN shipment</td><td>Proven pattern on shipments; finance's default view is all-statuses-by-date</td></tr>
+<tr><td>D13</td><td>Estimate hook: debounce, abort, sequence, stale state, Review recheck</td><td>Out-of-order responses must never leave an old total on screen</td></tr>
+<tr><td>D14–D17</td><td>Kept approve→shipment coupling; accepted masking; lanes read-only from <span class="mono">addresses</span>, multi-drop km = lane sum as editable estimate</td><td>Outside-voice tensions resolved with the product owner</td></tr>
+<tr><td>DD1–DD14</td><td>Footer estimate anchor · 5 forward-only steps · money-first panel with honest button · full state table · masking UI · queue-shaped list · MoneyInput/KmInput · subcon disable-in-place · lane chips · responsive · a11y · copy set · light only</td><td>Design review 4/10 → 9/10</td></tr>
+</table></div>
+
+<h3>Out of scope, with reasons</h3>
+<ul>
+<li>Google Sheet mirror: the native list and detail replace it; revisit only if finance asks after a month.</li>
+<li>Basecamp spend-control forward: separate integration with its own credentials.</li>
+<li>Schedule auto-create: the route created on approve is the schedule.</li>
+<li>Combine, revert, edit-after-submit: multi-drop stops, shipment cancellation, and cancel-plus-resubmit cover them with an honest audit trail.</li>
+<li>Ring / PER_RING tariff: billing-side, no tariff tables here.</li>
+<li>Route-plan master and per-lane cost presets: lanes come from addresses; presets are a follow-up once typos are observed.</li>
+<li>Admin UI for vehicles, JWT role for approvers, historical import from logisticdash, CSV-import retirement: recorded as TODO-20 to TODO-26.</li>
+</ul>
+
+<h2 id="lanes"><span class="n">12</span>Delivery lanes</h2>
+<div class="tbl"><table>
+<tr><th>Lane</th><th>Steps</th><th>Depends on</th></tr>
+<tr><td>0 · Contract</td><td>API collection folder <span class="mono">Logistic Service/UJP/</span> with nested DTOs and masking notes; <span class="mono">ReasonType.UJP_REJECTION</span> + seed rows</td><td>—, runs first (hours)</td></tr>
+<tr><td>1 · Shipment refactor</td><td>Extract <span class="mono">Direct4WCreationService</span>; regression spec on the 4W use case; then the decision use case with integration specs</td><td>Lane 0; decision step waits for Lane 2 schema</td></tr>
+<tr><td>2 · UJP backend</td><td>Migration 0093 (six tables/columns, indexes), seeds, module skeleton, create/estimate/list/get/cancel/masters, config, <span class="mono">test.yml</span> with Postgres</td><td>Lane 0</td></tr>
+<tr><td>3 · Web foundation</td><td>Regression test for the 4W modal, then extract Stops/Rider steps, CSV-import deprecation banner, PR test workflow</td><td>—</td></tr>
+<tr><td>4 · Web UJP</td><td>API module, permissions, lane hook, MoneyInput, list, wizard, panel, decision modal, router, sidebar, copy</td><td>Lane 0 contract, Lane 3 steps</td></tr>
+<tr><td>5 · Docs</td><td>Vault PRD/TRD v2, ERD update</td><td>—</td></tr>
+</table></div>
+<p>Launch Lane 0 first, then Lanes 1, 2, 3 and 5 in parallel worktrees. Lane 1's decision step merges after Lane 2's schema; Lane 4 starts after Lane 3. Migration number 0093 is claimed once, by Lane 2.</p>
+
+<h2 id="art"><span class="n">13</span>Artifacts</h2>
+<div class="links">
+  <a href="./ujp-flow-simulation-v1.html" id="lnk-flow"><div class="k">Simulation</div><div class="t">UJP Flow Simulation</div><div class="d">Guided walkthrough: ops creates, finance approves, a shipment appears. Twelve annotated scenes.</div></a>
+  <a href="./ujp-prototype-v1.html" id="lnk-proto"><div class="k">Prototype</div><div class="t">UJP Prototype</div><div class="d">Hands-on wizard, queue and approval panel with a simulated server and persona switching.</div></a>
+  <a href="./ujp-trd-v2.md"><div class="k">Source of record</div><div class="t">ujp-trd-v2.md · ujp-prd-v2.md</div><div class="d">Reviewed TRD (contract, data model, decisions, lanes) and PRD (requirements, UI contract).</div></a>
+</div>
+
+<footer>UJP Native Design · v1 · 2026-09-11 · supersedes logistic-knowledge-vault docs/modules/ujp/ujp-prd-trd-v1.md in scope (D1), shipment timing (D2) and formula ownership (D5).</footer>
+</main>
+</div>
+</body>
+</html>
