@@ -2,7 +2,7 @@
 title: UJP Native — Technical Requirements & High-Level Design
 module: ujp
 doctype: trd
-version: 2
+version: 2.1
 status: reviewed
 product_owner: muhamad.zulfikar@dashelectric.co
 engineer: yogi.ermanto@dashelectric.co
@@ -10,6 +10,7 @@ created: 2026-09-12
 reviews:
   eng: 2026-09-10 (plan-eng-review, CLEAR, 17 decisions)
   design: 2026-09-11 (plan-design-review, 4/10 → 9/10, 14 decisions)
+  cr1: 2026-09-15 (plan-eng-review on stakeholder simulation review, 9 decisions)
 links:
   prd: ./ujp-prd-v2.md
   hld: ./ujp-hld-v1.html
@@ -467,11 +468,47 @@ Tasks with effort estimates: `ASSESSMENT-UJP-PORT-4W.md` §12 and §14.8 in the 
 | D17 | Multi-drop km = sum of lane distances as an editable, labelled estimate | Existing data, no new integration; mirrors the source's calculated-vs-proposed split |
 | DD1–DD14 | UI contract (footer anchor, 5 steps, money-first panel, state table, masking UI, queue list, hairline Review, MoneyInput, subcon disable-in-place, lane chips, responsive, a11y, copy, light only) | Design review 4/10 → 9/10 |
 
+## 15. Change request CR-1 (2026-09-15)
+
+Stakeholder review of the flow simulation asked for seven changes. Source-app audit (`logisticdash`): only the subcon rule is a port; the rest are new requirements (route plans there are unordered SQL-seeded pairs with no UI; the km margin is one hardcoded `/0.95`; QRIS appears nowhere; only EV has a dated price; no client "charged" config, only a per-request `origin_is_depot` checkbox; `harga_reverse` is stored but never read). All seven fold into Phase 1. **Supersedes D16/D17** (addresses lane picker) and amends D2, D5, D7.
+
+| # | Decision |
+|---|---|
+| CR-D2 | **Saved routes.** `ujp_routes(id, client_id, name UNIQUE per client, stops jsonb ordered [{seq, role: POSITIONING \| PICKUP \| DROP_OFF \| RETURN, name, address, lat, lng, intent?}], legs jsonb [{seq, fromSeq, toSeq, km}], total_km, active, created_by, timestamps)`. Rute step = saved route for the client, or manual build (`UjpRouteBuilder`) with optional "Simpan sebagai rute tersimpan". Leg km from the browser's Google Distance Matrix, editable. UJP snapshots `route_id` + stops + legs. |
+| CR-D3 | **Km margin** `totalKmWithMargin = km × (1 + pct/100)`, pct from `UJP_KM_MARGIN_PCT` (default 10), snapshotted as `ujp.km_margin_pct`. |
+| CR-D4 | **E-money** `e_money ∈ {NONE, FLAZZ, QRIS, FLAZZ_QRIS}`; BBM → QRIS if available, else Flazz if available, else Transfer; toll + parkir tap → Flazz if available else Transfer; manual lines → Transfer; subcon → all Transfer. New `total_uang_jalan_qris`. |
+| CR-D5 | **Fuel price master** `ujp_energy_prices(fuel_type ∈ SOLAR \| DEXLITE \| PERTALITE \| EV_KWH, price, effective_from)`; `ujp_vehicles.fuel_type` replaces per-vehicle price; price effective on the delivery date is filled, locked, editable; UJP snapshots fuel_type + energy_price. |
+| CR-D6 | **Subcon** approve = APPROVED + history, **no shipment**. `ujp_subcon_vendors(id, name, city, bank_name, account_number, account_holder, pic_name, pic_phone, active)` seeded; wizard vendor select fills bank fields; rider optional; UJP stores `subcon_vendor_id`. |
+| CR-D7 | **Client UJP config** `ujp_client_configs(client_id pk, charged_positioning bool, reverse_charge numeric(14,2), default_e_money?, notes, updated_by)`. `km_all_legs` = Σ legs; `km_charged` = legs not touching a POSITIONING/RETURN stop; `km_yang_diajukan` defaults to charged ? all : charged, editable. Approve (driver): shipment stops = all when charged, else without POSITIONING/RETURN stops. Web `/ujp/config` (edit for allowlisted approvers). |
+| CR-D8 | **Reverse** `ujp.is_reverse`; when on and `reverse_charge > 0`, "Biaya reverse (client)" is added to Transfer and stored as `reverse_charge_applied`. |
+| CR-D9 | **Route builder** is UJP-specific, sharing `direct4wStops.ts` helpers and the `CreateDirect4WStop` type; the extracted `Direct4WStopsStep` stays unchanged for the 4W modal. |
+
+### 15.1 Formula v2
+```
+kmAllLegs = Σ legs.km · kmCharged = Σ legs.km where neither endpoint has role POSITIONING/RETURN
+kmProposed = kmYangDiajukan (default: chargedPositioning ? kmAllLegs : kmCharged)
+totalKmWithMargin = kmProposed × (1 + kmMarginPct/100)
+baseline = EV ? 1/konsumsiPerKm : baseline · liters = round1(totalKmWithMargin / baseline)
+bbm = bbmFixOverride ?? round(liters × energyPrice[fuel_type @ deliveryDate])
+BBM → QRIS ∈ eMoney ? QRIS : FLAZZ ∈ eMoney ? FLAZZ : TRANSFER
+toll, parkirTap → FLAZZ ∈ eMoney ? FLAZZ : TRANSFER · manual lines → TRANSFER
+reverse → TRANSFER += reverseCharge when isReverse · subcon → Flazz = QRIS = 0, Transfer = nominalTransfer
+estimatedAmount = Flazz + QRIS + Transfer
+```
+
+### 15.2 API deltas
+`POST /v1/ujp/estimate` adds `header:{clientId, deliveryDate, isReverse}`, `vehicle.fuelType`, `route:{stops, legs}` → response adds `kmAllLegs, kmCharged, kmMarginPct, chargedPositioning, totalUangJalanQris, reverseChargeApplied`. `POST /v1/ujp` adds `header.isReverse`, `vehicle.fuelType`, `payee.subconVendorId?`, `route:{routeId?, stops, legs, saveAs?:{name}}` (replaces `lanes`). New: `GET/POST /v1/ujp/routes`, `PATCH /v1/ujp/routes/:id`, `GET /v1/ujp/client-configs`, `PUT /v1/ujp/client-configs/:clientId`, `GET /v1/ujp/masters/energy-prices?date=`, `GET /v1/ujp/masters/subcon-vendors?search=`. Decision for subcon returns `shipment: null, shipmentSkipped: 'SUBCON'`.
+
+### 15.3 Data model deltas
+New `ujp_routes`, `ujp_client_configs`, `ujp_energy_prices` (index (fuel_type, effective_from desc)), `ujp_subcon_vendors`; `ujp_vehicles.fuel_type`; `ujp` + `route_id, route jsonb, km_all_legs, km_charged, km_margin_pct, charged_positioning_applied, is_reverse, reverse_charge_applied, fuel_type, total_uang_jalan_qris, subcon_vendor_id`; drop `source_lane_ids`, `distance_km_calculated`.
+
 ## 13. Follow-ups and open questions
 
 Recorded in the dash workspace `TODOS.md`: retire the CSV UJP import (TODO-20) · JWT role for approvers (TODO-21) · vehicle admin page (TODO-22) · historical UJPs in `logisticdash` (TODO-23, finance decides before cutover) · exception filter forwards machine-readable codes (TODO-24) · per-lane cost presets (TODO-25) · designer mockups (TODO-26). No blocking open questions.
 
 ## 14. Changelog
+
+- 2026-09-15 — v2.1: change request CR-1 (§15) from the stakeholder simulation review; supersedes D16/D17, amends D2/D5/D7; ERD gains ujp_routes, ujp_client_configs, ujp_energy_prices, ujp_subcon_vendors.
 
 - 2026-09-12 — v2 TRD split out of the combined `ujp-prd-trd-v2.md`; high-level design added as mermaid (before/after, components, module graph, ERD, lifecycle, approve sequence, estimate flow, lanes) so it renders on GitHub alongside [ujp-hld-v1.html](./ujp-hld-v1.html).
 - 2026-09-11 — v2 decisions from the engineering review (2026-09-10) and design review (2026-09-11); supersedes v1's D1 (formula on both sides), Phase-3 shipment link and `ujp_*` master replication.
