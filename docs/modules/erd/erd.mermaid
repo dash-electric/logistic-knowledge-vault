@@ -555,3 +555,44 @@ erDiagram
     ujp }o--|| reasons : "reason_code, type=UJP_REJECTION"
     ujp }o--o{ addresses : "lanes (read-only)"
     ujp }o--o| ujp_vehicles : "snapshot at create"
+
+    %% ── UJP CR-1 (ujp-trd-v2 §15) ────────────────────────────────
+    ujp_routes {
+        uuid id PK
+        int client_id "saved per client"
+        text name "UNIQUE per client"
+        jsonb stops "ordered [{seq, role POSITIONING|PICKUP|DROP_OFF|RETURN, name, address, lat, lng}]"
+        jsonb legs "[{seq, fromSeq, toSeq, km}]"
+        numeric total_km
+        boolean active
+        text created_by
+    }
+    ujp_client_configs {
+        int client_id PK
+        boolean charged_positioning "pool legs charged"
+        numeric reverse_charge
+        text default_e_money "NONE|FLAZZ|QRIS|FLAZZ_QRIS"
+        text notes
+        text updated_by
+    }
+    ujp_energy_prices {
+        uuid id PK
+        text fuel_type "SOLAR|DEXLITE|PERTALITE|EV_KWH"
+        numeric price
+        date effective_from "UNIQUE with fuel_type"
+    }
+    ujp_subcon_vendors {
+        uuid id PK
+        text name
+        text city
+        text bank_name
+        text account_number
+        text account_holder
+        text pic_name
+        text pic_phone
+        boolean active
+    }
+    ujp }o--o| ujp_routes : "route_id snapshot"
+    ujp }o--|| ujp_client_configs : "client rule at create"
+    ujp }o--o| ujp_subcon_vendors : "subcon payee"
+    ujp_vehicles }o--|| ujp_energy_prices : "fuel_type → price @ date"
