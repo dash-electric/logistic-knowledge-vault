@@ -3,7 +3,8 @@ title: UJP Native — Technical Requirements & High-Level Design
 module: ujp
 doctype: trd
 version: 2.1
-status: reviewed
+status: superseded
+superseded_by: ./ujp-trd-v3.md
 product_owner: muhamad.zulfikar@dashelectric.co
 engineer: muhamad.zulfikar@dashelectric.co
 created: 2026-09-12
@@ -507,6 +508,8 @@ New `ujp_routes`, `ujp_client_configs`, `ujp_energy_prices` (index (fuel_type, e
 Recorded in the dash workspace `TODOS.md`: retire the CSV UJP import (TODO-20) · JWT role for approvers (TODO-21) · vehicle admin page (TODO-22) · historical UJPs in `logisticdash` (TODO-23, finance decides before cutover) · exception filter forwards machine-readable codes (TODO-24) · per-lane cost presets (TODO-25) · designer mockups (TODO-26). No blocking open questions.
 
 ## 14. Changelog
+
+- 2026-09-17 — superseded by [TRD v3](./ujp-trd-v3.md) (CR-2: Route Planner as a Routes-module extension; `ujp_routes` → `route_plans`).
 
 - 2026-09-15 — v2.1: change request CR-1 (§15) from the stakeholder simulation review; supersedes D16/D17, amends D2/D5/D7; ERD gains ujp_routes, ujp_client_configs, ujp_energy_prices, ujp_subcon_vendors.
 

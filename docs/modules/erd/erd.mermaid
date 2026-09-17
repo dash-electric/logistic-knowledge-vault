@@ -249,6 +249,7 @@ erDiagram
         uuid id PK
         text code "unique — RTE{yymmdd}{seq5}"
         text idempotency_key "unique, nullable — replay-safe creation"
+        uuid route_plan_id FK "→ route_plans.id, nullable — trace to the template the stops came from (CR-2, 0095); null on every manual/import path"
         date planned_date "the day the rider works this route — rider list filters on it"
         text rider_id "external core-service rider id"
         jsonb rider "RiderSnapshot {id,code,name,phone_number}"
@@ -514,8 +515,10 @@ erDiagram
         text payee_type "driver|subcon"
         numeric nominal_transfer
         text plate_number "vehicle snapshot + baseline, energy_price"
-        uuid[] source_lane_ids "read-only refs to addresses"
-        numeric distance_km_calculated
+        uuid route_plan_id FK "→ route_plans.id, nullable — renamed from route_id (CR-2, 0095)"
+        jsonb route "snapshot of the plan's stops + legs at submit — approve reads THIS, never route_plans"
+        numeric km_all_legs
+        numeric km_charged
         numeric km_yang_diajukan
         numeric total_uang_jalan_flazz
         numeric total_uang_jalan_transfer
@@ -553,19 +556,26 @@ erDiagram
     ujp ||--o{ ujp_status_history : "audit"
     ujp ||--o| shipments : "shipments.ujp_id (approve creates)"
     ujp }o--|| reasons : "reason_code, type=UJP_REJECTION"
-    ujp }o--o{ addresses : "lanes (read-only)"
     ujp }o--o| ujp_vehicles : "snapshot at create"
 
-    %% ── UJP CR-1 (ujp-trd-v2 §15) ────────────────────────────────
-    ujp_routes {
+    %% ── UJP CR-1 masters + route_plans (ujp-trd-v3 §14.2/§14.3) ──
+    %% route_plans was ujp_routes until CR-2 (ujp-trd-v3 §14.3, migration
+    %% 0095_route_plans): the route TEMPLATE now lives in the route module,
+    %% next to the executed `routes` row it is the template for. Stops carry a
+    %% snapshot plus a pointer at the addresses lane endpoint they came from;
+    %% legs carry the km, where it came from, and whether ops overrode it.
+    %% Deactivation only hides (active=false); rows are never deleted.
+    route_plans {
         uuid id PK
-        int client_id "saved per client"
-        text name "UNIQUE per client"
-        jsonb stops "ordered [{seq, role POSITIONING|PICKUP|DROP_OFF|RETURN, name, address, lat, lng}]"
-        jsonb legs "[{seq, fromSeq, toSeq, km}]"
-        numeric total_km
-        boolean active
+        int client_id "CoreService provider — saved per client"
+        text name "UNIQUE per client, case-insensitive"
+        jsonb stops "ordered [{seq, role POSITIONING|PICKUP|DROP_OFF|RETURN, name, address, latitude, longitude, intent, address_id, endpoint origin|destination}]"
+        jsonb legs "[{seq, fromSeq, toSeq, km, source LANE|DIRECTIONS|HAVERSINE, edited}]"
+        numeric total_km "sum of all legs"
+        numeric km_charged "legs touching no POSITIONING/RETURN stop"
+        boolean active "false = hidden from pickers, never deleted"
         text created_by
+        text updated_by
     }
     ujp_client_configs {
         int client_id PK
@@ -592,7 +602,15 @@ erDiagram
         text pic_phone
         boolean active
     }
-    ujp }o--o| ujp_routes : "route_id snapshot"
     ujp }o--|| ujp_client_configs : "client rule at create"
     ujp }o--o| ujp_subcon_vendors : "subcon payee"
     ujp_vehicles }o--|| ujp_energy_prices : "fuel_type → price @ date"
+
+    %% ── Route Planner, CR-2 (ujp-trd-v3 §14.3) ───────────────────
+    %% `clients` is an external nodejs-core-service master (see the header note)
+    %% and has no DB FK; it appears here only to carry the ownership arrow —
+    %% a route plan is always scoped to one client.
+    clients ||--o{ route_plans : "plans per client"
+    route_plans ||--o{ ROUTES : "routes.route_plan_id (executed from the template, nullable)"
+    route_plans ||--o{ ujp : "ujp.route_plan_id + ujp.route snapshot"
+    route_plans }o--o{ addresses : "stops point at lane endpoints (JSONB address_id, not a FK); manual stops write DRAFT lanes back"

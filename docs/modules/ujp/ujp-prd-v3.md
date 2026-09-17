@@ -1,0 +1,203 @@
+---
+title: UJP Native in react-logistic-web — Product Requirements
+module: ujp
+doctype: prd
+version: 3.0
+status: draft
+supersedes: ./ujp-prd-v2.md
+product_owner: muhamad.zulfikar@dashelectric.co
+engineer: muhamad.zulfikar@dashelectric.co
+created: 2026-09-11
+updated: 2026-09-17
+reviews:
+  eng: 2026-09-10 (plan-eng-review, CLEAR, 17 decisions)
+  design: 2026-09-11 (plan-design-review, 4/10 → 9/10, 14 decisions)
+  cr1: 2026-09-15 (plan-eng-review on the stakeholder simulation review, 9 decisions)
+  cr2: 2026-09-17 (plan-eng-review, Route Planner as a Routes-module extension, 19 decisions)
+links:
+  trd: ./ujp-trd-v3.md
+  context: ./ujp-context-v1.md
+  hld: ./ujp-hld-v1.html
+  mockup: ./ujp-mockup-v1.html
+  prototype: ./ujp-prototype-v2.html
+  simulation: ./ujp-flow-simulation-v2.html
+  presentation:
+---
+
+# UJP Native in react-logistic-web — PRD v3
+
+> Port the **UJP** (*Usulan Jasa Pengangkutan*, the per-trip running-cost request that authorizes a driver's *uang jalan*) from the Supabase app `logisticdash` into the logistics console. **Approving a UJP creates the DIRECT_4W shipment in the same transaction.** v3 adds **CR-2**: route building leaves the UJP wizard and becomes a **Route Planner** master page owned by the Routes module, fed by the Addresses lane book and by server-measured distances. The technical design, architecture diagrams and API contract are in [ujp-trd-v3.md](./ujp-trd-v3.md) (mermaid, renders on GitHub) and [ujp-hld-v1.html](./ujp-hld-v1.html); background in [ujp-context-v1.md](./ujp-context-v1.md); the UI is demonstrated in [ujp-flow-simulation-v2.html](./ujp-flow-simulation-v2.html) and [ujp-prototype-v2.html](./ujp-prototype-v2.html).
+
+---
+
+## Problem
+
+Ops creates UJPs in a separate Supabase app, then hand-carries the approved result into the console as a CSV import for the 4W shipment wizard. The round-trip is slow and lossy (client and coordinates are dropped, dates re-parsed), the money math and reference numbering run in the browser, the list silently caps at 1,000 rows, and approval forwards to a Google Sheet, Basecamp and the old two-wheel dispatch API. There is no single place to see a request's cost, approval trail and the shipment it became.
+
+**CR-2 problem.** The route is the one part of a UJP that repeats trip after trip, yet CR-1 put its builder inside the wizard: the same chain of stops is retyped per request, its leg distances are measured in the browser with a second mapping provider, and the 4W shipment wizard — which needs the identical stops — shares none of it. Ops has no place to curate the routes it actually runs, and the Addresses lane book (which already stores those places, their coordinates and their measured distances) is not the source.
+
+## Context
+
+The console is the system of record for shipments, routes and dispatch. In this stack the shipment *is* the dispatch and the route *is* the schedule, so most of the old app's side-effect scaffolding has nothing left to do. The 4W creation path already exists, is transactional and idempotent, and already accepts an (unpersisted) "imported from UJP" flag and a "dari UJP" vehicle block.
+
+For CR-2 three things already exist and are reused rather than rebuilt: the **Addresses** page holds lanes (origin + destination + measured distance, per client, DRAFT or CONFIRMED) — a route is a chain of lanes and a place is a distinct lane endpoint; the server already **measures road distance** and caches it per coordinate pair; and the **Routes module** already owns the executed route, of which a plan is simply the template. CR-2 is therefore mostly deletion: the in-wizard builder and the browser-side distance call go away.
+
+## Users and jobs
+
+| User | Job | Sees |
+|---|---|---|
+| Ops requester | Propose one trip and its cost; know when it is approved | Queue of their requests with age; a 5-step wizard with a live total; the panel with "Menunggu persetujuan finance" |
+| Ops route curator | Keep the routes a client actually runs, once, so every request and shipment starts from them | Route Planner page per client: list, drawer builder, stops picked from the lane book, per-leg km with its source, aktif/nonaktif |
+| Finance approver (allowlisted) | Authorize the cash and, by the same click, the trip | Money first, then the shipment that approval will create, full bank details, Setujui & buat shipment / Tolak |
+| Other ops user | Look up a request | Same panel, account number masked, total hidden, no actions |
+| Shipment creator (4W wizard) | Create a 4W shipment on a route that already exists | "Isi dari rute" on the stops step, prefilled per the client's pool rule |
+| Driver (via driver app) | Run the route | The DIRECT_4W route created on approve; nothing UJP-specific |
+
+## Scope
+
+### In scope (Phase 1, one release train)
+- **Create** a UJP: Info → Rute → Biaya → Driver → Review, with a server-computed live estimate.
+- **Queue list** with status tabs and counts, age chips, URL-backed filters, server-side search and pagination.
+- **Detail / approval panel** with approve, reject (reason code required), cancel (requester only), audit history, masking for non-parties.
+- **Approve creates the DIRECT_4W shipment** (shipment, route, stops, links) in the decision transaction, and links it back (`shipments.ujp_id`).
+- **Route Planner** master page (CR-2): per-client route plans, created and edited in a drawer, stops picked from the Addresses lane book with a manual fallback, per-leg km measured by the server, deactivation that only hides.
+- The **UJP wizard's Rute step** and the **4W shipment wizard's stops step** both consume route plans; neither builds a route of its own.
+- **Masters reused, not rebuilt:** clients (core service), drivers (driver service), lanes from `addresses` (now read *and* DRAFT write-back from the planner only), reasons (`type = UJP_REJECTION`). New masters: `ujp_vehicles`, `ujp_energy_prices`, `ujp_subcon_vendors`, `ujp_client_configs` (all SQL-seeded or admin-edited).
+- Deprecation banner on the existing CSV UJP import in the 4W wizard.
+
+### Out of scope (with the reason)
+- Google Sheet mirror: the native list/detail replaces it; revisit only if finance asks after a month.
+- Basecamp / Spend-Control forward: separate integration with its own credentials.
+- Schedule auto-create: the route created on approve is the schedule.
+- Combine (second linked UJP): multi-drop stops cover the common case.
+- Revert of a decision: a live shipment exists after approve; reversal is shipment cancellation with reason codes.
+- Edit after submit: cancel and "Buat ulang dari UJP ini" keep the audit trail honest.
+- Ring / PER_RING tariff: billing-side; no tariff tables in this service.
+- **Route-plan versioning and an approval workflow for plans**: plans are editable in place and the UJP keeps its snapshot; versioning waits until reviewers actually ask "what changed" (CR2-D17).
+- **Blocking deactivation of a plan that a live UJP used**: the UJP reads its snapshot, so a 409 would buy nothing and would point the Routes module at UJP (CR2-D16).
+- **Bulk confirmation of the DRAFT lanes the planner writes**: they appear on the Addresses page and are confirmed there (TODO-30).
+- **Places for consumer-destination clients** whose lanes never reach `addresses`: those plans use manual stops only until a source exists (TODO-32).
+- Per-lane cost presets: a follow-up once cost typos are observed (TODO-25 — the stop's `addressId` pointer is what makes it possible).
+- Vehicle admin UI, JWT role for approvers and for planner edit rights, historical import from `logisticdash`, CSV-import removal, dark theme: recorded follow-ups.
+
+## Requirements
+
+### Create
+1. A signed-in console user can submit a UJP; it persists as `SUBMITTED` with a history row and a **server-assigned** reference `UJP-YYYYMMDD-NNNN` (daily counter, gap-free, unique).
+2. The wizard has five steps with **forward-only dependencies**: Info (client, tanggal kirim, tim ops, layanan, tipe pengiriman, shift, jam) → Rute (route plan → stops, km) → Biaya (payee, vehicle, e-money, cost lines) → Driver (rider, rekening, cargo) → Review.
+3. *(Superseded by CR-1 req 23 and then by CR-2 reqs 30–35 — kept for history.)* **Rute:** lanes are searched from `addresses` for the chosen client; multi-drop allows several lanes sharing one origin; selected lanes become one pickup and N drops with default workflows; `distance_km_calculated` = lane distance (single) or sum of lane distances labelled "estimasi" (multi); `km_yang_diajukan` is prefilled from it, editable, required. Manual stop edits show a banner and a "Reset dari lane" action. Empty search offers "Tambah di Alamat" and "Isi manual".
+4. **Biaya:** picking a plate fills baseline and energy price from `ujp_vehicles`, locked until edited (then tagged "diubah manual"); "Override BBM" is a switch that reveals a fixed-BBM field. Money inputs use a `MoneyInput` (Rp adornment, id-ID separators, integer rupiah, empty → 0 on blur); km uses `KmInput` (1 decimal). Biaya lain-lain > 0 requires a justification.
+5. **Subcon payee:** the vehicle-cost and cost-line block is disabled in place with the text "Tidak dipakai untuk subcon"; `nominal_transfer` becomes the single required money field; typed values are preserved when toggling back; plate and unit stay required.
+6. **Live estimate** comes only from `POST /v1/ujp/estimate` (debounced 300 ms, previous request aborted, out-of-order responses discarded). While pending the amount dims; when inputs changed after the last answer it shows "Estimasi belum diperbarui"; on failure "Estimasi gagal" with "Coba lagi" and Lanjut/Ajukan disabled. The Review step re-checks once and gates Ajukan on a fresh answer.
+7. **Driver:** rider search is limited to active DRIVER talent; a unique exact match auto-selects; bank fields prefill from the driver record (or are typed for subcon, titled "Rekening subcon").
+8. **Review:** hairline sections with an "Ubah" link per step, exactly one Flazz/Transfer tile row, total at display size, a "Kelengkapan" text line.
+9. Submit closes the modal, shows a toast with the reference and "Lihat", switches the queue to Menunggu and opens the panel on the new row. Double-submit is impossible (button disabled while pending).
+
+### Queue
+10. Tabs Menunggu · Disetujui · Ditolak · Dibatalkan · Semua with counts, default Menunggu; columns Ref (mono) · Client · Tgl kirim · Rute · Driver · Total (tabular) · Status · Umur; Umur chip amber > 2 days, red > 5. Filters (status, client, date range, search, page) round-trip through the URL.
+11. Search covers reference, client, driver, plate, origin and destination, server-side.
+12. Empty: "Belum ada pengajuan UJP" + Buat UJP; filtered-empty: "Tidak ada UJP untuk “{q}”" + Hapus filter; error: "Gagal memuat" + Coba lagi.
+
+### Detail and decision
+13. Panel order: header (mono reference + status badge; client · tanggal · diajukan oleh · umur) → Flazz/Transfer tiles + total → **"Dibuat saat disetujui"** one-line shipment preview (Direct 4W · n stops · origin → destination · Driver · plate) with "Belum dibuat", becoming a waybill link after approve → rincian biaya → rekening → stops → riwayat.
+14. Footer: primary **"Setujui & buat shipment"** and outline-danger **"Tolak"** for an allowlisted approver who is not the requester; ghost **"Batalkan pengajuan"** for the requester while SUBMITTED; nothing for others.
+15. **Reject** requires a reason from `GET /v1/reasons?type=UJP_REJECTION` (BIAYA_TIDAK_WAJAR, RUTE_TIDAK_SESUAI, DRIVER_TIDAK_SESUAI, DATA_TIDAK_LENGKAP, LAINNYA with mandatory note) plus an optional note; the primary is disabled until a reason is chosen.
+16. **Approve** shows a loading state ("Menyetujui…", panel not closable), then a toast "UJP-… disetujui · Shipment {waybill} dibuat" with "Lihat shipment"; the panel re-fetches. A 409 (already decided) shows "Sudah diputuskan oleh {name}" and re-fetches.
+17. A rejected request shows the reason and note prominently; the requester gets **"Buat ulang dari UJP ini"** which opens the wizard prefilled (new reference on submit).
+18. **Masking:** anyone who is neither an allowlisted approver nor the requester sees the account number as `•••• 1234` with a lock icon and tooltip, and the nominal as "Disembunyikan". Approver and requester see the full number with "Salin".
+
+### Cross-cutting
+19. Indonesian copy set is fixed in one constants file (see §UI contract).
+20. Responsive: below `sm` the step indicator becomes "Langkah n/5 · {name}" with a progress rule, the footer stacks with the estimate strip full-width above the buttons (44 px targets), the Biaya grid is one column, the map is shorter, the panel is full-width with a sticky footer. The Route Planner list collapses to stacked cards and the drawer goes full-width.
+21. Accessibility: DOM order equals visual order; Enter never advances or submits; first empty required field is focused on step entry; every input is labelled; the estimate total is an `aria-live="polite"` region; stale/error states carry text, not only color; panel has `aria-labelledby`; step indicator exposes `aria-current="step"`; axe assertions in tests. Route-plan leg source and drift are text badges, never colour alone.
+22. Light theme only, house palette; Flazz rendered in the emerald data tone, Transfer in the accent tone.
+
+## Change request CR-1 (2026-09-15)
+
+From the stakeholder walkthrough of the flow simulation. Requirements added (all Phase 1):
+
+23. *(Superseded by CR-2 reqs 30–35.)* **Saved routes.** In Rute, ops picks a saved route for the client or builds one manually (ordered stops with roles Pool/Pickup/Drop/Return, leg km prefilled from the map, editable) and may save it under a name for reuse. The Addresses lane picker is removed.
+24. **Km margin** is 10% by default (`km × 1.10`), configurable, and shown in the breakdown as "KM + margin 10%". Each UJP keeps the margin it was computed with.
+25. **E-money** offers Tidak ada / Flazz / QRIS / Flazz + QRIS. Fuel goes to QRIS when available, otherwise to Flazz, otherwise to Transfer; toll and tap-parking go to Flazz when available, otherwise Transfer; manual lines always Transfer. When QRIS is used a third tile "Uang jalan QRIS" appears.
+26. **Fuel price** comes from a dated master per fuel type (Solar, Dexlite, Pertalite, EV kWh) valid on the delivery date; the vehicle master carries the fuel type; the wizard shows the price locked "dari master", editable.
+27. **Subcon** approvals do not create a shipment; the panel shows "Tidak dibuat: subcon". The vendor is picked from a subcon vendor master that fills bank details; the driver step is optional for subcon.
+28. **Client UJP config** page (`/ujp/config`, editable by approvers): per client, "Leg pool ditagih" (charged) and "Biaya reverse". When not charged, the first and last (pool) legs are excluded from km and fuel pricing and the shipment is created with the inner stops only; when charged, all legs count and all stops ship. The wizard shows the client's rule read-only in Rute.
+29. **Reverse trip** switch on Info (pre-ticked when the route has a Return leg); when on, the client's reverse charge is added as a Transfer line "Biaya reverse (client)".
+
+## Change request CR-2 (2026-09-17) — Route Planner
+
+Route building becomes its own master, owned by the Routes module, fed by the Addresses lane book. **Supersedes requirement 23** (and, with it, what was left of requirement 3): there is no route builder inside the UJP wizard and no "simpan sebagai rute" on submit.
+
+### Route Planner master
+30. **Route Planner page** at `/route-planner` (Master nav group). It lists the route plans of the selected client — name, jumlah stop, KM semua leg, KM ditagih, status Aktif/Nonaktif, diperbarui oleh · kapan — with client filter, search and an active/inactive filter that all round-trip through the URL. **Buat rute** and the row's **Ubah** both open the same drawer. Empty: "Belum ada rute untuk client ini" + Buat rute; filtered-empty: "Tidak ada rute untuk “{q}”" + Hapus filter; error: "Gagal memuat" + Coba lagi.
+31. **A plan is an ordered chain of stops.** Each stop has a role — Pool (positioning) · Pickup · Drop · Kembali ke pool — and a position in the chain; rows can be reordered, re-roled and removed, and the legs between them recompute on every change. A plan is only saveable with at least one Pickup and at least one Drop, and its name is unique per client (case-insensitive) — a clash shows an inline "Nama rute sudah dipakai".
+32. **Stops are chosen from the Addresses lane book.** The stop picker lists *tempat* — the distinct endpoints of the client's lanes — showing the place name, its address, how many lanes use it and whether it is DRAFT or CONFIRMED. The same name at a different location stays a separate entry. "Semua client" widens the search when the place is shared. Picking a place fills the stop's name, address and coordinates and keeps a pointer to the lane endpoint it came from.
+33. **Manual fallback writes DRAFT lanes back.** A place not in the book is typed with the address autocomplete ("Isi manual"). On save, every consecutive pair that involves a manual stop is written back to Addresses as a **DRAFT** lane with its measured distance, and the stop is linked to it — so the second plan that needs the same place finds it in the picker. An existing lane is never overwritten; the stop simply links to it.
+34. **Lane write-back never blocks the save.** The plan is saved first. If some lanes could not be written, the plan is still created and the toast reads "Rute tersimpan · {n} alamat belum masuk Addresses" with **Coba lagi**; those stops stay unlinked until a retry succeeds. Ops sees which stops are affected in the drawer.
+35. **Per-leg km comes from the server and shows its source.** Each leg displays a distance and a source badge — **Lane** (taken from the lane book), **Terukur** (measured on the road network) or **Estimasi** (straight-line fallback when measuring is unavailable). Every leg is editable; an edited leg is tagged "diubah manual" and keeps its original source for audit. Totals **KM semua leg** and **KM ditagih** are shown together with a read-only banner of the client's pool rule ("Leg pool ditagih" / "Leg pool tidak ditagih: leg pertama & terakhir tidak dihitung"). If the distance service fails the drawer shows "Estimasi tidak tersedia" and km is entered by hand — saving is still possible.
+36. **A plan keeps a snapshot, not a live reference.** The stop's name, address and coordinates are stored on the plan. When the lane behind a stop later changes, the planner marks that row **"Alamat berubah"** with a one-click **Perbarui dari Addresses**; nothing changes until ops clicks it.
+37. **Deactivation only hides.** A plan is never deleted. Setting it to Nonaktif removes it from both wizards' pickers and leaves every UJP, shipment and route that used it untouched; the list can filter to inactive plans and reactivate one.
+38. **Any signed-in console user may create, edit, deactivate and reactivate a plan**; each write records the actor's email and the list shows "diperbarui oleh". A dedicated planner role is a follow-up (TODO-21).
+
+### The two consumers
+39. **UJP wizard step Rute is a picker.** Ops selects one of the client's active plans, or clicks **Buat rute baru** to open the Route Planner drawer in place — saving it selects the new plan without leaving the wizard. The stops, legs and totals come from the plan, and **KM diajukan** defaults to the plan's charged or all-leg total per the client's rule (req 28) and stays editable. The in-wizard manual builder and the "Simpan sebagai rute tersimpan" checkbox are gone.
+40. **The UJP always keeps its own snapshot of the route it was submitted with.** Editing or deactivating the plan afterwards never changes a submitted, approved or rejected request.
+41. **4W create-shipment wizard gains "Isi dari rute".** On the stops step, picking one of the client's active plans prefills the stops. The client's pool rule decides what is prefilled: when pool legs are charged, all stops are used; when they are not, the Pool and Kembali-ke-pool stops are dropped — and shown greyed with the reason, so the difference is visible rather than silent. Manual stop entry is unchanged and remains the default path.
+42. **UJP detail flags plan changes.** The panel shows **"Rute nonaktif"** when the plan behind the request has since been deactivated, and **"Rute diperbarui setelah pengajuan"** when it was edited after submission. Both are informational: the request still displays its snapshot, approve still uses the snapshot, and **"Buat ulang dari UJP ini"** works from an inactive plan (it reopens the wizard on the snapshot and asks ops to pick a current plan before submitting).
+
+Copy additions: Route Planner · Rute · Buat rute · Buat rute baru · Ubah rute · Nama rute · Nama rute sudah dipakai · Tempat · Cari tempat · Semua client · Isi manual · Tambah di Alamat · Urutkan · Hapus stop · Lane · Terukur · Estimasi · diubah manual · Alamat berubah · Perbarui dari Addresses · Estimasi tidak tersedia · Rute tersimpan · Rute tersimpan · {n} alamat belum masuk Addresses · Coba lagi · Aktif · Nonaktif · Nonaktifkan rute · Aktifkan kembali · Belum ada rute untuk client ini · Tidak ada rute untuk “{q}” · diperbarui oleh · Isi dari rute · Stop tidak dipakai: leg pool tidak ditagih · Rute nonaktif · Rute diperbarui setelah pengajuan.
+
+## Edge cases and failure states
+
+| Case | Behaviour |
+|---|---|
+| Two approvers click within a second | Row lock; second gets 409 "sudah diputuskan", panel re-fetches |
+| Approver double-clicks | Idempotent: APPROVED with `shipment_id` returns the same result |
+| Client deactivated or rider gone between submit and approve | Pre-transaction re-fetch fails → 400 with an Indonesian message; UJP stays SUBMITTED |
+| Shipment write fails inside the transaction | Full rollback; UJP stays SUBMITTED; toast with message; retry works |
+| Shipment with the same booking id already exists | Linked (EXISTS), never duplicated |
+| Approver not allowlisted, or is the requester, or token lacks email | 403; buttons hidden client-side as a courtesy only |
+| Approver allowlist empty | Fail closed: nobody can approve; startup warning |
+| Delivery date before today (WIB) | Blocked at create; at approve only a warning |
+| Estimate responses arrive out of order | Sequence check; an older total never overwrites a newer one |
+| Estimate API down | Last good total with a stale marker; Ajukan blocked at the Review re-check |
+| Reference counter at 23:59 WIB | Day computed inside the transaction on the server |
+| Client-sent totals in the payload | Ignored; server recomputes |
+| **No route plan for the client** | Rute step shows "Belum ada rute untuk client ini" + **Buat rute baru** (drawer); the wizard cannot proceed without a plan |
+| **No place matches in the lane book** | Picker offers "Isi manual" and "Tambah di Alamat"; the manual stop writes a DRAFT lane on save (req 33) |
+| **Distance service unavailable while building** | Legs fall back to a flagged straight-line estimate, badge "Estimasi"; km editable; saving allowed |
+| **Lane distance stored as zero** | Treated as no lane; the leg is measured instead |
+| **Lane write-back partially fails** | Plan still saved; warning toast + **Coba lagi**; affected stops stay unlinked |
+| **Duplicate plan name for the client** | Inline "Nama rute sudah dipakai"; save blocked until renamed (case-insensitive) |
+| **Plan deactivated while a UJP is SUBMITTED** | Nothing blocks; the panel shows "Rute nonaktif" and approve uses the snapshot |
+| **Plan edited after a UJP used it** | Panel shows "Rute diperbarui setelah pengajuan"; the snapshot is authoritative |
+| **Lane behind a stop edited in Addresses** | Plan row badges "Alamat berubah" with **Perbarui dari Addresses**; no silent change |
+| **Client has no UJP config row** | Pool legs treated as not charged (the conservative default); the 4W prefill greys the pool stops |
+| **4W prefill from a plan, then manual edits** | Manual editing stays available on every prefilled stop; the manual path is unchanged |
+
+## Success criteria
+
+- Ops creates UJPs in the console with **zero CSV round-trips** for onboarded 4W clients.
+- A fixture of 30 real UJPs reconciles **to the rupiah** with the old app's totals.
+- Approve → shipment visible in the shipments list and the driver app, end to end, for one live client without manual database edits.
+- Finance's default view (all statuses, by date, searched by driver) answers in < 500 ms at 10k rows.
+- **A client's repeat routes are built once**: after the first week of use, the majority of that client's UJPs select an existing plan rather than creating one, and no UJP is submitted with a hand-typed chain of stops.
+- **Route km stops being retyped**: the share of legs left at their server value (source Lane or Terukur, not "diubah manual") is visible in the planner and is the baseline for trusting the estimate.
+- **The lane book grows instead of drifting**: every manual stop a planner enters ends up as a DRAFT lane in Addresses, so the second plan through the same place picks it rather than retyping it.
+- **The 4W wizard and UJP agree**: for the same plan and the same client config, the stops the 4W wizard prefills are exactly the stops approve would create.
+
+## UI contract
+
+- **Anchor:** a persistent estimate strip in the wizard footer (eyebrow "Estimasi total", mono amount, Flazz/Transfer chips, stale chip), shown from Rute onward and hidden on Biaya and Review where the breakdown/tiles carry the total. In the Route Planner drawer the equivalent anchor is the totals strip (KM semua leg · KM ditagih · client rule).
+- **Components:** `FormModal size="2xl"` + `StepIndicator` (+ compact prop) · `SegmentedControl` · `SearchSelect` · `Tag` · `Switch` · `DatePicker` · `MoneyInput` / `KmInput` (new, co-located) · shared `Direct4WStopsStep` / `Direct4WRiderStep` · `RouteStopsMap` · `Hint` · `InformationBanner` · `Badge` · `Button` (primary / outline-danger / ghost / white, loading) · `SideBarModal position="right" width="md"` (panel) and `width="lg"` (route-plan drawer) · `Modal width="sm" iconTone="danger"` (deactivate confirm) · `TableData` + `Paginator` + hairline tabs · `EmptyState` · `Skeleton` · sonner toaster · eyebrow labels · `font-mono tabular-nums` for ids, km and rupiah · `AddressEndpointFields` + `AddressAutocomplete` reused for the manual stop.
+- **Copy set (constants file):** Buat Pengajuan UJP · Uang jalan 4W: info, rute, biaya, driver, lalu review. · Info · Rute · Biaya · Driver · Review · Kembali · Batal · Lanjut · Ajukan UJP · Estimasi total · Flazz · Transfer · Estimasi belum diperbarui · Estimasi gagal · Coba lagi · Dihitung server · Payee & kendaraan · Biaya operasional (uang jalan) · Rincian estimasi · Tidak dipakai untuk subcon · Override BBM · dari kendaraan · diubah manual · KM diajukan · Logistic · UJP · Pengajuan UJP · Buat UJP · Menunggu · Disetujui · Ditolak · Dibatalkan · Semua · Belum ada pengajuan UJP · Tidak ada UJP untuk “{q}” · Hapus filter · Gagal memuat · Menunggu persetujuan · Menunggu persetujuan finance · Dibuat saat disetujui · Belum dibuat · Lihat shipment {waybill} · Rincian biaya · Rekening driver · Rekening subcon · Salin · Disembunyikan · Hanya requester & approver dapat melihat · Stops · Riwayat · Setujui & buat shipment · Tolak · Tolak UJP · Batalkan pengajuan · Buat ulang dari UJP ini · Ubah · UJP-{ref} diajukan · UJP-{ref} disetujui · Shipment {waybill} dibuat · UJP-{ref} ditolak · Pengajuan dibatalkan · Nomor rekening disalin · Sudah diputuskan oleh {name} · UJP tidak ditemukan · Alasan belum dikonfigurasi.
+- **CR-1 additions:** Pool / Pickup / Drop / Kembali ke pool · Leg pool ditagih · Leg pool tidak ditagih: leg pertama & terakhir tidak dihitung · KM semua leg · KM ditagih · Uang jalan QRIS · Perjalanan reverse · Biaya reverse (client) · Konfigurasi UJP client · Vendor subcon · Tidak dibuat: subcon.
+- **CR-2 additions:** the Route Planner copy listed under §CR-2. Removed with CR-2: Rute tersimpan (as a wizard label) · Buat rute manual · Simpan sebagai rute tersimpan · Jarak lane (estimasi) · Jumlah jarak lane, bukan rute berantai · Stops diubah manual; lane tidak lagi mengisi otomatis · Reset dari lane · Lane harus dari origin yang sama · Lane tidak ditemukan untuk {client}.
+
+## Changelog
+
+- 2026-09-17 — v3.0: change request CR-2 — Route Planner as a Routes-module extension (requirements 30–42). Supersedes requirement 23 (in-wizard builder, "simpan sebagai rute") and what remained of requirement 3 (lane picker in the wizard). Stops now come from the Addresses lane book with a DRAFT write-back fallback, leg km is server-measured with a visible source, and the 4W shipment wizard consumes the same plans. Supersedes [PRD v2](./ujp-prd-v2.md).
+- 2026-09-15 — v2.1: change request CR-1 added (requirements 23–29).
+- 2026-09-12 — split into PRD (this file) and [TRD v2](./ujp-trd-v2.md); content unchanged.
+- 2026-09-11 — v2 after engineering review (2026-09-10) and design review (2026-09-11). Changes from v1: scope narrowed to a vertical slice (D1); shipment link moved from Phase 3 into Phase 1 and made transactional on approve (D2/D3); formula ownership moved server-only, `/estimate` mandatory (D5, reverses v1 D1); `ujp_*` master replication replaced by existing masters plus one vehicle table (D7, D16); daily-counter numbering (D4); allowlist gate and masking (D6, D15); full UI contract added (DD1–DD14).
+- 2026-09-01 — v1 created (superseded).

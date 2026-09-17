@@ -3,8 +3,9 @@ title: UJP Native in react-logistic-web — Product Requirements
 module: ujp
 doctype: prd
 version: 2.1
-status: reviewed
+status: superseded
 supersedes: ./ujp-prd-trd-v1.md
+superseded_by: ./ujp-prd-v3.md
 product_owner: muhamad.zulfikar@dashelectric.co
 engineer: muhamad.zulfikar@dashelectric.co
 created: 2026-09-11
@@ -145,6 +146,8 @@ From the stakeholder walkthrough of the flow simulation. Requirements added (all
 Copy additions: Rute tersimpan · Buat rute manual · Simpan sebagai rute tersimpan · Pool / Pickup / Drop / Kembali ke pool · Leg pool ditagih · Leg pool tidak ditagih: leg pertama & terakhir tidak dihitung · KM semua leg · KM ditagih · Uang jalan QRIS · Perjalanan reverse · Biaya reverse (client) · Konfigurasi UJP client · Vendor subcon · Tidak dibuat: subcon.
 
 ## Changelog
+
+- 2026-09-17 — superseded by [PRD v3](./ujp-prd-v3.md) (CR-2: Route Planner as a Routes-module extension).
 
 - 2026-09-15 — v2.1: change request CR-1 added (requirements 23–29).
 
