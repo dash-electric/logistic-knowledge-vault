@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UJP Flow Simulation</title>
-<!-- Standalone interactive HTML in the react-logistic-web console shell. CR-2 (2026-09-17): Route Planner as a Routes-module extension — route plans get their own page + builder drawer, stops come from the Addresses lane book (manual stops write back DRAFT lanes), leg km is computed server-side with LANE / Diukur / Estimasi sources, and the UJP wizard step Rute only picks a plan. Keeps CR-1: 10% km margin, Flazz/QRIS/Transfer buckets, dated fuel price master, subcon without shipment, client config page. Data contoh. Icons: inline SVG sprite (self-contained, no CDN). Harness: light screen chrome + docked narrator. Keputusan: ASSESSMENT-UJP-PORT-4W.md §16 (CR2-D1…D19) + §15 (CR-D1…D9) + §14 (DD1…DD14). -->
+<!-- Standalone interactive HTML in the react-logistic-web console shell. CR-2 (2026-09-17): Route Planner as a Routes-module extension — route plans get their own page + builder drawer, stops come from the Addresses lane book (manual stops write back DRAFT lanes), leg km is computed server-side with LANE / Diukur / Estimasi sources, and the UJP wizard step Rute only picks a plan. Keeps CR-1: 10% km margin, Flazz/QRIS/Transfer buckets, dated fuel price master, subcon without shipment, client config page. Data contoh. Icons: inline SVG sprite (self-contained, no CDN). Harness: light screen chrome + docked narrator. Keputusan: ASSESSMENT-UJP-PORT-4W.md §16 (CR2-D1…D19) + §15 (CR-D1…D9) + §14 (DD1…DD14). CR-3 (2026-09-17): requester edits while Menunggu/Ditolak, version + change history, stale-decision guard. -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
 /* ── react-logistic-web tokens (src/design-system/styles/tokens.css + src/index.css) ── */
@@ -320,6 +320,13 @@ a.lnk{color:var(--accent);font-weight:500;text-decoration:none}a.lnk:hover{text-
 .stop .n{width:22px;height:22px;border-radius:var(--r-full);background:var(--bg-weak-50);border:1px solid var(--stroke-soft-200);display:grid;place-items:center;font-size:11px;font-weight:500;font-family:var(--mono)}
 .stop .ad{color:var(--text-sub-600);font-size:12px}
 .hist{font-size:12px;color:var(--text-sub-600);display:grid;grid-template-columns:auto 1fr;gap:6px 12px;line-height:1.5}
+/* daftar perubahan pada baris riwayat EDITED / RESUBMITTED (CR3-D4) */
+.chg{margin-top:4px;display:grid;grid-template-columns:auto 1fr;gap:2px 10px;padding:6px 8px;border-left:2px solid var(--accent-a24);background:var(--bg-weak-50);border-radius:var(--r);font-size:11.5px}
+.chg .cf{color:var(--text-strong-950);font-weight:600;white-space:nowrap}
+.chg .cv{color:var(--text-sub-600)}
+.chg .cv i{font-style:normal;color:var(--text-soft-400);margin:0 2px}
+.chg .cv .to{color:var(--text-strong-950);font-weight:600}
+.vbadge{background:var(--feat-lighter);color:var(--feat-dark);box-shadow:inset 0 0 0 1px var(--accent-a16)}
 .skel{height:14px;border-radius:var(--r);background:rgba(235,235,235,.8);animation:pulse 1.6s cubic-bezier(.4,0,.6,1) infinite}
 @keyframes pulse{50%{opacity:.5}}
 
@@ -508,6 +515,43 @@ const srcBadge=l=>{const s=SRC[l&&l.source]||SRC.HAVERSINE;return l&&l.edited?`<
 function kmSplit(stops,legs){let all=0,charged=0;const pos=r=>r==='POSITIONING'||r==='RETURN';legs.forEach(l=>{const a=stops[l.fromSeq-1],b=stops[l.toSeq-1];all+=+l.km||0;if(a&&b&&!pos(a.role)&&!pos(b.role))charged+=+l.km||0});return{all:Math.round(all*10)/10,charged:Math.round(charged*10)/10}}
 const cfgFor=(clientId)=>S.cfg[clientId]||{charged:false,reverse:0,defaultEMoney:'NONE',notes:'',by:null};
 
+/* ── CR-3: daftar field yang dibandingkan saat requester mengubah UJP (CR3-D4).
+   Server yang menghitung diff-nya; `changes` disimpan di ujp_status_history.changes (jsonb).
+   Nilai uang disamarkan untuk yang bukan requester / approver. ── */
+const CHG_FIELDS=[
+ {k:'clientId',l:'Client',g:f=>f.clientId,fmt:v=>CLIENTS.find(c=>c.id===v)?.name||'—'},
+ {k:'deliveryDate',l:'Tanggal kirim',g:f=>f.deliveryDate,fmt:v=>v?fmtDate(v):'—'},
+ {k:'shift',l:'Shift',g:f=>f.shift,fmt:v=>v||'—'},
+ {k:'isReverse',l:'Perjalanan reverse',g:f=>!!f.isReverse,fmt:v=>v?'Ya, muatan balik':'Tidak'},
+ {k:'routePlanId',l:'Rute tersimpan',g:f=>f.routePlanId,fmt:v=>S.routes.find(r=>r.id===v)?.name||'—'},
+ {k:'km',l:'KM diajukan',g:f=>+f.km||0,fmt:v=>fmtKm(v)+' km',mono:true},
+ {k:'plate',l:'Plat nomor',g:f=>f.plate,fmt:v=>v||'—',mono:true},
+ {k:'eMoney',l:'E-money',g:f=>f.eMoney,fmt:v=>EMONEY.find(x=>x[0]===v)?.[1]||'—'},
+ {k:'price',l:'Harga energi',g:f=>+f.price||0,money:true},
+ {k:'baseline',l:'Baseline km/L',g:f=>+f.baseline||0,fmt:v=>v?fmtKm(v):'—',mono:true},
+ {k:'toll',l:'Toll Flazz',g:f=>+f.costs.toll||0,money:true},
+ {k:'parkirTap',l:'Parkir tap machine',g:f=>+f.costs.parkirTap||0,money:true},
+ {k:'parkirManual',l:'Parkir manual',g:f=>+f.costs.parkirManual||0,money:true},
+ {k:'bongkar',l:'Bongkar / muat',g:f=>+f.costs.bongkar||0,money:true},
+ {k:'lain',l:'Biaya lain-lain',g:f=>+f.costs.lain||0,money:true},
+ {k:'makan',l:'Uang makan',g:f=>+f.costs.makan||0,money:true},
+ {k:'nominalTransfer',l:'Nominal transfer subcon',g:f=>+f.nominalTransfer||0,money:true},
+ {k:'riderId',l:'Driver',g:f=>f.riderId,fmt:v=>RIDERS.find(r=>r.id===v)?.name||'—'},
+ {k:'bankName',l:'Bank',g:f=>f.bank.name,fmt:v=>v||'—'},
+ {k:'bankAcct',l:'No. rekening',g:f=>f.bank.acct,fmt:v=>v||'—',mono:true,secret:true},
+];
+const CHG_BY=Object.fromEntries(CHG_FIELDS.map(x=>[x.k,x]));
+function diffForm(a,b){return CHG_FIELDS.filter(x=>x.g(a)!==x.g(b)).map(x=>({field:x.k,from:x.g(a),to:x.g(b)}))}
+function chgVal(field,v,canSee,strong){const d=CHG_BY[field];const cls=(d&&(d.money||d.mono)?'mono':'')+(strong?' to':'');
+  if(d&&(d.money||d.secret)&&!canSee)return `<span class="mono${strong?' to':''}" title="Hanya requester &amp; approver dapat melihat">•••</span>`;
+  return `<span class="${cls.trim()}">${esc(d?(d.money?fmtRp(v):d.fmt(v)):String(v??'—'))}</span>`}
+function chgList(changes,canSee){if(!changes||!changes.length)return '';
+  return `<div class="chg">${changes.map(c=>`<span class="cf">${esc(CHG_BY[c.field]?.l||c.field)}</span><span class="cv">${chgVal(c.field,c.from,canSee)}<i>→</i>${chgVal(c.field,c.to,canSee,true)}</span>`).join('')}</div>`}
+const histLabel=h=>(!h.from&&h.to==='SUBMITTED')?'Diajukan'
+  :(h.from==='SUBMITTED'&&h.to==='SUBMITTED')?'Diubah'
+  :(h.from==='REJECTED'&&h.to==='SUBMITTED')?'Diajukan ulang'
+  :h.to==='APPROVED'?'Disetujui':h.to==='REJECTED'?'Ditolak':'Dibatalkan';
+
 /* money formula v2 — mirrors UjpCostService (server). */
 function calc(f){
   const cfg=cfgFor(f.clientId);const split=kmSplit(f.stops,f.legs);
@@ -537,15 +581,18 @@ function blankForm(){return{clientId:null,deliveryDate:iso(daysAgo(-1)),opsTeam:
   riderQuery:'',riderId:null,bank:{name:'',acct:'',holder:''},cargo:{sender:'',receiver:'',item:'',bobot:''},errors:{},step:1}}
 function seed(){
   ADDRESSES.length=ADDRESSES_N; // buang lane DRAFT yang dibuat sesi ini
-  const st={persona:'ops',ujps:[],shipments:[],routes:ROUTES_SEED.map(r=>{const stops=r.stops.map((s,i)=>({...s,seq:i+1}));return{id:r.id,clientId:r.clientId,name:r.name,stops,legs:recomputeLegs(stops),active:r.active,createdBy:r.createdBy,updatedAt:NOW-r.updDays*864e5}}),cfg:JSON.parse(JSON.stringify(CLIENT_CFG_SEED)),counter:{},ui:{view:'list',tab:'SUBMITTED',search:'',client:'',detailId:null,wizard:null,decision:null,busy:null,collapsed:MODE==='flow',cfgEdit:null,conflict:null,plan:null,planClient:'',planSearch:''},sim:{latency:400,fail:false}};
+  const st={persona:'ops',ujps:[],shipments:[],routes:ROUTES_SEED.map(r=>{const stops=r.stops.map((s,i)=>({...s,seq:i+1}));return{id:r.id,clientId:r.clientId,name:r.name,stops,legs:recomputeLegs(stops),active:r.active,createdBy:r.createdBy,updatedAt:NOW-r.updDays*864e5}}),cfg:JSON.parse(JSON.stringify(CLIENT_CFG_SEED)),counter:{},ui:{view:'list',tab:'SUBMITTED',search:'',client:'',detailId:null,wizard:null,wizardEdit:null,decision:null,busy:null,collapsed:MODE==='flow',cfgEdit:null,conflict:null,panelId:null,panelVersion:null,plan:null,planClient:'',planSearch:''},sim:{latency:400,fail:false}};
   S=st;
   const mk=(o)=>{const f=Object.assign(blankForm(),o.form);applyRoute(f,st.routes.find(r=>r.id===o.routeId));applyVehicle(f,VEHICLES.find(v=>v.id===f.vehicleId));if(o.form.eMoney)f.eMoney=o.form.eMoney;if(o.form.isReverse!=null)f.isReverse=o.form.isReverse;const r=RIDERS.find(x=>x.id===f.riderId);if(r&&f.payee==='driver')f.bank={...r.bank};if(f.payee==='subcon'){const v=VENDORS.find(x=>x.id===f.vendorId);if(v)f.bank={...v.bank}}const t=calc(f);const created=o.created;
-    const u={id:o.id||uid(),ref:o.ref,status:o.status,form:f,totals:t,createdAt:created,requester:o.requester||USERS.ops.email,client:CLIENTS.find(c=>c.id===f.clientId),rider:r||null,vendor:VENDORS.find(x=>x.id===f.vendorId)||null,history:[{at:created,by:o.requester||USERS.ops.email,from:null,to:'SUBMITTED'}],shipmentId:null,shipmentSkipped:null,reason:null,note:null,decidedBy:null,decidedAt:null};
+    const u={id:o.id||uid(),ref:o.ref,status:o.status,version:1,form:f,totals:t,createdAt:created,requester:o.requester||USERS.ops.email,client:CLIENTS.find(c=>c.id===f.clientId),rider:r||null,vendor:VENDORS.find(x=>x.id===f.vendorId)||null,history:[{at:created,by:o.requester||USERS.ops.email,from:null,to:'SUBMITTED'}],shipmentId:null,shipmentSkipped:null,reason:null,note:null,decidedBy:null,decidedAt:null};
     if(o.status==='APPROVED'){u.decidedBy=USERS.finance.email;u.decidedAt=created+3.6e6;if(f.payee==='driver'){const sh=mkShipment(u,st);u.shipmentId=sh.id;u.history.push({at:u.decidedAt,by:u.decidedBy,from:'SUBMITTED',to:'APPROVED',note:`Shipment ${sh.waybill} dibuat (${sh.stops.length} stop)`})}else{u.shipmentSkipped='SUBCON';u.history.push({at:u.decidedAt,by:u.decidedBy,from:'SUBMITTED',to:'APPROVED',note:'Subcon: shipment tidak dibuat'})}}
     if(o.status==='REJECTED'){u.decidedBy=USERS.finance.email;u.decidedAt=created+7.2e6;u.reason=o.reason;u.note=o.note;u.history.push({at:u.decidedAt,by:u.decidedBy,from:'SUBMITTED',to:'REJECTED',note:`${REASONS.find(r=>r.code===o.reason).label}${o.note?' · '+o.note:''}`})}
     st.ujps.push(u);return u};
   const d=(n,h)=>{const x=daysAgo(n);x.setHours(h,12,0,0);return x.getTime()};
-  mk({ref:`UJP-${ymd(daysAgo(0))}-0003`,status:'SUBMITTED',created:NOW-62*60e3,routeId:'rt2',form:{clientId:566,vehicleId:'v2',eMoney:'FLAZZ_QRIS',costs:{toll:210000,parkirTap:20000,parkirManual:25000,bongkar:200000,lain:0,makan:75000},riderId:'r2',deliveryType:'MULTI_DROP'}});
+  /* sudah pernah diubah requester saat masih Menunggu (CR3-D3/D4): version 2 + baris riwayat EDITED */
+  const edited=mk({ref:`UJP-${ymd(daysAgo(0))}-0003`,status:'SUBMITTED',created:NOW-62*60e3,routeId:'rt2',form:{clientId:566,vehicleId:'v2',eMoney:'FLAZZ_QRIS',costs:{toll:210000,parkirTap:20000,parkirManual:25000,bongkar:200000,lain:0,makan:75000},riderId:'r2',deliveryType:'MULTI_DROP'}});
+  edited.version=2;
+  edited.history.push({at:edited.createdAt+21*60e3,by:edited.requester,from:'SUBMITTED',to:'SUBMITTED',changes:[{field:'toll',from:260000,to:210000},{field:'makan',from:50000,to:75000}]});
   mk({ref:`UJP-${ymd(daysAgo(3))}-0002`,status:'SUBMITTED',created:d(3,9),routeId:'rt4',form:{clientId:412,vehicleId:'v1',eMoney:'FLAZZ',costs:{toll:95000,parkirTap:10000,parkirManual:20000,bongkar:150000,lain:0,makan:75000},riderId:'r3',deliveryDate:iso(daysAgo(-2))}});
   mk({ref:`UJP-${ymd(daysAgo(3))}-0001`,status:'APPROVED',created:d(3,8),routeId:'rt1',form:{clientId:566,vehicleId:'v1',eMoney:'FLAZZ_QRIS',isReverse:true,costs:{toll:185000,parkirTap:20000,parkirManual:30000,bongkar:150000,lain:0,makan:75000},riderId:'r1',deliveryDate:iso(daysAgo(1))}});
   mk({ref:`UJP-${ymd(daysAgo(4))}-0004`,status:'REJECTED',created:d(4,14),reason:'BIAYA_TIDAK_WAJAR',note:'Toll Rp 900.000 untuk rute ini terlalu tinggi.',routeId:'rt5',form:{clientId:388,vehicleId:'v4',eMoney:'FLAZZ',costs:{toll:900000,parkirTap:20000,parkirManual:30000,bongkar:150000,lain:50000,makan:75000},justif:'Biaya tambahan tambat',riderId:'r4',deliveryDate:iso(daysAgo(2))}});
@@ -738,24 +785,33 @@ function renderConfig(){const me=USERS[S.persona].email;const can=isApprover(me)
   if(e){$('#e_ch').onchange=ev=>{e.charged=ev.target.checked;renderAll()};$('#e_rev').oninput=ev=>{const d=ev.target.value.replace(/\D/g,'');e.reverse=d?+d:0;ev.target.value=d?fmtN(e.reverse):''};$('#e_em').onchange=ev=>{e.defaultEMoney=ev.target.value};$('#e_nt').oninput=ev=>{e.notes=ev.target.value};$('#e_cancel').onclick=()=>{S.ui.cfgEdit=null;renderAll()};$('#e_save').onclick=()=>{S.cfg[e.clientId]={charged:e.charged,reverse:e.reverse,defaultEMoney:e.defaultEMoney,notes:e.notes,by:me};S.ui.cfgEdit=null;renderAll();toast(`Konfigurasi ${CLIENTS.find(c=>c.id===e.clientId).name} disimpan`)}}}
 
 /* ───────────────────────── wizard ───────────────────────── */
-function openWizard(prefill){S.ui.view='list';S.ui.wizard=Object.assign(blankForm(),prefill||{});S.ui.detailId=null;est={status:'idle'};renderAll()}
-function closeWizard(){S.ui.wizard=null;renderAll()}
+/* opts.editId → mode ubah (CR3-D2/D6): PUT /v1/ujp/:id, nomor UJP tetap, server hitung ulang uang */
+function openWizard(prefill,opts){S.ui.view='list';S.ui.wizard=Object.assign(blankForm(),prefill||{});
+  const eu=opts&&opts.editId?S.ujps.find(x=>x.id===opts.editId):null;
+  S.ui.wizardEdit=eu?{id:eu.id,ref:eu.ref,status:eu.status,version:eu.version||1,reason:eu.reason,note:eu.note,date0:eu.form.deliveryDate}:null;
+  S.ui.detailId=null;est={status:'idle'};renderAll()}
+function closeWizard(){S.ui.wizard=null;S.ui.wizardEdit=null;renderAll()}
 function fieldErr(k){const f=S.ui.wizard;return f.errors[k]?`<div class="ferr">${esc(f.errors[k])}</div>`:''}
 function validate(step){const f=S.ui.wizard;const e={};
-  if(step===1){if(!f.clientId)e.clientId='Pilih client';if(!f.deliveryDate||f.deliveryDate<iso(new Date()))e.deliveryDate='Tanggal kirim tidak boleh sebelum hari ini (WIB)'}
+  const ed=S.ui.wizardEdit;
+  if(step===1){if(!f.clientId)e.clientId='Pilih client';
+    /* saat mengubah UJP lama, tanggal yang sudah lewat boleh dipertahankan apa adanya (CR3-D2) */
+    if(!f.deliveryDate)e.deliveryDate='Tanggal kirim wajib diisi';
+    else if(f.deliveryDate<iso(new Date())&&!(ed&&f.deliveryDate===ed.date0))e.deliveryDate='Tanggal kirim tidak boleh sebelum hari ini (WIB)'}
   if(step===2){if(!f.routePlanId)e.route='Pilih rute tersimpan untuk client ini';else if(f.legs.some(l=>!(+l.km>0)))e.route='Rute punya leg tanpa km; perbaiki di Route Planner';if(!(+f.km>0))e.km='KM diajukan wajib > 0'}
   if(step===3){if(!f.plate)e.plate='Pilih atau isi plat nomor';if(f.payee==='driver'){const c=calc(f);if(!(c.baseline>0))e.baseline='Baseline wajib > 0';if(!(+f.price>0))e.price='Harga energi wajib > 0';if(+f.costs.lain>0&&!f.justif.trim())e.justif='Wajib diisi bila biaya lain-lain > 0'}else{if(!f.vendorId)e.vendor='Pilih vendor subcon';if(!(+f.nominalTransfer>0))e.nominalTransfer='Nominal transfer wajib > 0'}}
   if(step===4){if(f.payee==='driver'&&!f.riderId)e.rider='Pilih driver';if(!f.bank.name||!f.bank.acct||!f.bank.holder)e.bank='Bank, nomor rekening dan atas nama wajib diisi'}
   f.errors=e;return !Object.keys(e).length}
-function renderWizard(){const f=S.ui.wizard;if(!f)return '';const step=f.step;
+function renderWizard(){const f=S.ui.wizard;if(!f)return '';const step=f.step;const ed=S.ui.wizardEdit;
   const stepsHtml=`<div class="steps" aria-label="Langkah">${STEPS.map((s,i)=>`<div class="step ${step>i+1?'done':step===i+1?'cur':''}" ${step===i+1?'aria-current="step"':''}><span class="n">${step>i+1?'<i data-lucide="check"></i>':i+1}</span>${s}</div>${i<STEPS.length-1?'<i class="conn" data-lucide="chevron-right"></i>':''}`).join('')}</div>
   <div class="steps compact">Langkah ${step}/5 · ${STEPS[step-1]}<div class="bar"><i style="width:${step*20}%"></i></div></div>`;
   let body='';if(step===1)body=renderInfo(f);else if(step===2)body=renderRute(f);else if(step===3)body=renderBiaya(f);else if(step===4)body=renderDriver(f);else body=renderReview(f);
   return `<div class="ov" id="wizov"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="wzt">
-   <div class="mh"><div class="ic"><i data-lucide="plus"></i></div><div><h3 id="wzt">Buat Pengajuan UJP</h3><p>Uang jalan 4W: info, rute, biaya, driver, lalu review.</p></div><div class="ref mono" title="Nomor final ditetapkan server saat diajukan">UJP-${ymd(new Date())}-····</div><button type="button" class="x" id="wzx" aria-label="Tutup"><i data-lucide="x"></i></button></div>
+   <div class="mh"><div class="ic"><i data-lucide="${ed?'pencil':'plus'}"></i></div><div><h3 id="wzt">${ed?`Ubah ${esc(ed.ref)}`:'Buat Pengajuan UJP'}</h3><p>${ed?'Perubahan dihitung ulang server; nomor UJP tetap.':'Uang jalan 4W: info, rute, biaya, driver, lalu review.'}</p></div><div class="ref mono" title="${ed?'Nomor UJP tidak berubah saat diubah':'Nomor final ditetapkan server saat diajukan'}">${ed?esc(ed.ref):`UJP-${ymd(new Date())}-····`}</div><button type="button" class="x" id="wzx" aria-label="Tutup"><i data-lucide="x"></i></button></div>
    <div class="mb" id="wzb">${stepsHtml}${body}</div><div class="mf" id="wzf">${renderFooter()}</div></div></div>`}
-function renderFooter(){const f=S.ui.wizard;const step=f.step;const showStrip=step===2||step===4;
-  return `${step>1?`<button type="button" class="btn ghost" id="back"><i data-lucide="arrow-left"></i>Kembali</button>`:''}${showStrip?`<div class="est" id="strip" aria-live="polite">${stripHtml()}</div>`:''}<div class="grow"><button type="button" class="btn stroke" id="cancel">Batal</button>${step<5?`<button type="button" class="btn primary" id="next">Lanjut<i data-lucide="arrow-right"></i></button>`:`<button type="button" class="btn primary" id="submit" ${!est.lastGood||est.status==='error'||S.ui.busy==='submit'?'disabled':''}>${S.ui.busy==='submit'?'<span class="spin"></span> Mengajukan…':'Ajukan UJP'}</button>`}</div>`}
+function renderFooter(){const f=S.ui.wizard;const step=f.step;const showStrip=step===2||step===4;const ed=S.ui.wizardEdit;
+  const cta=ed?(ed.status==='REJECTED'?'Ajukan ulang':'Simpan perubahan'):'Ajukan UJP';const busyL=ed?'Menyimpan…':'Mengajukan…';
+  return `${step>1?`<button type="button" class="btn ghost" id="back"><i data-lucide="arrow-left"></i>Kembali</button>`:''}${showStrip?`<div class="est" id="strip" aria-live="polite">${stripHtml()}</div>`:''}<div class="grow"><button type="button" class="btn stroke" id="cancel">Batal</button>${step<5?`<button type="button" class="btn primary" id="next">Lanjut<i data-lucide="arrow-right"></i></button>`:`<button type="button" class="btn primary" id="submit" ${!est.lastGood||est.status==='error'||S.ui.busy==='submit'?'disabled':''}>${S.ui.busy==='submit'?`<span class="spin"></span> ${busyL}`:cta}</button>`}</div>`}
 function chipsHtml(g){return `${(!g.hasQ||g.F>0)?`<span class="badge b-em">Flazz ${fmtN(g.F)}</span>`:''}${g.hasQ?`<span class="badge b-sky">QRIS ${fmtN(g.Q)}</span>`:''}<span class="badge b-ac">Transfer ${fmtN(g.T)}</span>`}
 function stripHtml(){const g=est.lastGood;const lbl=`<span class="eyebrow" style="margin:0">Estimasi total</span>`;
   if(!g)return `${lbl}<span class="amt mono dim">—</span>${est.status==='pending'?'<span class="spin2" aria-label="menghitung"></span>':'<span class="hint" style="margin:0">lengkapi biaya di langkah Biaya</span>'}`;
@@ -771,10 +827,13 @@ const money=(id,val,opts={})=>`<div class="inp ${opts.locked?'locked':''} ${opts
 function bindMoney(id,set){const el=document.getElementById(id);if(!el)return;el.oninput=()=>{const d=el.value.replace(/\D/g,'');const n=d?parseInt(d,10):0;el.value=d?fmtN(n):'';set(n);scheduleEstimate()};el.onblur=()=>{if(!el.value)el.value='0'};el.onkeydown=e=>{if(e.key==='Enter')e.preventDefault()}}
 const lab=(t,r,extra='')=>`<label class="lab">${t}${r?' <span class="req">*</span>':''}${extra}</label>`;
 function ruleBanner(clientId,stops,noLink){const cfg=cfgFor(clientId);const hasPool=(stops||[]).some(s=>s.role==='POSITIONING'||s.role==='RETURN');return `<div class="banner ${cfg.charged?'':'warn'}" style="margin:0 0 12px"><i data-lucide="${cfg.charged?'badge-check':'info'}"></i><span><b>${cfg.charged?'Leg pool ditagih':'Leg pool tidak ditagih'}</b> untuk client ini${cfg.charged?': semua leg dihitung dan semua stop masuk shipment.':': leg pertama & terakhir (Pool / Kembali ke pool) tidak dihitung; shipment dibuat dengan stop di antaranya.'}${!hasPool&&(stops||[]).length?' Rute ini tidak punya leg pool.':''}</span>${noLink?'':'<a class="lnk grow" href="#" id="gocfg2" onclick="return false">Konfigurasi client</a>'}</div>`}
-function renderInfo(f){const cfg=cfgFor(f.clientId);
-  return `<div class="sec"><div class="sh">Informasi pengajuan</div><div class="sb"><div class="g3">
+function renderInfo(f){const cfg=cfgFor(f.clientId);const ed=S.ui.wizardEdit;
+  /* alasan penolakan tetap terlihat di langkah 1 supaya perbaikannya terarah (CR3-D6) */
+  const rejBanner=ed&&ed.status==='REJECTED'?`<div class="banner err" id="wzrej" style="margin:0 0 14px"><i data-lucide="circle-x"></i><div><b>Ditolak · ${esc(REASONS.find(r=>r.code===ed.reason)?.label||ed.reason||'—')}</b>${ed.note?`<div>${esc(ed.note)}</div>`:''}<div class="hint" style="margin:4px 0 0">Perbaiki lalu ajukan ulang — nomor <span class="mono">${esc(ed.ref)}</span> tetap, riwayat mencatat perubahannya.</div></div></div>`:'';
+  const minDate=ed&&ed.date0&&ed.date0<iso(new Date())?ed.date0:iso(new Date());
+  return `${rejBanner}<div class="sec"><div class="sh">Informasi pengajuan${ed?` <span class="badge vbadge">Mode ubah · v${ed.version}</span>`:''}</div><div class="sb"><div class="g3">
    <div class="f">${lab('Client',1)}<div class="inp ${f.errors.clientId?'err':''}"><select id="cl"><option value="">Pilih client</option>${CLIENTS.map(c=>`<option value="${c.id}" ${f.clientId===c.id?'selected':''}>${c.name}</option>`).join('')}</select></div>${fieldErr('clientId')}${f.clientId?`<div class="hint">${cfg.charged?'Leg pool ditagih':'Leg pool tidak ditagih'}${cfg.reverse?` · reverse ${fmtRp(cfg.reverse)}`:''} · e-money bawaan ${EMONEY.find(x=>x[0]===cfg.defaultEMoney)?.[1]||'—'}</div>`:''}</div>
-   <div class="f">${lab('Tanggal kirim',1)}<div class="inp ${f.errors.deliveryDate?'err':''}"><input type="date" id="dd" value="${f.deliveryDate}" min="${iso(new Date())}"></div>${fieldErr('deliveryDate')}</div>
+   <div class="f">${lab('Tanggal kirim',1)}<div class="inp ${f.errors.deliveryDate?'err':''}"><input type="date" id="dd" value="${f.deliveryDate}" min="${minDate}"></div>${fieldErr('deliveryDate')}</div>
    <div class="f">${lab('Tim ops')}<div class="inp"><select id="ot">${['Ops Patimban','Ops Priok','Ops Karawang'].map(o=>`<option ${f.opsTeam===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
    <div class="f">${lab('Tipe layanan')}<div class="inp"><select id="sv">${['Trucking 4W','Trucking 4W + Container'].map(o=>`<option ${f.serviceType===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
    <div class="f">${lab('Shift',1)}<div class="inp"><select id="sh">${['Dawn','Morning','Noon','Night'].map(o=>`<option ${f.shift===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
@@ -843,7 +902,7 @@ function renderReview(f){const c=CLIENTS.find(x=>x.id===f.clientId);const r=RIDE
 function bindWizard(){const f=S.ui.wizard;if(!f)return;const step=f.step;const refocus=sel=>{const el=document.querySelector(sel);if(el){el.focus();try{el.setSelectionRange(el.value.length,el.value.length)}catch(_){}}};
   $('#wzx').onclick=closeWizard;$('#cancel').onclick=closeWizard;const bk=$('#back');if(bk)bk.onclick=()=>{f.step--;renderAll()};
   const nx=$('#next');if(nx)nx.onclick=()=>{if(validate(step)){f.step++;f.errors={};renderAll();if(f.step===3)scheduleEstimate();if(f.step===5)fireEstimate()}else{renderAll();const first=document.querySelector('#wzb .err input,#wzb .err select,#wzb .ferr');if(first)first.scrollIntoView({block:'center'})}};
-  const sb=$('#submit');if(sb)sb.onclick=submitUjp;const rt=$('#retry');if(rt)rt.onclick=()=>{S.sim.fail=false;renderChrome();fireEstimate()};
+  const sb=$('#submit');if(sb)sb.onclick=()=>{S.ui.wizardEdit?saveEdit():submitUjp()};const rt=$('#retry');if(rt)rt.onclick=()=>{S.sim.fail=false;renderChrome();fireEstimate()};
   document.querySelectorAll('#wzb [data-go]').forEach(b=>b.onclick=()=>{f.step=+b.dataset.go;renderAll()});
   const gc=$('#gocfg2');if(gc)gc.onclick=()=>{S.ui.wizard=null;S.ui.view='config';renderAll()};
   if(step===1){$('#cl').onchange=e=>{f.clientId=+e.target.value||null;f.routePlanId=null;f.stops=[];f.legs=[];f.kmTouched=false;f.km=0;f.eMoney=cfgFor(f.clientId).defaultEMoney||'NONE';renderAll()};$('#dd').onchange=e=>{f.deliveryDate=e.target.value;if(f.vehicleId&&!f.priceTouched)f.price=priceFor(f.fuel,f.deliveryDate)};$('#ot').onchange=e=>{f.opsTeam=e.target.value};$('#sv').onchange=e=>{f.serviceType=e.target.value};$('#sh').onchange=e=>{f.shift=e.target.value};$('#jm').onchange=e=>{f.jamMulai=e.target.value};$('#js').onchange=e=>{f.jamSelesai=e.target.value};$('#rev').onchange=e=>{f.isReverse=e.target.checked;renderAll()}}
@@ -871,36 +930,66 @@ function bindWizard(){const f=S.ui.wizard;if(!f)return;const step=f.step;const r
 function submitUjp(){const f=S.ui.wizard;if(!validate(1)||!validate(2)||!validate(3)||!validate(4)){renderAll();return}if(!est.lastGood||est.status==='error')return;S.ui.busy='submit';renderAll();
   setTimeout(()=>{const snap=JSON.parse(JSON.stringify(f));
     const t=calc(snap);const ref=nextRef();const r=RIDERS.find(x=>x.id===snap.riderId);
-    const u={id:uid(),ref,status:'SUBMITTED',form:snap,totals:t,createdAt:Date.now(),requester:USERS[S.persona].email,client:CLIENTS.find(c=>c.id===snap.clientId),rider:r||null,vendor:VENDORS.find(x=>x.id===snap.vendorId)||null,history:[{at:Date.now(),by:USERS[S.persona].email,from:null,to:'SUBMITTED'}],shipmentId:null,shipmentSkipped:null,reason:null,note:null,decidedBy:null,decidedAt:null};
-    S.ujps.push(u);S.ui.busy=null;S.ui.wizard=null;S.ui.tab='SUBMITTED';S.ui.detailId=u.id;renderAll();toast(`<span class="mono">${ref}</span> diajukan <a href="#" onclick="return false">Lihat</a>`)},S.sim.latency+300)}
+    const u={id:uid(),ref,status:'SUBMITTED',version:1,form:snap,totals:t,createdAt:Date.now(),requester:USERS[S.persona].email,client:CLIENTS.find(c=>c.id===snap.clientId),rider:r||null,vendor:VENDORS.find(x=>x.id===snap.vendorId)||null,history:[{at:Date.now(),by:USERS[S.persona].email,from:null,to:'SUBMITTED'}],shipmentId:null,shipmentSkipped:null,reason:null,note:null,decidedBy:null,decidedAt:null};
+    S.ujps.push(u);S.ui.busy=null;S.ui.wizard=null;S.ui.wizardEdit=null;S.ui.tab='SUBMITTED';S.ui.detailId=u.id;S.ui.panelId=null;renderAll();toast(`<span class="mono">${ref}</span> diajukan <a href="#" onclick="return false">Lihat</a>`)},S.sim.latency+300)}
+/* PUT /v1/ujp/:id — requester mengubah UJP yang Menunggu atau Ditolak (CR3-D2/D3/D4).
+   Server menghitung ulang uang, menaikkan version dan menulis baris riwayat EDITED / RESUBMITTED beserta diff-nya. */
+function saveEdit(){const f=S.ui.wizard;const ed=S.ui.wizardEdit;if(!ed)return;
+  const u=S.ujps.find(x=>x.id===ed.id);if(!u)return;
+  if(!validate(1)||!validate(2)||!validate(3)||!validate(4)){renderAll();return}if(!est.lastGood||est.status==='error')return;
+  S.ui.busy='submit';renderAll();
+  setTimeout(()=>{
+    if(u.status!=='SUBMITTED'&&u.status!=='REJECTED'){S.ui.busy=null;S.ui.wizard=null;S.ui.wizardEdit=null;S.ui.detailId=u.id;renderAll();toast(`<span class="mono">${u.ref}</span> sudah diputuskan · perubahan tidak disimpan`,'err');return}
+    const before=u.form;const snap=JSON.parse(JSON.stringify(f));const changes=diffForm(before,snap);
+    const was=u.status;const me=USERS[S.persona].email;const now=Date.now();
+    u.form=snap;u.totals=calc(snap);u.version=(u.version||1)+1;
+    u.client=CLIENTS.find(c=>c.id===snap.clientId);u.rider=RIDERS.find(x=>x.id===snap.riderId)||null;u.vendor=VENDORS.find(x=>x.id===snap.vendorId)||null;
+    if(was==='REJECTED'){u.status='SUBMITTED';u.reason=null;u.note=null;u.decidedBy=null;u.decidedAt=null;
+      u.history.push({at:now,by:me,from:'REJECTED',to:'SUBMITTED',changes})}
+    else u.history.push({at:now,by:me,from:'SUBMITTED',to:'SUBMITTED',changes});
+    S.ui.busy=null;S.ui.wizard=null;S.ui.wizardEdit=null;S.ui.tab='SUBMITTED';S.ui.detailId=u.id;S.ui.panelId=null;S.ui.panelVersion=null;S.ui.conflict=null;
+    renderAll();toast(`<span class="mono">${u.ref}</span> ${was==='REJECTED'?'diajukan ulang':'diperbarui'}${changes.length?` · ${changes.length} perubahan`:''}`)},S.sim.latency+300)}
 
 /* ───────────────────────── detail panel ───────────────────────── */
 function renderPanel(){const u=S.ujps.find(x=>x.id===S.ui.detailId);if(!u)return '';const me=USERS[S.persona].email;const canSee=isApprover(me)||u.requester===me;const isReq=u.requester===me;const canDecide=isApprover(me)&&u.requester!==me&&u.status==='SUBMITTED';const f=u.form;const t=u.totals;const sh=S.shipments.find(s=>s.id===u.shipmentId);const st=STATUS[u.status];const busy=S.ui.busy;const cfg=cfgFor(f.clientId);const sub=f.payee==='subcon';const plan=S.routes.find(r=>r.id===f.routePlanId);
   const inner=f.stops.filter(s=>s.role!=='POSITIONING'&&s.role!=='RETURN');const shipStops=cfg.charged?f.stops:inner;
+  /* versi yang dipegang panel ini; dikirim sebagai expectedVersion saat memutuskan (CR3-D5) */
+  if(S.ui.panelId!==u.id){S.ui.panelId=u.id;S.ui.panelVersion=u.version||1}
+  const cf=S.ui.conflict;const cfId=cf?(typeof cf==='string'?cf:cf.id):null;const cfKind=(cf&&typeof cf==='object'&&cf.kind)||'DECIDED';
+  const canEdit=isReq&&(u.status==='SUBMITTED'||u.status==='REJECTED');const ver=u.version||1;
   const masked=`<span class="mono" style="color:var(--muted)" title="Hanya requester & approver dapat melihat">🔒 •••• ${f.bank.acct.slice(-4)}</span>`;
   return `<div class="panelwrap" id="pw"><aside class="panel" role="dialog" aria-modal="true" aria-labelledby="pt">
-   <div class="ph"><div class="l1"><span class="mono" id="pt">${u.ref}</span><span class="badge ${st.c}">${st.pulse?'<span class="dot pulse"></span>':''}${st.l}</span>${f.isReverse?'<span class="badge b-ac">Reverse</span>':''}${sub?'<span class="badge b-ne">Subcon</span>':''}<button type="button" class="x" id="px" aria-label="Tutup"><i data-lucide="x"></i></button></div>
+   <div class="ph"><div class="l1"><span class="mono" id="pt">${u.ref}</span><span class="badge ${st.c}">${st.pulse?'<span class="dot pulse"></span>':''}${st.l}</span>${f.isReverse?'<span class="badge b-ac">Reverse</span>':''}${sub?'<span class="badge b-ne">Subcon</span>':''}${ver>1?`<span class="badge vbadge" title="Diubah requester setelah diajukan · daftar perubahan ada di Riwayat">Diperbarui · v${ver}</span>${canSee?'<a class="lnk" href="#" id="pchg" style="font-size:11px" onclick="return false">lihat perubahan</a>':''}`:''}<button type="button" class="x" id="px" aria-label="Tutup"><i data-lucide="x"></i></button></div>
     <div class="l2">${esc(u.client.name)} · Kirim ${fmtDate(f.deliveryDate)} · diajukan oleh ${esc(u.requester)} · ${age(u.createdAt).t}${u.status==='SUBMITTED'&&isReq?'<div>Menunggu persetujuan finance.</div>':''}</div></div>
    <div class="pb" id="pbody">${busy==='load'?`<section><div class="skel" style="width:60%"></div></section>`:`
     ${u.status==='REJECTED'?`<section><div class="banner err"><div><b>Ditolak · ${esc(REASONS.find(r=>r.code===u.reason)?.label||u.reason)}</b>${u.note?`<div>${esc(u.note)}</div>`:''}<div class="hint" style="margin:4px 0 0">oleh ${esc(u.decidedBy)} · ${fmtTs(u.decidedAt)}</div></div></div></section>`:''}
-    ${S.ui.conflict===u.id?`<section><div class="banner warn">Sudah diputuskan oleh ${esc(u.decidedBy||'pengguna lain')}. Data dimuat ulang.</div></section>`:''}
+    ${cfId===u.id?(cfKind==='STALE'
+      ?`<section><div class="banner warn" id="pstale"><i data-lucide="refresh-cw"></i><div><b>UJP diperbarui oleh requester · muat ulang</b><div>Panel ini memegang v${S.ui.panelVersion}, versi terbaru v${ver}. Keputusan ditolak server (409 <span class="mono">UJP_STALE</span>); status tidak berubah.</div></div><button type="button" class="btn stroke xs grow" id="preload"><i data-lucide="refresh-cw"></i>Muat ulang</button></div></section>`
+      :`<section><div class="banner warn" id="pdecided">Sudah diputuskan oleh ${esc(u.decidedBy||'pengguna lain')}. Data dimuat ulang.</div></section>`):''}
     <section>${canSee?tilesHtml(t):'<div class="hint">Rincian uang jalan disembunyikan.</div>'}<div class="total"><span class="eyebrow" style="margin:0">Estimasi total uang jalan</span><span class="a mono">${canSee?fmtRp(t.total):'<span class="badge b-ne">Disembunyikan</span>'}</span></div></section>
     <section><h4>${u.status==='APPROVED'?'Shipment':'Dibuat saat disetujui'}</h4><div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">${sub?`<span class="badge b-ne">Tidak dibuat: subcon</span><span>Vendor <b>${esc(u.vendor?.name||'—')}</b> menjalankan trip; tidak ada shipment / rute di aplikasi driver Dash.</span>`:u.status==='APPROVED'&&sh?`<span class="badge b-em">Dibuat</span><span>Direct 4W · ${sh.stops.length} stop · <a class="lnk mono" href="#" onclick="return false">${sh.waybill}</a> · rute <span class="mono">${sh.routeCode}</span></span>`:u.status==='SUBMITTED'?`<span class="badge b-sky">Belum dibuat</span><span>Direct 4W · ${shipStops.length} stop${cfg.charged?'':` (tanpa ${f.stops.length-inner.length} stop pool)`} · ${esc(shipStops[0]?.name)} → ${esc(shipStops.at(-1)?.name)} · Driver <b>${esc(u.rider?.name||'—')}</b> · <span class="mono">${esc(f.plate)}</span></span>`:`<span class="badge b-ne">Tidak dibuat</span><span>Pengajuan ${u.status==='REJECTED'?'ditolak':'dibatalkan'}.</span>`}</div>${u.status==='SUBMITTED'&&!sub?`<div class="hint">Menyetujui akan membuat shipment; ${cfg.charged?'semua stop termasuk pool masuk rute.':'leg pool tidak ditagih, stop pool tidak masuk rute.'}</div>`:''}</section>
     <section><h4>Rincian biaya</h4><div class="kv">${sub?`<span class="k">Payee subcon<small>100% transfer</small></span><span class="v mono">${canSee?fmtRp(f.nominalTransfer):'<span class="badge b-ne">Disembunyikan</span>'}</span>`:`<span class="k">KM semua leg / ditagih / diajukan<small>${cfg.charged?'leg pool ditagih':'leg pool tidak ditagih'}</small></span><span class="v mono">${fmtKm(t.kmAll)} / ${fmtKm(t.kmCharged)} / ${fmtKm(f.km)} km</span><span class="k">KM + margin ${t.marginPct}%</span><span class="v mono">${fmtKm(t.kmM)} km</span><span class="k">${f.vehicleEnergy==='EV'?'Energi':'BBM'} (${fmtKm(t.liters)} ${f.vehicleEnergy==='EV'?'kWh':'L'} × ${fmtRp(f.price)} ${FUEL_LABEL[f.fuel]||''})</span><span class="v mono">${fmtRp(t.bbm)} → ${t.hasQ?'QRIS':t.hasF?'Flazz':'Transfer'}</span><span class="k">Toll + parkir tap</span><span class="v mono">${fmtRp(t.tollTap)} → ${t.hasF?'Flazz':'Transfer'}</span><span class="k">Parkir manual · bongkar muat · makan · lain-lain</span><span class="v mono">${fmtRp(f.costs.parkirManual)} · ${fmtRp(f.costs.bongkar)} · ${fmtRp(f.costs.makan)} · ${fmtRp(f.costs.lain)}</span>${t.rev?`<span class="k">Biaya reverse (client)</span><span class="v mono">${fmtRp(t.rev)} → Transfer</span>`:''}<span class="k">E-money</span><span class="v">${EMONEY.find(x=>x[0]===f.eMoney)?.[1]}</span>`}</div></section>
     <section><h4>${sub?'Rekening subcon':'Rekening driver'}</h4><div class="kv"><span class="k">${sub?'Vendor':'Driver'}</span><span class="v">${sub?esc(u.vendor?.name||'—'):esc(u.rider?.name||'—')}</span><span class="k">Bank</span><span class="v">${esc(f.bank.name)}</span><span class="k">No. rekening</span><span class="v">${canSee?`<span class="mono">${esc(f.bank.acct)}</span> <button type="button" class="btn ghost xs" id="copy">Salin</button>`:masked}</span><span class="k">Atas nama</span><span class="v">${esc(f.bank.holder)}</span></div></section>
     <section><h4>Rute · ${f.stops.length} stop</h4><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:-4px 0 8px"><span class="mono" style="font-size:12px">${esc(plan?plan.name:'Rute manual')}</span>${plan&&!plan.active?'<span class="badge b-am">rute nonaktif</span>':''}${plan&&plan.updatedAt>u.createdAt?'<span class="badge b-am" title="Snapshot di UJP ini tidak ikut berubah">Rute diperbarui setelah pengajuan</span>':''}</div>${f.stops.map((s,i)=>{const pos=s.role==='POSITIONING'||s.role==='RETURN';const leg=i>0?f.legs[i-1]:null;return `<div class="stop" style="${pos&&!cfg.charged?'opacity:.6':''}"><span class="n">${i+1}</span><div><b>${esc(s.name)}</b> <span class="badge ${ROLE[s.role].c}">${ROLE[s.role].l}</span>${pos&&!cfg.charged?' <span class="hint" style="margin:0">tidak ditagih</span>':''}<div class="ad">${esc(s.addr)}</div></div><span class="mono ad">${leg?`${fmtKm(leg.km)} km<div>${srcBadge(leg)}</div>`:''}</span></div>`}).join('')}</section>
-    <section><h4>Riwayat</h4><div class="hist">${u.history.map(h=>`<span class="mono">${fmtTs(h.at)}</span><span>${h.to==='SUBMITTED'&&!h.from?'Diajukan':h.to==='APPROVED'?'Disetujui':h.to==='REJECTED'?'Ditolak':'Dibatalkan'} oleh ${esc(h.by.split('@')[0])}${h.note?` · ${esc(h.note)}`:''}</span>`).join('')}</div></section>`}</div>
-   <div class="pf">${u.status==='SUBMITTED'&&isReq?`<button type="button" class="btn ghost" id="pcancel">Batalkan pengajuan</button>`:''}${u.status==='REJECTED'&&isReq?`<button type="button" class="btn primary" id="redo">Buat ulang dari UJP ini</button>`:''}
+    <section><h4>Riwayat</h4><div class="hist" id="phist">${u.history.map(h=>`<span class="mono">${fmtTs(h.at)}</span><span>${histLabel(h)} oleh ${esc(h.by.split('@')[0])}${h.note?` · ${esc(h.note)}`:''}${chgList(h.changes,canSee)}</span>`).join('')}</div></section>`}</div>
+   <div class="pf">${u.status==='SUBMITTED'&&isReq?`<button type="button" class="btn ghost" id="pcancel">Batalkan pengajuan</button><button type="button" class="btn stroke" id="pedit"><i data-lucide="pencil"></i>Ubah</button>`:''}${u.status==='REJECTED'&&isReq?`<button type="button" class="btn primary" id="pedit"><i data-lucide="pencil"></i>Ubah &amp; ajukan ulang</button>`:''}
     ${canDecide?`<div class="grow"><button type="button" class="btn od" id="preject" ${busy?'disabled':''}>Tolak</button><button type="button" class="btn primary" id="papprove" ${busy?'disabled':''}>${busy==='approve'?'<span class="spin"></span> Menyetujui…':sub?'Setujui (tanpa shipment)':'Setujui & buat shipment'}</button></div>`:''}
     ${!canDecide&&!isReq&&u.status==='SUBMITTED'?`<span class="hint" style="margin:0">${isApprover(me)?'Requester tidak dapat menyetujui pengajuannya sendiri.':'Hanya approver (finance) yang dapat memutuskan.'}</span>`:''}</div>
   </aside></div>`}
-function bindPanel(){const u=S.ujps.find(x=>x.id===S.ui.detailId);if(!u)return;$('#px').onclick=()=>{S.ui.detailId=null;S.ui.conflict=null;renderAll()};$('#pw').onclick=e=>{if(e.target.id==='pw'){S.ui.detailId=null;renderAll()}};
+function bindPanel(){const u=S.ujps.find(x=>x.id===S.ui.detailId);if(!u)return;const close=()=>{S.ui.detailId=null;S.ui.conflict=null;S.ui.panelId=null;S.ui.panelVersion=null;renderAll()};
+  $('#px').onclick=close;$('#pw').onclick=e=>{if(e.target.id==='pw')close()};
   const cp=$('#copy');if(cp)cp.onclick=()=>{try{navigator.clipboard?.writeText(u.form.bank.acct)}catch(_){}toast('Nomor rekening disalin')};
   const ap=$('#papprove');if(ap)ap.onclick=()=>decide(u,'approved');const rj=$('#preject');if(rj)rj.onclick=()=>{S.ui.decision={id:u.id,mode:'reject',reason:'',note:''};renderAll()};
   const pc=$('#pcancel');if(pc)pc.onclick=()=>{S.ui.decision={id:u.id,mode:'cancel'};renderAll()};
-  const rd=$('#redo');if(rd)rd.onclick=()=>{const pf=JSON.parse(JSON.stringify(u.form));pf.step=1;pf.errors={};pf.deliveryDate=iso(daysAgo(-1));openWizard(pf);estimateNow();toast('Form terisi dari '+u.ref+' · nomor baru saat diajukan')}}
-function decide(u,action,reason,note){const me=USERS[S.persona].email;if(!isApprover(me)||u.requester===me)return;S.ui.busy='approve';S.ui.decision=null;renderAll();
-  setTimeout(()=>{if(u.status!=='SUBMITTED'){S.ui.conflict=u.id;S.ui.busy=null;renderAll();return}
+  /* CR3-D6: Ubah (Menunggu) / Ubah & ajukan ulang (Ditolak) — wizard terbuka prefilled dalam mode ubah */
+  const pe=$('#pedit');if(pe)pe.onclick=()=>{const pf=JSON.parse(JSON.stringify(u.form));pf.step=1;pf.errors={};openWizard(pf,{editId:u.id});estimateNow();renderAll()};
+  const pr=$('#preload');if(pr)pr.onclick=()=>{S.ui.panelVersion=u.version||1;S.ui.conflict=null;renderAll();toast(`<span class="mono">${u.ref}</span> dimuat ulang · v${u.version||1}`)};
+  const pg=$('#pchg');if(pg)pg.onclick=e=>{if(e&&e.preventDefault)e.preventDefault();const h=$('#phist');if(h){h.classList.add('hl');try{h.scrollIntoView({block:'center',behavior:'smooth'})}catch(_){}setTimeout(()=>h.classList.remove('hl'),1600)}return false}}
+function decide(u,action,reason,note){const me=USERS[S.persona].email;if(!isApprover(me)||u.requester===me)return;
+  /* expectedVersion ikut dikirim; requester yang mengubah UJP di sela-sela → 409 UJP_STALE, status tidak berubah (CR3-D5) */
+  if(S.ui.panelVersion!=null&&(u.version||1)!==S.ui.panelVersion){S.ui.conflict={id:u.id,kind:'STALE'};S.ui.decision=null;S.ui.busy=null;renderAll();toast(`<span class="mono">${u.ref}</span> diperbarui requester · keputusan tidak dikirim`,'err');return}
+  S.ui.busy='approve';S.ui.decision=null;renderAll();
+  setTimeout(()=>{if(u.status!=='SUBMITTED'){S.ui.conflict={id:u.id,kind:'DECIDED'};S.ui.busy=null;renderAll();return}
     if(action==='approved'){u.status='APPROVED';u.decidedBy=me;u.decidedAt=Date.now();if(u.form.payee==='subcon'){u.shipmentSkipped='SUBCON';u.history.push({at:Date.now(),by:me,from:'SUBMITTED',to:'APPROVED',note:'Subcon: shipment tidak dibuat'});toast(`<span class="mono">${u.ref}</span> disetujui · subcon, tanpa shipment`)}else{const sh=mkShipment(u);u.shipmentId=sh.id;u.history.push({at:Date.now(),by:me,from:'SUBMITTED',to:'APPROVED',note:`Shipment ${sh.waybill} dibuat (${sh.stops.length} stop)`});toast(`<span class="mono">${u.ref}</span> disetujui · Shipment <span class="mono">${sh.waybill}</span> dibuat <a href="#" onclick="return false">Lihat shipment</a>`)}}
     else{u.status='REJECTED';u.reason=reason;u.note=note;u.decidedBy=me;u.decidedAt=Date.now();u.history.push({at:Date.now(),by:me,from:'SUBMITTED',to:'REJECTED',note:`${REASONS.find(r=>r.code===reason).label}${note?' · '+note:''}`});toast(`<span class="mono">${u.ref}</span> ditolak`)}
     S.ui.busy=null;renderAll()},S.sim.latency+500)}
@@ -962,7 +1051,7 @@ const SCENES=[
  {t:'Diajukan',c:'Submit: the server numbers the request and stores route_plan_id plus the stop/leg snapshot; the panel opens for the requester with Menunggu persetujuan finance. Nothing is saved back into the planner — plans are only created there (CR2-D2, §16.3).',dd:['DD6','CR2-D2','CR2-D4'],
   do:[{t:'Klik Ajukan UJP → nomor UJP-…-0004 dari server.'},{t:'Baris baru di tab Menunggu; panel terbuka.',hl:'tr.row.sel'},{t:'Requester melihat “Menunggu persetujuan finance” dan hanya Batalkan pengajuan.',hl:'#pcancel'}],
   run:s=>{const f=s.ui.wizard;const snap=JSON.parse(JSON.stringify(f));
-   const u={id:'scene-u',ref:`UJP-${ymd(new Date())}-0004`,status:'SUBMITTED',form:snap,totals:calc(snap),createdAt:NOW-2*60e3,requester:USERS.ops.email,client:CLIENTS[0],rider:RIDERS[0],vendor:null,history:[{at:NOW-2*60e3,by:USERS.ops.email,from:null,to:'SUBMITTED'}],shipmentId:null,shipmentSkipped:null,reason:null,note:null,decidedBy:null,decidedAt:null};
+   const u={id:'scene-u',ref:`UJP-${ymd(new Date())}-0004`,status:'SUBMITTED',version:1,form:snap,totals:calc(snap),createdAt:NOW-2*60e3,requester:USERS.ops.email,client:CLIENTS[0],rider:RIDERS[0],vendor:null,history:[{at:NOW-2*60e3,by:USERS.ops.email,from:null,to:'SUBMITTED'}],shipmentId:null,shipmentSkipped:null,reason:null,note:null,decidedBy:null,decidedAt:null};
    s.ujps.push(u);s.ui.wizard=null;s.ui.detailId=u.id;s.ui.tab='SUBMITTED'}},
  {t:'Finance membuka panel',c:'Approver persona. Money first in three tiles, then the shipment preview: 3 of 5 stops will ship because this client does not pay for pool legs; those stops are greyed in the route list. The route section names the plan and would flag it if the plan had been edited after submission (CR2-D17).',dd:['DD3','CR-D7','DD5','CR2-D17'],
   do:[{t:'Ganti persona ke Finance (approver).',hl:'#chrome .segc button.on'},{t:'Uang jalan dulu: Flazz / QRIS / Transfer dan total.',hl:'.pb section:first-child'},{t:'“Dibuat saat disetujui”: Direct 4W · 3 dari 5 stop (tanpa 2 stop pool).',hl:'.badge.b-sky'},{t:'Rute: nama rute tersimpan; stop Pool dan Kembali ke pool ditandai tidak ditagih.',hl:'.pb section:nth-child(5)'}],
@@ -976,9 +1065,33 @@ const SCENES=[
  {t:'Jalur tolak',c:'On another waiting request, Tolak opens a small danger modal with a required reason from the UJP_REJECTION master, including route and driver disagreement. Rejecting never touches the plan; the requester fixes the route in the planner and redoes the UJP.',dd:['DD3','CR2-D16'],
   do:[{t:'Buka UJP menunggu lainnya sebagai Finance, klik Tolak.'},{t:'Alasan “Rute tidak sesuai” dari master.',hl:'#rsn'},{t:'Catatan untuk requester; Tolak UJP aktif setelah alasan dipilih.',hl:'#dyes'}],
   run:s=>{const u=s.ujps.find(x=>x.status==='SUBMITTED'&&x.id!=='scene-u');s.ui.tab='SUBMITTED';s.ui.detailId=u.id;s.ui.decision={id:u.id,mode:'reject',reason:'RUTE_TIDAK_SESUAI',note:'Drop kedua tidak ada di surat jalan.'}}},
+ {t:'Ditolak → Ubah & ajukan ulang',c:'CR-3 replaces “Buat ulang dari UJP ini” with an in-place edit (CR3-D6). The requester opens the rejected request and the wizard reopens prefilled in edit mode: the title reads “Ubah UJP-…”, the reference chip shows the real number instead of ····, and the rejection reason stays pinned to step 1 so the fix is guided. The Review button becomes “Ajukan ulang”. Saving sends PUT /v1/ujp/:id: the server recomputes the money, clears the rejection (reason, note, decider), moves REJECTED → SUBMITTED, bumps version and writes a RESUBMITTED history row with the field-level diff (CR3-D2, CR3-D3, CR3-D4).',dd:['CR3-D1','CR3-D2','CR3-D3','CR3-D4','CR3-D6'],
+  do:[{t:'Sebagai requester (Ops), buka UJP yang ditolak dan klik “Ubah & ajukan ulang” — wizard terbuka dalam mode ubah dengan banner penolakan di langkah 1.'},
+   {t:'Toll diperbaiki Rp 900.000 → Rp 320.000 dan biaya lain-lain dicabut; nomor UJP tidak berubah.',hl:'#pt'},
+   {t:'Setelah disimpan, status kembali ke Menunggu persetujuan dengan badge Diperbarui · v2.',hl:'.ph .vbadge'},
+   {t:'Riwayat mencatat “Diajukan ulang oleh …” beserta daftar perubahannya; requester masih bisa menekan Ubah lagi selama menunggu.',hl:'.hist .chg'}],
+  run:s=>{s.ui.decision=null;s.persona='ops';const u=s.ujps.find(x=>x.status==='REJECTED');if(!u)return;
+   const before=u.form;const f=JSON.parse(JSON.stringify(before));f.costs.toll=320000;f.costs.lain=0;f.justif='';
+   const changes=diffForm(before,f);
+   u.form=f;u.totals=calc(f);u.version=(u.version||1)+1;u.status='SUBMITTED';u.reason=null;u.note=null;u.decidedBy=null;u.decidedAt=null;
+   u.history.push({at:NOW-4*60e3,by:USERS.ops.email,from:'REJECTED',to:'SUBMITTED',changes});
+   s.ui.tab='SUBMITTED';s.ui.detailId=u.id;s.ui.panelId=null;s.ui.panelVersion=null;s.ui.conflict=null}},
+ {t:'Requester mengubah UJP menunggu → approver melihat Diperbarui',c:'A request may also be edited while it is still waiting: SUBMITTED --edit--> SUBMITTED, version += 1, an EDITED history row (CR3-D3). The approver panel marks it “Diperbarui · v2” and lists the changed fields; money in the diff is masked for anyone who is neither requester nor approver (CR3-D4). A decision taken from a panel that still holds the old version carries the stale expectedVersion, so the server answers 409 UJP_STALE and nothing is decided — the panel shows a reload banner instead (CR3-D5).',dd:['CR3-D3','CR3-D4','CR3-D5'],
+  do:[{t:'Requester mengubah UJP yang masih Menunggu: toll dan parkir manual diperbaiki; status tetap Menunggu, versi naik ke v2.',hl:'.ph .vbadge'},
+   {t:'Panel Finance menandai “Diperbarui · v2”; daftar perubahan ada di Riwayat, nilai uang disamarkan untuk yang bukan pihak.',hl:'.hist .chg'},
+   {t:'Finance menekan Setujui dari panel versi lama → 409 UJP_STALE: status tidak berubah, muncul peringatan.',hl:'#pstale'},
+   {t:'Muat ulang menyegarkan panel ke versi terbaru sebelum memutuskan lagi.',hl:'#preload'}],
+  run:s=>{s.persona='ops';const u=s.ujps.find(x=>x.status==='SUBMITTED'&&x.id!=='scene-u'&&(x.version||1)===1);if(!u)return;
+   const before=u.form;const f=JSON.parse(JSON.stringify(before));f.costs.toll=140000;f.costs.parkirManual=35000;
+   const changes=diffForm(before,f);
+   u.form=f;u.totals=calc(f);u.version=(u.version||1)+1;
+   u.history.push({at:NOW-3*60e3,by:USERS.ops.email,from:'SUBMITTED',to:'SUBMITTED',changes});
+   /* approver sudah membuka panel sebelum perubahan itu → expectedVersion tertinggal di v1 */
+   s.persona='finance';s.ui.tab='SUBMITTED';s.ui.detailId=u.id;s.ui.panelId=u.id;s.ui.panelVersion=1;s.ui.conflict=null;
+   decide(u,'approved')}},
  {t:'Konfigurasi UJP client',c:'The client config page: per client, whether pool legs are charged, the reverse charge, default e-money and a note. Only allowlisted approvers can edit; the wizard, the planner totals, the 4W stop picker and approve all read these rules.',dd:['CR-D7','CR-D8','CR2-D7'],
   do:[{t:'Buka Konfigurasi client dari halaman UJP.',hl:'#page h1'},{t:'PT Patimban Logistik: leg pool tidak ditagih, reverse Rp 50.000, e-money bawaan Flazz + QRIS.',hl:'tbody tr'},{t:'Ubah hanya untuk approver; requester melihat baca-saja.',hl:'[data-edit="566"]'}],
-  run:s=>{s.ui.decision=null;s.ui.detailId=null;s.ui.view='config'}},
+  run:s=>{s.ui.decision=null;s.ui.detailId=null;s.ui.conflict=null;s.ui.panelId=null;s.ui.panelVersion=null;s.ui.view='config'}},
  {t:'Pengguna lain',c:'Any other ops user can open an approved request but sees the account number masked and the total hidden. Enforced in the server response mapper.',dd:['DD5','CR-D6'],
   do:[{t:'Ganti persona ke Ops lain dan buka UJP yang disetujui.',hl:'#chrome .segc button.on'},{t:'No. rekening tersamar •••• 2344 dengan ikon kunci; total disembunyikan.',hl:'.pb section:nth-child(4)'},{t:'Tidak ada tombol aksi.',hl:'.pf'}],
   run:s=>{s.persona='other';s.ui.view='list';s.ui.tab='APPROVED';s.ui.detailId='scene-u'}},
@@ -995,7 +1108,7 @@ function autoTick(){if(!auto.on||auto.paused)return;const sc=SCENES[auto.k];cons
 function autoPause(){if(!auto.on)return;auto.paused=!auto.paused;clearTimeout(auto.t);if(!auto.paused)autoTick();else{renderNarr();renderRail()}}
 function autoStop(){clearTimeout(auto.t);auto.on=false;auto.paused=false;auto.done=false;highlight(null);renderNarr();renderRail()}
 function renderNarr(){const n=$('#narr');if(!n)return;if(MODE!=='flow'||(!auto.on&&!auto.done)){n.hidden=true;return}n.hidden=false;
-  if(auto.done){n.innerHTML=`<div><div class="k">Selesai · ${SCENES.length} adegan</div><div class="a">Alur lengkap: Route Planner dan builder-nya, lane DRAFT dari stop manual, wizard yang hanya memilih rute, biaya tiga instrumen, subcon tanpa shipment, aturan client, persetujuan menjadi shipment. Layar sekarang bebas dicoba.</div></div><div class="ctl"><button type="button" class="btn primary sm" id="nAgain">Ulangi alur</button><button type="button" class="btn stroke sm" id="nClose">Tutup</button></div>`;$('#nAgain').onclick=autoStart;$('#nClose').onclick=autoStop;return}
+  if(auto.done){n.innerHTML=`<div><div class="k">Selesai · ${SCENES.length} adegan</div><div class="a">Alur lengkap: Route Planner dan builder-nya, lane DRAFT dari stop manual, wizard yang hanya memilih rute, biaya tiga instrumen, subcon tanpa shipment, aturan client, persetujuan menjadi shipment — dan jalur CR-3: requester mengubah UJP selama Menunggu atau Ditolak, nomor tetap, versi dan daftar perubahan tercatat, keputusan dari panel basi ditolak server. Layar sekarang bebas dicoba.</div></div><div class="ctl"><button type="button" class="btn primary sm" id="nAgain">Ulangi alur</button><button type="button" class="btn stroke sm" id="nClose">Tutup</button></div>`;$('#nAgain').onclick=autoStart;$('#nClose').onclick=autoStop;return}
   const sc=SCENES[auto.k];const acts=sc.do||[];const a=acts[Math.min(auto.i,acts.length-1)];
   n.innerHTML=`<div><div class="k">Adegan ${pad(auto.k+1,2)}/${SCENES.length} · ${esc(sc.t)}${auto.paused?' · jeda':''}</div><div class="a">${esc(a?.t||'')}</div><div class="dots" aria-hidden="true">${acts.map((_,j)=>`<i class="${j<auto.i?'done':j===auto.i?'on':''}"></i>`).join('')}</div></div><div class="ctl"><button type="button" class="btn stroke sm" id="nPause">${auto.paused?'Lanjutkan':'Jeda'}</button><button type="button" class="btn ghost sm" id="nStop">Berhenti</button></div>`;
   $('#nPause').onclick=autoPause;$('#nStop').onclick=autoStop}
@@ -1004,7 +1117,7 @@ function renderRail(){const st=$('#stage');if(MODE!=='flow'){$('#rail').hidden=t
     return `<li class="${on?'on':''} ${done?'done':''}"><button type="button" class="sc" data-s="${i}" aria-current="${on?'step':'false'}"><span class="n">${done&&!on?'✓':pad(i+1,2)}</span><span>${esc(s.t)}</span><span class="st">${st}</span></button>
      ${on?`<div class="sc-body"><ol class="todo">${acts.map((a,j)=>{const k=running&&auto.k===scene?(j<auto.i?'done':j===auto.i?'cur':''):'';return `<li class="${k}"><span class="m">${k==='done'?'✓':j+1}</span><span>${esc(a.t)}</span></li>`}).join('')}</ol>
       <div class="why"><div class="k">Mengapa begini</div><p>${s.c}</p><div class="dd">${s.dd.map(d=>`<span class="badge b-ne mono" style="font-size:10px">${d}</span>`).join('')}</div></div></div>`:''}</li>`};
-  $('#rail').innerHTML=`<div class="rail-h"><span class="eyebrow"><span class="num">UJP</span>Simulasi alur · CR-2</span><h2>Dari pengajuan UJP sampai jadi shipment</h2><p class="sub">Satu klik menjalankan ${SCENES.length} adegan dan menjelaskan apa yang diisi di setiap langkah. Setiap layar tetap bisa dicoba langsung.</p>
+  $('#rail').innerHTML=`<div class="rail-h"><span class="eyebrow"><span class="num">UJP</span>Simulasi alur · CR-2 + CR-3</span><h2>Dari pengajuan UJP sampai jadi shipment</h2><p class="sub">Satu klik menjalankan ${SCENES.length} adegan dan menjelaskan apa yang diisi di setiap langkah. Setiap layar tetap bisa dicoba langsung.</p>
    ${running?`<div class="runrow"><button type="button" class="btn primary" id="rPause"><i data-lucide="${auto.paused?'play':'pause'}"></i>${auto.paused?'Lanjutkan':'Jeda'}</button><button type="button" class="btn stroke" id="rStop"><i data-lucide="square"></i>Berhenti</button></div>`:`<div class="runrow"><button type="button" class="btn primary" id="run"><i data-lucide="play"></i>Jalankan alur</button></div>`}
    <div class="prog"><span>Adegan ${pad(scene+1,2)}/${SCENES.length}</span><span class="bar"><i style="width:${Math.round(((scene+(running?Math.min(auto.i,(sc.do||[]).length)/Math.max(1,(sc.do||[]).length):0))/SCENES.length)*100)}%"></i></span></div></div>
   <div class="rail-b"><ol class="scenes">${SCENES.map(item).join('')}</ol></div>
