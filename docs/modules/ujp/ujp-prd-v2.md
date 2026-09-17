@@ -6,7 +6,7 @@ version: 2.1
 status: reviewed
 supersedes: ./ujp-prd-trd-v1.md
 product_owner: muhamad.zulfikar@dashelectric.co
-engineer: yogi.ermanto@dashelectric.co
+engineer: muhamad.zulfikar@dashelectric.co
 created: 2026-09-11
 updated: 2026-09-12
 reviews:

@@ -5,7 +5,7 @@ doctype: trd
 version: 2.1
 status: reviewed
 product_owner: muhamad.zulfikar@dashelectric.co
-engineer: yogi.ermanto@dashelectric.co
+engineer: muhamad.zulfikar@dashelectric.co
 created: 2026-09-12
 reviews:
   eng: 2026-09-10 (plan-eng-review, CLEAR, 17 decisions)
