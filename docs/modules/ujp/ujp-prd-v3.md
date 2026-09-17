@@ -13,6 +13,7 @@ reviews:
   eng: 2026-09-10 (plan-eng-review, CLEAR, 17 decisions)
   design: 2026-09-11 (plan-design-review, 4/10 → 9/10, 14 decisions)
   cr1: 2026-09-15 (plan-eng-review on the stakeholder simulation review, 9 decisions)
+  cr2: 2026-09-17 (plan-eng-review Route Planner, CLEAR, 19 decisions + outside voice)
   cr2: 2026-09-17 (plan-eng-review, Route Planner as a Routes-module extension, 19 decisions)
 links:
   trd: ./ujp-trd-v3.md
