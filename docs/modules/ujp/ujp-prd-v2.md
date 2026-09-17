@@ -2,11 +2,12 @@
 title: UJP Native in react-logistic-web — Product Requirements
 module: ujp
 doctype: prd
-version: 2
-status: reviewed
+version: 2.1
+status: superseded
 supersedes: ./ujp-prd-trd-v1.md
+superseded_by: ./ujp-prd-v3.md
 product_owner: muhamad.zulfikar@dashelectric.co
-engineer: yogi.ermanto@dashelectric.co
+engineer: muhamad.zulfikar@dashelectric.co
 created: 2026-09-11
 updated: 2026-09-12
 reviews:
@@ -130,7 +131,25 @@ The console is the system of record for shipments, routes and dispatch. In this 
 - **Components:** `FormModal size="2xl"` + `StepIndicator` (+ compact prop) · `SegmentedControl` · `SearchSelect` · `Tag` · `Switch` · `DatePicker` · `MoneyInput` / `KmInput` (new, co-located) · shared `Direct4WStopsStep` / `Direct4WRiderStep` · `RouteStopsMap` · `Hint` · `InformationBanner` · `Badge` · `Button` (primary / outline-danger / ghost / white, loading) · `SideBarModal position="right" width="md"` · `Modal width="sm" iconTone="danger"` · `TableData` + `Paginator` + hairline tabs · `EmptyState` · `Skeleton` · sonner toaster · eyebrow labels · `font-mono tabular-nums` for ids and rupiah.
 - **Copy set (constants file):** Buat Pengajuan UJP · Uang jalan 4W: info, rute, biaya, driver, lalu review. · Info · Rute · Biaya · Driver · Review · Kembali · Batal · Lanjut · Ajukan UJP · Estimasi total · Flazz · Transfer · Estimasi belum diperbarui · Estimasi gagal · Coba lagi · Dihitung server · Payee & kendaraan · Biaya operasional (uang jalan) · Rincian estimasi · Tidak dipakai untuk subcon · Override BBM · dari kendaraan · diubah manual · Jarak lane (estimasi) · KM diajukan · Jumlah jarak lane, bukan rute berantai · Stops diubah manual; lane tidak lagi mengisi otomatis · Reset dari lane · Lane tidak ditemukan untuk {client} · Tambah di Alamat · Isi manual · Lane harus dari origin yang sama · Logistic · UJP · Pengajuan UJP · Buat UJP · Menunggu · Disetujui · Ditolak · Dibatalkan · Semua · Belum ada pengajuan UJP · Tidak ada UJP untuk “{q}” · Hapus filter · Gagal memuat · Menunggu persetujuan · Menunggu persetujuan finance · Dibuat saat disetujui · Belum dibuat · Lihat shipment {waybill} · Rincian biaya · Rekening driver · Rekening subcon · Salin · Disembunyikan · Hanya requester & approver dapat melihat · Stops · Riwayat · Setujui & buat shipment · Tolak · Tolak UJP · Batalkan pengajuan · Buat ulang dari UJP ini · Ubah · UJP-{ref} diajukan · UJP-{ref} disetujui · Shipment {waybill} dibuat · UJP-{ref} ditolak · Pengajuan dibatalkan · Nomor rekening disalin · Sudah diputuskan oleh {name} · UJP tidak ditemukan · Alasan belum dikonfigurasi.
 
+## Change request CR-1 (2026-09-15)
+
+From the stakeholder walkthrough of the flow simulation. Requirements added (all Phase 1):
+
+23. **Saved routes.** In Rute, ops picks a saved route for the client or builds one manually (ordered stops with roles Pool/Pickup/Drop/Return, leg km prefilled from the map, editable) and may save it under a name for reuse. The Addresses lane picker is removed.
+24. **Km margin** is 10% by default (`km × 1.10`), configurable, and shown in the breakdown as "KM + margin 10%". Each UJP keeps the margin it was computed with.
+25. **E-money** offers Tidak ada / Flazz / QRIS / Flazz + QRIS. Fuel goes to QRIS when available, otherwise to Flazz, otherwise to Transfer; toll and tap-parking go to Flazz when available, otherwise Transfer; manual lines always Transfer. When QRIS is used a third tile "Uang jalan QRIS" appears.
+26. **Fuel price** comes from a dated master per fuel type (Solar, Dexlite, Pertalite, EV kWh) valid on the delivery date; the vehicle master carries the fuel type; the wizard shows the price locked "dari master", editable.
+27. **Subcon** approvals do not create a shipment; the panel shows "Tidak dibuat: subcon". The vendor is picked from a subcon vendor master that fills bank details; the driver step is optional for subcon.
+28. **Client UJP config** page (`/ujp/config`, editable by approvers): per client, "Leg pool ditagih" (charged) and "Biaya reverse". When not charged, the first and last (pool) legs are excluded from km and fuel pricing and the shipment is created with the inner stops only; when charged, all legs count and all stops ship. The wizard shows the client's rule read-only in Rute.
+29. **Reverse trip** switch on Info (pre-ticked when the route has a Return leg); when on, the client's reverse charge is added as a Transfer line "Biaya reverse (client)".
+
+Copy additions: Rute tersimpan · Buat rute manual · Simpan sebagai rute tersimpan · Pool / Pickup / Drop / Kembali ke pool · Leg pool ditagih · Leg pool tidak ditagih: leg pertama & terakhir tidak dihitung · KM semua leg · KM ditagih · Uang jalan QRIS · Perjalanan reverse · Biaya reverse (client) · Konfigurasi UJP client · Vendor subcon · Tidak dibuat: subcon.
+
 ## Changelog
+
+- 2026-09-17 — superseded by [PRD v3](./ujp-prd-v3.md) (CR-2: Route Planner as a Routes-module extension).
+
+- 2026-09-15 — v2.1: change request CR-1 added (requirements 23–29).
 
 - 2026-09-12 — split into PRD (this file) and [TRD v2](./ujp-trd-v2.md); content unchanged.
 - 2026-09-11 — v2 after engineering review (2026-09-10) and design review (2026-09-11). Changes from v1: scope narrowed to a vertical slice (D1); shipment link moved from Phase 3 into Phase 1 and made transactional on approve (D2/D3); formula ownership moved server-only, `/estimate` mandatory (D5, reverses v1 D1); `ujp_*` master replication replaced by existing masters plus one vehicle table (D7, D16); daily-counter numbering (D4); allowlist gate and masking (D6, D15); full UI contract added (DD1–DD14).
