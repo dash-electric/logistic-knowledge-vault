@@ -13,8 +13,7 @@ reviews:
   eng: 2026-09-10 (plan-eng-review, CLEAR, 17 decisions)
   design: 2026-09-11 (plan-design-review, 4/10 → 9/10, 14 decisions)
   cr1: 2026-09-15 (plan-eng-review on the stakeholder simulation review, 9 decisions)
-  cr2: 2026-09-17 (plan-eng-review Route Planner, CLEAR, 19 decisions + outside voice)
-  cr2: 2026-09-17 (plan-eng-review, Route Planner as a Routes-module extension, 19 decisions)
+  cr2: 2026-09-17 (plan-eng-review, Route Planner as a Routes-module extension, CLEAR, 19 decisions + outside voice)
   cr3: 2026-09-17 (requirement from stakeholder; decisions CR3-D1–D7 in assessment §17)
 links:
   prd: ./ujp-prd-v3.md
@@ -604,7 +603,7 @@ The detail response is regrouped to match what the web panel actually renders (t
 
 ## 4. Data model details
 
-Base migration `0093_ujp_module` and CR-1's `0094` are **applied and untouched** — drizzle tracks file hashes, so CR-2 is a new migration rather than an edit (CR2-D15).
+Base migration `0094_ujp_module` (base + CR-1 in one file) is **applied and untouched** — drizzle tracks file hashes, so CR-2 is a new migration rather than an edit (CR2-D15).
 
 ### 4.1 Migration `0095_route_plans`
 
@@ -625,13 +624,12 @@ Rename `meta/0095_route_plans_snapshot.json` to match the SQL (house rule). `pnp
 
 ```sql
 ALTER TABLE ujp                ADD COLUMN version int NOT NULL DEFAULT 1;
-ALTER TABLE ujp                ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();
 ALTER TABLE ujp_status_history ADD COLUMN changes jsonb NULL;
 ```
 
-**Why a separate `0096` rather than extra lines in `0095`.** `0095` is the CR-2 rename (`ujp_routes` → `route_plans`, `ujp.route_id` → `route_plan_id`, `routes.route_plan_id`) and is a *structural* migration that developer databases and the CR-2 branch may already have applied; drizzle tracks file hashes, so editing it after the fact is exactly the trap CR2-D15 was written to avoid. The two changes are also independent: `0096` is three additive `ADD COLUMN`s with defaults, reversible on its own, and deployable before or after any UI. Same house rule on the snapshot — rename `meta/0096_snapshot.json` → `meta/0096_ujp_edit_snapshot.json` so it matches the `.sql`.
+**Why a separate `0096` rather than extra lines in `0095`.** `0095` is the CR-2 rename (`ujp_routes` → `route_plans`, `ujp.route_id` → `route_plan_id`, `routes.route_plan_id`) and is a *structural* migration that developer databases and the CR-2 branch may already have applied; drizzle tracks file hashes, so editing it after the fact is exactly the trap CR2-D15 was written to avoid. The two changes are also independent: `0096` is two additive `ADD COLUMN`s with defaults, reversible on its own, and deployable before or after any UI. Same house rule on the snapshot — rename `meta/0096_snapshot.json` → `meta/0096_ujp_edit_snapshot.json` so it matches the `.sql`.
 
-`version` is `NOT NULL DEFAULT 1`, so every existing row starts at version 1 and no backfill is needed; the first edit takes it to 2 and `header.editedAfterSubmit` (`version > 1`) is true from then on. `changes` is nullable because the rows written before CR-3 — and the decision, cancel and create rows written after it — legitimately have no change list. If `0093` already defines `ujp.updated_at`, drop that line from the migration and keep the column as-is (see §15).
+`version` is `NOT NULL DEFAULT 1`, so every existing row starts at version 1 and no backfill is needed; the first edit takes it to 2 and `header.editedAfterSubmit` (`version > 1`) is true from then on. `changes` is nullable because the rows written before CR-3 — and the decision, cancel and create rows written after it — legitimately have no change list. `ujp.updated_at` already exists on the base table (`ujp.table.ts`), so `0096` does not add it.
 
 ### 4.3 Tables
 
@@ -642,7 +640,7 @@ ALTER TABLE ujp_status_history ADD COLUMN changes jsonb NULL;
 | `ujp.route_plan_id` | Renamed from `route_id`. Nullable — a UJP whose plan was later hard-removed (not possible today) or created before the planner still renders from `ujp.route`. |
 | `ujp.route` | Unchanged in meaning: the jsonb snapshot of stops + legs at submit. This is what approve and the panel read. |
 | `ujp` | Otherwise as drawn in §2.4. Indexes: `ujp_search_text_trgm_idx` (GIN, pg_trgm), `ujp_status_created_idx (status, created_at DESC)`, `ujp_client_delivery_idx (client_id, delivery_date)`, `ujp_delivery_date_idx`. `search_text` is a STORED generated column: lower(reference_id ‖ client name ‖ driver name ‖ plate ‖ origin ‖ destination). |
-| `ujp.version` · `ujp.updated_at` | **CR-3, migration `0096`.** `version int NOT NULL DEFAULT 1`, incremented in the same statement that writes an edit; it is the optimistic token the decision endpoint checks as `expectedVersion` and the source of `header.editedAfterSubmit`. `updated_at` is stamped by every edit and is the right-hand side of the route-drift comparison (§3.4). Neither is user-visible as a number — the panel shows "Diperbarui", not "v4". |
+| `ujp.version` · `ujp.updated_at` | **CR-3, migration `0096`** adds `version int NOT NULL DEFAULT 1` (`updated_at` pre-exists), incremented in the same statement that writes an edit; it is the optimistic token the decision endpoint checks as `expectedVersion` and the source of `header.editedAfterSubmit`. `updated_at` is stamped by every edit and is the right-hand side of the route-drift comparison (§3.4). Neither is user-visible as a number — the panel shows "Diperbarui", not "v4". |
 | `ujp_status_history` | Shape of `shipment_status_history` plus `reason_code`. Indexes on `ujp_id` and `changed_at DESC`. **CR-3 adds `changes jsonb NULL`** — `[{field, from, to}]`, written only by `EDITED` (from = to = `SUBMITTED`) and `RESUBMITTED` (`REJECTED` → `SUBMITTED`) rows, with `field` as a dotted path of the grouped detail shape. It is a **jsonb document, not a relation**: it is only ever read back whole with its row, never filtered or joined on, so no index and no per-field table. An edit that changes nothing writes the row with `[]` rather than skipping it, so the trail shows the save happened. Money entries are masked in the response mapper, not at rest (CR3-D4). |
 | `ujp_daily_counters` | `INSERT INTO ujp_daily_counters(day, next) VALUES (:day, 1) ON CONFLICT (day) DO UPDATE SET next = ujp_daily_counters.next + 1 RETURNING next`, inside the create transaction; `day` computed in Asia/Jakarta. `reference_id` UNIQUE is the backstop. |
 | `ujp_vehicles` · `ujp_energy_prices` · `ujp_subcon_vendors` · `ujp_client_configs` | Per CR-1 (§14 CR-D5/D6/D7). `ujp_energy_prices` indexed `(fuel_type, effective_from DESC)`. |
@@ -960,7 +958,7 @@ Recorded in the dash workspace `TODOS.md`:
 - **TODO-31** a Playwright (or equivalent) E2E harness. Open question: the planner → wizard → approve → shipment path is the first flow in this product that crosses three pages and two wizards; jest/RTL can assert each half but not the handoff. Until it exists, that handoff is covered only by the shared fixture (CR2-D7) and manual QA.
 - **TODO-32** places for consumer-destination clients whose lanes never reach `addresses`. Open question: is there a second source for those endpoints, or do those clients stay on manual stops permanently? Until answered, their plans produce DRAFT lanes on every save, which is the write-back path working as designed but at a volume nobody has sized.
 
-- **TODO-33 (CR-3)** — **does `ujp` already have `updated_at`?** `0093_ujp_module` is not reproduced in this document, and §2.4 lists only `created_at`. If the base table already defines it, drop that one line from migration `0096` (§4.2) and keep everything else; if it does not, `0096` adds it. Either way `version` and `changes` are unaffected. Settle it by reading the table file before writing the migration — it is a one-line check, not a design question.
+- ~~TODO-33~~ resolved 2026-09-17: `ujp.updated_at` exists on the base table; `0096` adds only `version` and `ujp_status_history.changes`.
 - **Open question (CR-3), not blocking:** should the **age chip** of a resubmitted request keep counting from the original submission, or restart at the resubmit? The PRD (req 45) keeps the original baseline, on the grounds that the trip has been waiting since it was first raised. If finance starts treating resubmits as fresh work, the chip becomes misleading and this flips — the data to decide it (`created_at` and the `RESUBMITTED` history rows) is recorded either way.
 - **Open question (CR-3), not blocking:** the change list renders a field's raw `from` / `to`. For `route.routePlanId` and `rider.id` that is a UUID, which reads badly; the first implementation should resolve those two to their snapshot names in the mapper. Whether every id-shaped field deserves the same treatment is a copy decision for the first review of a real edited request.
 
