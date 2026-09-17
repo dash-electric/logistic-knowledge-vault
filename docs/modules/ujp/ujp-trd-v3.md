@@ -2,7 +2,7 @@
 title: UJP Native — Technical Requirements & High-Level Design
 module: ujp
 doctype: trd
-version: 3.0
+version: 3.0.1
 status: draft
 supersedes: ./ujp-trd-v2.md
 product_owner: muhamad.zulfikar@dashelectric.co
@@ -15,6 +15,7 @@ reviews:
   cr1: 2026-09-15 (plan-eng-review on the stakeholder simulation review, 9 decisions)
   cr2: 2026-09-17 (plan-eng-review Route Planner, CLEAR, 19 decisions + outside voice)
   cr2: 2026-09-17 (plan-eng-review, Route Planner as a Routes-module extension, 19 decisions)
+  cr3: 2026-09-17 (requirement from stakeholder; decisions CR3-D1–D7 in assessment §17)
 links:
   prd: ./ujp-prd-v3.md
   hld: ./ujp-hld-v1.html
@@ -26,7 +27,7 @@ links:
 
 # UJP Native — TRD v3
 
-> How the UJP (*Usulan Jasa Pengangkutan*, per-trip running-cost request) is built into **nest-logistic-service** and **react-logistic-web**, how **approving a UJP creates the DIRECT_4W shipment in the same transaction**, and — from **CR-2** — how the route stops being built inside the wizard and becomes **`route_plans`**, a template sub-domain of the existing `route` module fed by the Addresses lane book. Product requirements are in [ujp-prd-v3.md](./ujp-prd-v3.md). This document is the engineering contract; every diagram below renders on GitHub.
+> How the UJP (*Usulan Jasa Pengangkutan*, per-trip running-cost request) is built into **nest-logistic-service** and **react-logistic-web**, how **approving a UJP creates the DIRECT_4W shipment in the same transaction**, and — from **CR-2** — how the route stops being built inside the wizard and becomes **`route_plans`**, a template sub-domain of the existing `route` module fed by the Addresses lane book. **CR-3** adds one endpoint and two columns: the requester may `PUT` a UJP while it is `SUBMITTED` or `REJECTED`, which bumps `ujp.version`, records a per-field change list in `ujp_status_history.changes`, and makes the decision endpoint reject a stale `expectedVersion`. Product requirements are in [ujp-prd-v3.md](./ujp-prd-v3.md). This document is the engineering contract; every diagram below renders on GitHub.
 
 ## 1. Summary
 
@@ -41,7 +42,8 @@ links:
 | Distance math | Server only (`POST /v1/route-plans/legs`); the browser's Google Distance Matrix path (`useRouteLegs.ts`) is deleted — no Maps key in the wizard path |
 | Masters | Clients (CoreService), riders (DriverService), places and lanes from `addresses`, reasons (`type = UJP_REJECTION`); `ujp_vehicles`, `ujp_energy_prices`, `ujp_subcon_vendors`, `ujp_client_configs` |
 | Numbering | `UJP-YYYYMMDD-NNNN` from `ujp_daily_counters`, atomic upsert in the create transaction |
-| Authorization | `UJP_APPROVER_EMAILS` allowlist on the JWT email for decisions, server-enforced; masking for non-parties. Route plans: any authenticated web user, soft-deactivate only, actor email audited (CR2-D6) |
+| Authorization | `UJP_APPROVER_EMAILS` allowlist on the JWT email for decisions, server-enforced; masking for non-parties. **Edit is requester-only** (`requester_email` = JWT email) and only while `SUBMITTED` or `REJECTED` (CR3-D1). Route plans: any authenticated web user, soft-deactivate only, actor email audited (CR2-D6) |
+| Concurrency | Row-level `SELECT … FOR UPDATE` on both the decision and the edit; `ujp.version` is the optimistic token the approver's decision carries back as `expectedVersion` (CR3-D5) |
 
 ---
 
@@ -214,6 +216,7 @@ erDiagram
     uuid id PK
     text reference_id UK "UJP-YYYYMMDD-NNNN"
     text status "SUBMITTED | APPROVED | REJECTED | CANCELLED"
+    int version "CR-3, starts at 1, +1 per edit, decision token"
     int client_id "CoreService provider"
     jsonb client "snapshot"
     date delivery_date
@@ -259,6 +262,7 @@ erDiagram
     uuid shipment_id FK "UNIQUE, set on approve"
     text search_text "STORED, GIN trgm"
     timestamptz created_at
+    timestamptz updated_at "CR-3, stamped by every edit"
   }
   ujp_client_configs {
     int client_id PK
@@ -272,10 +276,11 @@ erDiagram
     uuid id PK
     uuid ujp_id FK
     text from_status
-    text to_status
+    text to_status "EDITED and RESUBMITTED write SUBMITTED here"
     text changed_by
     text note
     text reason_code
+    jsonb changes "CR-3, nullable, [{field, from, to}] masked on read"
     timestamptz changed_at
   }
   ujp_daily_counters {
@@ -336,18 +341,22 @@ Solid relations are keys or ownership; the counter relation is procedural (the c
 ```mermaid
 stateDiagram-v2
   [*] --> SUBMITTED : create by ops · counter assigns UJP-YYYYMMDD-NNNN
+  SUBMITTED --> SUBMITTED : edit by requester · version + 1 · history EDITED
+  REJECTED --> SUBMITTED : edit and resubmit · version + 1 · rejection cleared · history RESUBMITTED
   SUBMITTED --> APPROVED : decision approved · approver ≠ requester · shipment_id set in same tx
   SUBMITTED --> REJECTED : decision rejected · reason code required
   SUBMITTED --> CANCELLED : cancel · requester only
   APPROVED --> [*]
-  REJECTED --> [*]
   CANCELLED --> [*]
   note right of APPROVED
     terminal · re-approve returns the same result
   end note
+  note left of REJECTED
+    no longer terminal · CR-3 · an edit sends it back to SUBMITTED
+  end note
 ```
 
-No `DRAFT` (the old UI never wrote one). Any transition from a terminal state answers 409. The decision use case takes `SELECT … FOR UPDATE` so two approvers cannot both pass the status check.
+No `DRAFT` (the old UI never wrote one). **CR-3 changes the shape of this machine in one way only: `REJECTED` stops being terminal.** `APPROVED` and `CANCELLED` remain terminal, so an edit or a decision against either answers 409 (`"UJP sudah diputuskan"`). The decision use case takes `SELECT … FOR UPDATE` so two approvers cannot both pass the status check; the edit use case takes the same lock, so an edit and a decision serialize instead of interleaving (§11). A resubmit clears `reason_code`, `decision_note`, `decided_by` and `decided_at` on the row — the rejection survives only in `ujp_status_history`, which is what the panel renders (CR3-D3).
 
 A route plan has no state machine of its own: it is `active` or not, and edits are in place (CR2-D17). Its only interaction with the UJP lifecycle is informational — the detail flags "rute nonaktif" and "rute diperbarui setelah pengajuan".
 
@@ -378,7 +387,9 @@ sequenceDiagram
       DB-->>UI: 200 same result (idempotent)
     else status ≠ SUBMITTED
       DB-->>UI: 409 "sudah diputuskan"
-    else SUBMITTED
+    else version ≠ expectedVersion
+      DB-->>UI: 409 UJP_STALE "UJP diperbarui oleh requester, muat ulang" (CR-3)
+    else SUBMITTED and version matches
       UC->>DB: UPDATE ujp SET status=APPROVED, decided_by, decided_at
       UC->>DB: INSERT ujp_status_history (SUBMITTED → APPROVED)
       UC->>SH: write(tx, prepared, {ujpId, bookingId: referenceId, routePlanId})
@@ -390,7 +401,7 @@ sequenceDiagram
   end
 ```
 
-Any throw inside the transaction rolls everything back and the request stays `SUBMITTED`. External reads happen before the transaction so no row lock is held across a network call. Idempotency is free: the shipment's booking id is the UJP reference, so a retried approve finds the existing shipment (`EXISTS`) and links it. **Approve reads `ujp.route` (the snapshot), never `route_plans`** — a plan edited or deactivated after submission cannot change what gets shipped (CR2-D17).
+Any throw inside the transaction rolls everything back and the request stays `SUBMITTED`. External reads happen before the transaction so no row lock is held across a network call. Idempotency is free: the shipment's booking id is the UJP reference, so a retried approve finds the existing shipment (`EXISTS`) and links it. **Approve reads `ujp.route` (the snapshot), never `route_plans`** — a plan edited or deactivated after submission cannot change what gets shipped (CR2-D17). **CR-3 adds one branch and no new failure mode**: the `expectedVersion` check sits inside the same lock, *after* the idempotent re-approve check (so retrying a decision that already landed still returns its result) and before any write, so a stale decision costs a refetch and nothing else (§2.9, CR3-D5).
 
 ### 2.7 Estimate data flow
 
@@ -458,6 +469,40 @@ ops edits km ─▶ edited = true (source kept for audit; totals recomputed from
 
 A stored lane `distance` of 0 counts as a miss (bad CSV import) rather than a free zero-kilometre leg.
 
+### 2.9 Edit and the stale-decision guard (CR-3)
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant RQ as Requester UI
+  participant AP as Approver UI
+  participant UC as UpdateUjpUseCase
+  participant DC as DecideUjpUseCase
+  participant DB as Postgres
+  AP->>DB: GET /v1/ujp/:id → version 3 rendered in the panel
+  RQ->>UC: PUT /v1/ujp/:id (same body as create)
+  UC->>UC: requester_email = JWT email? else 403
+  UC->>DB: BEGIN · SELECT ujp FOR UPDATE
+  alt status not in SUBMITTED or REJECTED
+    DB-->>RQ: 409 UJP_DECIDED "UJP sudah diputuskan"
+  else editable
+    UC->>UC: recompute money · re-snapshot client, rider, vehicle, plan · diff old vs new
+    UC->>DB: UPDATE ujp SET fields, status=SUBMITTED, version=4, updated_at, rejection cleared
+    UC->>DB: INSERT ujp_status_history (EDITED or RESUBMITTED, changes jsonb)
+    DB-->>RQ: 200 {id, referenceId, status, version 4} · COMMIT
+  end
+  AP->>DC: POST /v1/ujp/:id/decision {action, expectedVersion 3}
+  DC->>DB: BEGIN · SELECT ujp FOR UPDATE
+  alt ujp.version differs from expectedVersion
+    DB-->>AP: 409 UJP_STALE "UJP diperbarui oleh requester, muat ulang"
+    AP->>DB: refetch → version 4 · panel shows "Diperbarui · lihat perubahan"
+  else versions match
+    DC->>DB: decide as in 2.6
+  end
+```
+
+Two locks, one order. The edit and the decision both take `SELECT … FOR UPDATE` on the same row, so whichever commits first wins and the loser reads the committed state: a decision that arrives after an edit fails the version check (`409 UJP_STALE`, the approver refetches and decides again), and an edit that arrives after a decision fails the status check (`409 UJP_DECIDED`, the wizard closes onto the decided panel). The version check is *inside* the transaction, after the lock — checking it before would be the race it is meant to close. Nothing is ever partially written: both use cases are single transactions, and the edit holds no network call while locked (client, rider and vendor re-snapshots are read before `BEGIN`, exactly as create does).
+
 ---
 
 ## 3. API contract
@@ -470,9 +515,10 @@ Frozen first as Lane 0 in `dash-api-collections` → `Logistic/UJP/`, **new** `L
 |---|---|---|
 | `POST /v1/ujp/estimate` | WEB | `{ header: {clientId, deliveryDate, isReverse}, payee: {type}, vehicle: {fuelType, …}, costs, route: {stops, legs} }` → `{ kmAllLegs, kmCharged, kmMarginPct, chargedPositioning, totalKmWithMargin, estimasiBbmLiter, totalBbmCost, totalUangJalanFlazz, totalUangJalanQris, totalUangJalanTransfer, reverseChargeApplied, energyPriceSource, estimatedAmount }`. Pure; nothing written. |
 | `POST /v1/ujp` | WEB | `CreateUjpRequestDto { header, payee, vehicle, costs, cargo, route: {routePlanId, stops, legs}, rider }` → `{ id, referenceId }`. Server numbers, recomputes money, snapshots client, rider, plan stops and legs. **`route.saveAs` is removed** — plans are created only through the planner (CR2-D2). |
+| `PUT /v1/ujp/:id` | **Requester** | **CR-3.** Body is byte-identical to `POST /v1/ujp` (`CreateUjpRequestDto`, all groups) → **200** `{ id, referenceId, status, version }`. Allowed only while `SUBMITTED` or `REJECTED`; `REJECTED` resubmits (status → `SUBMITTED`, rejection fields cleared). The server recomputes money, re-snapshots client, rider, vendor and plan, and ignores client-sent totals exactly as create does; **`referenceId` never changes** and `version` is incremented. `403` when the caller is not `requester_email`; **`409 UJP_DECIDED`** when the status is `APPROVED` or `CANCELLED` ("UJP sudah diputuskan"); `400` on validation. The create endpoint's `409` duplicate-route-name case is **n/a here** — plan names are owned by `/v1/route-plans`, and an edit only references a plan id. Row-level `FOR UPDATE`, one transaction with the history insert (§2.9, CR3-D2/D3). |
 | `GET /v1/ujp` | WEB | `status · clientId · deliveryFrom · deliveryTo · search · page · limit (≤ 200)` → `{ data: Row[], pagination: { size, page, lastPage, total } }`. Linked shipment status via LEFT JOIN. Masked per caller. |
 | `GET /v1/ujp/:id` | WEB | Grouped response, §3.4. Masked per caller. |
-| `POST /v1/ujp/:id/decision` | Allowlisted | `{ action: 'approved' \| 'rejected', reasonCode?, note? }`. Approve creates the shipment (§2.6); subcon returns `shipment: null, shipmentSkipped: 'SUBCON'`. Reject requires a `UJP_REJECTION` reason. |
+| `POST /v1/ujp/:id/decision` | Allowlisted | `{ action: 'approved' \| 'rejected', reasonCode?, note?, expectedVersion }`. Approve creates the shipment (§2.6); subcon returns `shipment: null, shipmentSkipped: 'SUBCON'`. Reject requires a `UJP_REJECTION` reason. **CR-3:** `expectedVersion` is the `version` the panel rendered; a mismatch inside the locked transaction answers **`409 UJP_STALE`** — `"UJP diperbarui oleh requester, muat ulang"` — and nothing is written (CR3-D5). The idempotent re-approve path (already `APPROVED` with a `shipment_id`) is checked first, so a retry of a decision that did land still returns the same result rather than a stale error. |
 | `POST /v1/ujp/:id/cancel` | Requester | Only while `SUBMITTED`. |
 | `GET /v1/ujp/client-configs` · `PUT /v1/ujp/client-configs/:clientId` | WEB · allowlisted | Per-client `chargedPositioning`, `reverseCharge`, `defaultEMoney`, `notes`. |
 | `GET /v1/ujp/masters/vehicles?search=` | WEB | Plate → unit, energy type, fuel type, baseline. |
@@ -483,7 +529,9 @@ Frozen first as Lane 0 in `dash-api-collections` → `Logistic/UJP/`, **new** `L
 
 Nested DTO groups mirror the wizard steps: `header` (clientId, deliveryDate, isReverse, opsTeam, serviceType, deliveryType, shift, jamMulai, jamSelesai) · `payee` (type, subconVendorId?, bankName, accountNumber, accountHolder, nominalTransfer) · `vehicle` (plateNumber, unitType, energyType, fuelType, baseline or konsumsiPerKm, energyPrice, eMoney) · `costs` (kmYangDiajukan, bbmFixOverride, tollFlazz, parkirTapMachine, parkirManual, biayaBongkarMuat, biayaLainLain, justifikasiBiayaLainLain, uangMakan) · `cargo` (senderName, receiverName, itemName, bobot) · `route` (routePlanId, stops, legs) · `rider` byte-identical to the 4W DTO.
 
-Errors keep the house envelope `{ status: 'Failed', error: <message> }`; the HTTP status carries the class (400 validation, 403 gate, 404, 409 terminal state or duplicate name).
+The same nested groups are the edit body: `PUT /v1/ujp/:id` reuses `CreateUjpRequestDto` rather than a partial DTO, so there is one validation scope per step and an edit cannot leave a half-validated request behind (CR3-D2).
+
+Errors keep the house envelope `{ status: 'Failed', error: <message> }`; the HTTP status carries the class (400 validation, 403 gate, 404, 409 terminal state or duplicate name). The two CR-3 conflicts are distinguished by a machine-readable code in the message payload — **`UJP_DECIDED`** (edit against a decided request) and **`UJP_STALE`** (decision against an older `version`) — because the web panel reacts differently to each: the first closes the wizard, the second refetches and re-renders the change list. This is the first consumer of the code-forwarding work in TODO-24.
 
 ### 3.2 Route plans (new — `route` module)
 
@@ -520,9 +568,9 @@ The detail response is regrouped to match what the web panel actually renders (t
 
 ```
 {
-  header:       { id, referenceId, status, clientId, client, deliveryDate, isReverse,
+  header:       { id, referenceId, status, version, clientId, client, deliveryDate, isReverse,
                   opsTeam, serviceType, deliveryType, shift, jamMulai, jamSelesai,
-                  requesterEmail, createdAt, ageDays },
+                  requesterEmail, createdAt, updatedAt, editedAfterSubmit, ageDays },
   payee:        { type, bankName, accountNumber, accountHolder, nominalTransfer },
   vehicle:      { plateNumber, unitType, energyType, fuelType, baseline, konsumsiPerKm,
                   energyPrice, energyPriceSource, eMoney },
@@ -539,15 +587,18 @@ The detail response is regrouped to match what the web panel actually renders (t
   estimate:     { computedAt, stale: boolean },
   rejection:    { reasonCode, reasonLabel, note, decidedBy, decidedAt } | null,
   masked:       boolean,
-  history:      [{ fromStatus, toStatus, changedBy, note, reasonCode, changedAt }],
+  history:      [{ fromStatus, toStatus, changedBy, note, reasonCode, changedAt,
+                   changes?: [{ field, from, to }] }],
   shipment:     { id, waybill, routeCode, status } | null,
   shipmentSkipped: 'SUBCON' | null,
-  viewer:       { isRequester, isApprover, canApprove, canCancel },
+  viewer:       { isRequester, isApprover, canApprove, canCancel, canEdit },
   clientConfig: { chargedPositioning, reverseCharge }
 }
 ```
 
-`route.routePlanActive === false` drives the "Rute nonaktif" flag and `route.routePlanUpdatedAfterSubmit` (server-computed as `route_plans.updated_at > ujp.created_at`) drives "Rute diperbarui setelah pengajuan" (CR2-D16/D17). When `masked` is true, `payee.accountNumber` is `"****1234"` and `payee.nominalTransfer` / `totals.*` are `null`.
+`route.routePlanActive === false` drives the "Rute nonaktif" flag and `route.routePlanUpdatedAfterSubmit` drives "Rute diperbarui setelah pengajuan" (CR2-D16/D17). **CR-3 changes its right-hand side** from `ujp.created_at` to `ujp.updated_at`: the comparison is `route_plans.updated_at > ujp.updated_at`, so a plan the requester just re-picked during an edit is not reported as drifted, while a plan edited after that edit still is (CR3-D7). When `masked` is true, `payee.accountNumber` is `"****1234"` and `payee.nominalTransfer` / `totals.*` are `null`.
+
+**CR-3 additions to this shape.** `header.version` is the token the panel sends back as the decision's `expectedVersion`; `header.editedAfterSubmit` (`version > 1`) drives the "Diperbarui · lihat perubahan" badge; `viewer.canEdit` is `isRequester && status ∈ {SUBMITTED, REJECTED}` and is what the footer renders **Ubah** / **Ubah & ajukan ulang** from (a courtesy — the gate is server-side). `history[].changes` is present only on `EDITED` and `RESUBMITTED` rows and carries one entry per changed field, `field` being the dotted path of the grouped shape (`costs.kmYangDiajukan`, `route.routePlanId`, `rider.id`, …) so the web renders a label from the same copy map the wizard uses. **The same mapper masks `changes`**: when `masked` is true, entries whose field sits under `payee.nominalTransfer`, `costs.*` or `totals.*` keep their `field` and report `from`/`to` as `null`, so a non-party learns that a cost moved but not by how much (CR3-D4). `rejection` is `null` again after a resubmit — the rejection is then only a history row.
 
 ---
 
@@ -570,7 +621,19 @@ ALTER TABLE ujp RENAME COLUMN route_id TO route_plan_id;
 
 Rename `meta/0095_route_plans_snapshot.json` to match the SQL (house rule). `pnpm drizzle-kit generate` must produce an empty diff afterwards.
 
-### 4.2 Tables
+### 4.2 Migration `0096_ujp_edit` (CR-3)
+
+```sql
+ALTER TABLE ujp                ADD COLUMN version int NOT NULL DEFAULT 1;
+ALTER TABLE ujp                ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE ujp_status_history ADD COLUMN changes jsonb NULL;
+```
+
+**Why a separate `0096` rather than extra lines in `0095`.** `0095` is the CR-2 rename (`ujp_routes` → `route_plans`, `ujp.route_id` → `route_plan_id`, `routes.route_plan_id`) and is a *structural* migration that developer databases and the CR-2 branch may already have applied; drizzle tracks file hashes, so editing it after the fact is exactly the trap CR2-D15 was written to avoid. The two changes are also independent: `0096` is three additive `ADD COLUMN`s with defaults, reversible on its own, and deployable before or after any UI. Same house rule on the snapshot — rename `meta/0096_snapshot.json` → `meta/0096_ujp_edit_snapshot.json` so it matches the `.sql`.
+
+`version` is `NOT NULL DEFAULT 1`, so every existing row starts at version 1 and no backfill is needed; the first edit takes it to 2 and `header.editedAfterSubmit` (`version > 1`) is true from then on. `changes` is nullable because the rows written before CR-3 — and the decision, cancel and create rows written after it — legitimately have no change list. If `0093` already defines `ujp.updated_at`, drop that line from the migration and keep the column as-is (see §15).
+
+### 4.3 Tables
 
 | Table / column | Notes |
 |---|---|
@@ -579,7 +642,8 @@ Rename `meta/0095_route_plans_snapshot.json` to match the SQL (house rule). `pnp
 | `ujp.route_plan_id` | Renamed from `route_id`. Nullable — a UJP whose plan was later hard-removed (not possible today) or created before the planner still renders from `ujp.route`. |
 | `ujp.route` | Unchanged in meaning: the jsonb snapshot of stops + legs at submit. This is what approve and the panel read. |
 | `ujp` | Otherwise as drawn in §2.4. Indexes: `ujp_search_text_trgm_idx` (GIN, pg_trgm), `ujp_status_created_idx (status, created_at DESC)`, `ujp_client_delivery_idx (client_id, delivery_date)`, `ujp_delivery_date_idx`. `search_text` is a STORED generated column: lower(reference_id ‖ client name ‖ driver name ‖ plate ‖ origin ‖ destination). |
-| `ujp_status_history` | Shape of `shipment_status_history` plus `reason_code`. Indexes on `ujp_id` and `changed_at DESC`. |
+| `ujp.version` · `ujp.updated_at` | **CR-3, migration `0096`.** `version int NOT NULL DEFAULT 1`, incremented in the same statement that writes an edit; it is the optimistic token the decision endpoint checks as `expectedVersion` and the source of `header.editedAfterSubmit`. `updated_at` is stamped by every edit and is the right-hand side of the route-drift comparison (§3.4). Neither is user-visible as a number — the panel shows "Diperbarui", not "v4". |
+| `ujp_status_history` | Shape of `shipment_status_history` plus `reason_code`. Indexes on `ujp_id` and `changed_at DESC`. **CR-3 adds `changes jsonb NULL`** — `[{field, from, to}]`, written only by `EDITED` (from = to = `SUBMITTED`) and `RESUBMITTED` (`REJECTED` → `SUBMITTED`) rows, with `field` as a dotted path of the grouped detail shape. It is a **jsonb document, not a relation**: it is only ever read back whole with its row, never filtered or joined on, so no index and no per-field table. An edit that changes nothing writes the row with `[]` rather than skipping it, so the trail shows the save happened. Money entries are masked in the response mapper, not at rest (CR3-D4). |
 | `ujp_daily_counters` | `INSERT INTO ujp_daily_counters(day, next) VALUES (:day, 1) ON CONFLICT (day) DO UPDATE SET next = ujp_daily_counters.next + 1 RETURNING next`, inside the create transaction; `day` computed in Asia/Jakarta. `reference_id` UNIQUE is the backstop. |
 | `ujp_vehicles` · `ujp_energy_prices` · `ujp_subcon_vendors` · `ujp_client_configs` | Per CR-1 (§14 CR-D5/D6/D7). `ujp_energy_prices` indexed `(fuel_type, effective_from DESC)`. |
 | `shipments.ujp_id` | `uuid` nullable, `references ujp(id)`, UNIQUE, indexed. |
@@ -611,7 +675,7 @@ subcon: Flazz = QRIS = 0; Transfer = nominalTransfer
 estimatedAmount = Flazz + QRIS + Transfer
 ```
 
-CR-2 changes **where `legs` come from** (the plan, server-measured) but not one line of this formula. Oracle: a committed fixture of 30 real UJPs (inputs + persisted totals) with JavaScript half-up rounding reproduced on the litre (1 dp) and cost (integer) steps. Money values travel as integer-rupiah strings (`MoneyHelper`).
+CR-2 changes **where `legs` come from** (the plan, server-measured) but not one line of this formula. CR-3 changes nothing in it either: **an edit recomputes exactly as create does** — `UpdateUjpUseCase` calls the same `UjpCostService` on the submitted inputs, re-reads the energy price effective on the (possibly new) delivery date, re-applies the client's `charged_positioning` and `reverse_charge` rules as they stand at save time, and ignores any totals in the payload. The persisted totals of an edited request are therefore always reproducible from its persisted inputs, and the money in the audit's change list is the difference between two server-computed results, never two browser ones. Oracle: a committed fixture of 30 real UJPs (inputs + persisted totals) with JavaScript half-up rounding reproduced on the litre (1 dp) and cost (integer) steps. Money values travel as integer-rupiah strings (`MoneyHelper`).
 
 ---
 
@@ -640,11 +704,13 @@ Write-back rules: only pairs involving a manual (non-lane) stop are considered; 
 ## 7. Security and permissions
 
 - **Approver gate, server-side.** `UJP_APPROVER_EMAILS` (Joi-validated, comma list, lower-cased) checked against the JWT `email` claim, which the core service puts in every web user token (`generateUserToken`). Missing claim → 403 with message; empty list fails closed with a startup warning. Requester ≠ approver enforced in the same use case. Frontend reads a mirror (`REACT_APP_UJP_APPROVER_EMAILS`) only to hide buttons.
+- **Edit is requester-only, server-enforced (CR3-D1).** `PUT /v1/ujp/:id` compares the JWT `email` claim against `ujp.requester_email` and answers 403 otherwise — an allowlisted approver has *no* edit power, by design: the person who authorizes the cash must not also be the person who can change it, which is the whole point of the second pair of eyes. The status gate (`SUBMITTED` or `REJECTED`) is checked inside the locked transaction, not in a guard. The web hides **Ubah** via `viewer.canEdit` as a courtesy only.
+- **The version check is an authorization-shaped control, not a convenience.** `expectedVersion` makes an approval attributable to a specific content version: the audit can show that the person who approved had read the version they approved. A missing or mismatched `expectedVersion` is refused rather than defaulted to "latest".
 - **Route plans: any authenticated web user** may create, edit, deactivate and reactivate (CR2-D6). This is deliberate for Phase 1 — plans hold no money and no personal data, the two consumers both snapshot, and the failure mode of a bad plan is a wrong km that the approver sees. `created_by` / `updated_by` come from the JWT email and the list surfaces "diperbarui oleh". **No hard delete** — `active = false` only. A dedicated planner role waits for the JWT role work (TODO-21).
 - **Lane write-back is scoped.** The planner may insert DRAFT lanes and link to existing ones; it may never overwrite a lane owned by another client, and it never changes `state` on an existing row.
 - **Money never trusted from the client.** Totals in the payload are ignored; the server recomputes. Leg km, by contrast, *is* an ops input by design — it is visible, audited (`source` + `edited`) and re-stated in the approver's breakdown.
-- **Masking in the response mapper.** Callers who are neither allowlisted nor the requester get `accountNumber: "****1234"` and `nominal: null` with `masked: true`; the UI renders the lock and "Disembunyikan".
-- **Audit.** Every UJP transition writes `ujp_status_history` with actor email, from/to, reason code, note. Every plan write stamps `updated_by` / `updated_at`.
+- **Masking in the response mapper.** Callers who are neither allowlisted nor the requester get `accountNumber: "****1234"` and `nominal: null` with `masked: true`; the UI renders the lock and "Disembunyikan". **The change list goes through the same mapper**: money fields inside `history[].changes` are nulled for non-parties, so the audit cannot become a side channel around the masking (CR3-D4).
+- **Audit.** Every UJP transition writes `ujp_status_history` with actor email, from/to, reason code, note — **and, for CR-3 edits, the per-field change list**. History is append-only: a resubmit clears the rejection from the `ujp` row but never rewrites or deletes the rejection's history row, so "it was rejected for X and then fixed" stays readable after the request is approved. Every plan write stamps `updated_by` / `updated_at`.
 
 ---
 
@@ -670,13 +736,13 @@ Reference: the old list pulled every row and paginated in the browser, silently 
 |---|---|
 | API and config | `src/services/api/routePlans.ts` (**new**, owns the plan/stop/leg types) · `src/services/api/addresses.ts` (+ `places`) · `src/services/api/ujp.ts` · `src/services/api/schemas/{ujp,routePlans,addresses}.ts` (**new**, zod; `unwrap()` parses in dev/test) · `src/config/ujp-permissions.ts` · `src/config/logistic-api.ts` (+ `/v1/route-plans` prefix) · `.env.example` |
 | Route Planner (**new**) | `src/pages/route-planner/index.tsx` (list on `hooks/urlState`) · `components/RoutePlanBuilder.tsx` · `components/RoutePlanDrawer.tsx` · `components/useRoutePlanLegs.ts` · `components/PlacePicker.tsx` · `copy.ts` |
-| UJP pages | `src/pages/ujp/index.tsx` · `components/CreateUjpModal.tsx` · `components/UjpWizardSteps.tsx` (step Rute → plan picker + "Buat rute baru") · `components/ujpWizard.ts` (validators, payload builder with `routePlanId`) · `components/useUjpEstimate.ts` · `components/MoneyInput.tsx` · `components/UjpDetailPanel.tsx` (+ rute flags) · `components/UjpDecisionModal.tsx` · `copy.ts` |
+| UJP pages | `src/pages/ujp/index.tsx` · `components/CreateUjpModal.tsx` (**CR-3: gains an edit mode** — `mode: 'create' \| 'edit'` + the detail it was opened from; title "Ubah UJP-{ref}", primary "Simpan perubahan" / "Ajukan ulang", `PUT` instead of `POST`) · `components/UjpWizardSteps.tsx` (step Rute → plan picker + "Buat rute baru"; step Info shows the previous rejection banner in edit mode) · `components/ujpWizard.ts` (validators, payload builder with `routePlanId`; `formFromDetail` — **already exists for the redo path** — becomes the edit-mode seed) · `components/useUjpEstimate.ts` · `components/MoneyInput.tsx` · `components/UjpDetailPanel.tsx` (+ rute flags; **CR-3: Ubah / Ubah & ajukan ulang footer, "Diperbarui · lihat perubahan" badge, `UjpHistoryChanges.tsx` change-list rows**) · `components/UjpDecisionModal.tsx` (+ `expectedVersion`, `409 UJP_STALE` → refetch banner) · `copy.ts` |
 | Shipments | `src/pages/shipments/components/steps/Direct4WStopsStep.tsx` (+ "Isi dari rute") · `direct4wStops.ts` (+ `shipmentStopsFromPlan`, keeps `applyLaneEndpoint` / `prefillEndpoints` / `laneNameKey`) · `CreateShipment4WModal.tsx` (unchanged manual path + CSV-import deprecation banner) |
 | **Deleted by CR-2** | `src/pages/ujp/components/UjpRouteBuilder.tsx` · `src/pages/ujp/components/useRouteLegs.ts` (Google Distance Matrix) |
 | Kit extensions | `StepIndicator` compact prop (documented in `CLAUDE.md` §4); `MoneyInput` / `KmInput` co-located, lifted on second use; `AddressEndpointFields` + `AddressAutocomplete` reused unchanged for the manual stop |
 | Wiring | `src/pages/index.ts` · `src/router/routes.tsx` (+ `/route-planner`) · `src/components/layout/Sidebar.tsx` (Master group, lucide `route` icon) |
 
-Wizard: 5 steps with forward-only dependencies (Info → Rute → Biaya → Driver → Review); persistent estimate strip in the footer from Rute onward, hidden on Biaya and Review. Step Rute is now a `SearchSelect` of the client's active plans plus **Buat rute baru**, which mounts `RoutePlanDrawer` over the modal and selects the plan it saves. Panel: `SideBarModal position="right" width="md"`, money first, shipment preview, breakdown, masked rekening, stops, history, rute flags. Full UI contract and copy set: PRD §UI contract and the design decisions DD1–DD14.
+Wizard: 5 steps with forward-only dependencies (Info → Rute → Biaya → Driver → Review); persistent estimate strip in the footer from Rute onward, hidden on Biaya and Review. Step Rute is now a `SearchSelect` of the client's active plans plus **Buat rute baru**, which mounts `RoutePlanDrawer` over the modal and selects the plan it saves. **CR-3 reuses that wizard rather than building a second one**: edit mode is the same five steps and the same validators, seeded by `formFromDetail` (written for the redo path it now replaces) and differing only in title, primary label, the rejection banner on step 1 and the verb it submits with. Panel: `SideBarModal position="right" width="md"`, money first, shipment preview, breakdown, masked rekening, stops, history with the per-field change rows, rute flags. Full UI contract and copy set: PRD §UI contract and the design decisions DD1–DD14.
 
 ---
 
@@ -687,12 +753,12 @@ Wizard: 5 steps with forward-only dependencies (Info → Rute → Biaya → Driv
 | `address` (nest) | **provides** | `RoadDistanceService` **extracted** from `AddressResolverService` and exported (`measureDistanceMeters` + haversine + `geocode_distance` cache, returns meters + source) — behaviour-preserving refactor first, guarded by the existing resolver specs (CR2-D13). `AddressRepository` gains lane lookup by global `name_key` and a DRAFT bulk-upsert. New `ListPlacesUseCase` + `GET /v1/addresses/places`. `address.module.ts` exports grow. No schema change. |
 | `route` (nest) | **owns the new sub-domain** | `route_plans` table, `RoutePlanRepository` (exported), five use cases, `RoutePlanController` at `/v1/route-plans`, `RoutePlanStopRole` enum. `routes` gains the nullable `route_plan_id` column. `route.module.ts` imports `AddressModule`. **Must never import `ujp`.** |
 | `shipment` (nest) | **consumes + adjusts** | `AddressResolverService` delegates to `RoadDistanceService` (its own specs are the regression net; `ShipmentModule` exports are unchanged). `Direct4WCreationService.write` accepts and persists `routePlanId`; **the null path — every existing 4W create — must stay byte-identical (critical regression)**. |
-| `ujp` (nest) | **consumes** | Imports `RouteModule` for `RoutePlanRepository` (new arrow, §2.3). Drops `/v1/ujp/routes*` and `route.saveAs`; `route.routeId` → `route.routePlanId`; detail regrouped (§3.4) and gains `routePlanName`, `routePlanActive`, `routePlanUpdatedAfterSubmit`. `ujp_client_configs.charged_positioning` still drives `km_charged` and the approve stop rule. |
+| `ujp` (nest) | **consumes** | Imports `RouteModule` for `RoutePlanRepository` (new arrow, §2.3). Drops `/v1/ujp/routes*` and `route.saveAs`; `route.routeId` → `route.routePlanId`; detail regrouped (§3.4) and gains `routePlanName`, `routePlanActive`, `routePlanUpdatedAfterSubmit`. `ujp_client_configs.charged_positioning` still drives `km_charged` and the approve stop rule. **CR-3 is contained inside this module**: one new use case (`UpdateUjpUseCase`), one new route on the existing controller, two columns (`0096`), `expectedVersion` on the decision DTO, and three added response fields. **No other module is touched** — `route`, `address` and `shipment` see nothing, because an edit never reaches the shipment writer (an editable UJP has no shipment by definition). |
 | `reason` (nest) | unchanged | `GET /v1/reasons?type=UJP_REJECTION`. |
 | web `pages/route-planner` | **new** | Page, builder, drawer, legs hook; registered in the router and the Master sidebar group. |
 | web `pages/ujp` | **simplified** | Step Rute becomes a picker; two files deleted; payload and detail follow the new contract. |
 | web `pages/shipments` | **extended** | `Direct4WStopsStep` gains "Isi dari rute"; `direct4wStops.ts` gains `shipmentStopsFromPlan`; the manual entry path is untouched. |
-| `dash-api-collections` | **contract** | New `Logistic/Route Plans/` (5 requests) and `Logistic/Addresses/Places.yml`; `UJP/Routes - *` removed; `Detail UJP.yml` gains the grouped example; `Create UJP.yml` route → `routePlanId`. Lane 0 — frozen before any code. |
+| `dash-api-collections` | **contract** | New `Logistic/Route Plans/` (5 requests) and `Logistic/Addresses/Places.yml`; `UJP/Routes - *` removed; `Detail UJP.yml` gains the grouped example; `Create UJP.yml` route → `routePlanId`. **CR-3:** new `UJP/Update UJP.yml` (PUT — success, `409 UJP_STALE`, `409 UJP_DECIDED`, `403`), `Decision - *.yml` bodies gain `expectedVersion` with a `409 UJP_STALE` example, and `Detail UJP.yml` gains `header.version` plus a history row carrying `changes`. Lane 0 — frozen before any code. |
 
 ---
 
@@ -726,8 +792,16 @@ Wizard: 5 steps with forward-only dependencies (Info → Rute → Biaya → Driv
 | list: 10k rows + search | scan | EXPLAIN in PR | GIN + composites | < 500 ms |
 | 4W modal after extraction | regression | snapshot + interaction test first | — | identical behaviour |
 | **4W create without a plan** | the normal manual path | **critical regression spec** | `route_plan_id` stays null; nothing else changes | identical behaviour |
+| **edit lands while an approver is deciding** | concurrent edit vs decision | **integration spec** (both transactions, both orders) | both take `SELECT … FOR UPDATE`; the loser re-reads committed state — decision-after-edit fails the version check, edit-after-decision fails the status check | approver: "UJP diperbarui oleh requester, muat ulang" + refetch · requester: "UJP sudah diputuskan" + panel refetch |
+| **decision sent with a stale `expectedVersion`** | approver read an older version | unit spec | 409 `UJP_STALE`, nothing written | stale panel refetches and shows "Diperbarui · lihat perubahan" |
+| **edit on APPROVED / CANCELLED** | wrong state | unit spec | 409 `UJP_DECIDED`, nothing written | "UJP sudah diputuskan"; wizard closes onto the decided panel |
+| **edit by a non-requester** | misuse or token drift | unit spec | 403 (approver included, by design) | no Ubah button; API message |
+| **resubmit of a rejected request** | normal path | unit spec | rejection fields cleared on the row, history row kept | back in Menunggu, same reference, rejection visible in Riwayat |
+| **edit changes nothing** | user saves without editing | unit spec | history row written with `changes: []` | the save is visible in Riwayat rather than silent |
+| **non-party reads a change list** | exposure through the audit | mapper spec | money entries nulled by the same mapper as the totals | field names visible, amounts "Disembunyikan" |
+| **edit while the request's plan was deactivated** | curator deactivated meanwhile | web test | snapshot renders with "Rute nonaktif"; a current plan is required before saving | badge + plan picker |
 
-Observability: `laneWriteBack.failed` reasons are logged with the plan id; every `HAVERSINE` leg is logged at warn with the pair (a rise in these means the Directions provider or the key is degraded); plan creates/updates log the actor email. Critical gaps (no test, no handling, silent): none.
+Observability: `laneWriteBack.failed` reasons are logged with the plan id; every `HAVERSINE` leg is logged at warn with the pair (a rise in these means the Directions provider or the key is degraded); plan creates/updates log the actor email. **CR-3:** every edit logs `{ujpId, referenceId, fromStatus, version, changedFieldCount}` and every `UJP_STALE` refusal logs the pair `(expectedVersion, actualVersion)` — a rise in stale refusals means requesters and approvers are working the same queue at the same time, which is a workflow signal, not an error. Critical gaps (no test, no handling, silent): none.
 
 ---
 
@@ -737,11 +811,13 @@ Observability: `laneWriteBack.failed` reasons are logged with the plan id; every
 |---|---|
 | Unit (nest) | `UjpCostService` matrix (ICE, EV, fix override, baseline 0, four e-money buckets × driver/subcon, charged vs uncharged km by role, margin echo, reverse line, dated price boundary) against the 30-UJP oracle · every branch of §2.6 in `decide-ujp.usecase.spec.ts` · create (counter, day rollover with injected clock, ignored totals, `routePlanId` snapshot) · list envelope · masking + grouped-shape mapper · POSITIVE/NEGATIVE naming, repositories mocked as plain `jest.fn()` objects |
 | Unit (nest, **CR-2**) | `create-route-plan.usecase.spec.ts` (happy ≥1 PICKUP + ≥1 DROP_OFF and consistent legs; 409 duplicate name case-insensitive; manual stops → DRAFT lanes written and `addressId` set; write-back failure → `laneWriteBack.failed` with a 201) · `update-route-plan.usecase.spec.ts` (rename ok / 409 dup; **deactivate always succeeds, even with a live SUBMITTED UJP** — CR2-D16; reactivate) · `compute-route-plan-legs.usecase.spec.ts` (LANE hit on coordinate match; LANE skipped when coordinates differ → DIRECTIONS; DIRECTIONS cache hit; cache miss → Mapbox; Mapbox down → HAVERSINE; lane distance 0 → miss; 0 or 1 stop → `[]`) · `get-route-plan.usecase.spec.ts` (snapshot ≠ lane → `drift[]`; deleted lane → drift) · `list-places.usecase.spec.ts` (union + grouping by name and H3 cell, CONFIRMED wins, lane count, infix search, limit, empty client) · `road-distance.service.spec.ts` |
-| Integration (nest) | `.github/workflows/test.yml` with a `postgres:16` service, `pnpm db:migrate`, jest `projects` with `*.integration.spec.ts`: two concurrent approves → one shipment; rollback when `write` throws; 20 parallel creates → unique sequential references; `shipments.ujp_id` unique. **New `route-plan.integration.spec.ts`** seeding `addresses` + `geocode_distance` and exercising LANE / DIRECTIONS (Mapbox stubbed) / HAVERSINE (Mapbox failing) plus the DRAFT write-back. Fake `CoreService`/`DriverService`, real database |
+| Unit (nest, **CR-3**) | `update-ujp.usecase.spec.ts`: non-requester (approver included) → **403**; status `APPROVED` / `CANCELLED` → **409 `UJP_DECIDED`**; edit while `SUBMITTED` → status unchanged, `version + 1`, `EDITED` history row; edit while `REJECTED` → status `SUBMITTED`, `reason_code` / `decision_note` / `decided_by` / `decided_at` cleared, `RESUBMITTED` history row, rejection's own history row untouched; `referenceId` unchanged; client-sent totals ignored and money recomputed (shares the `UjpCostService` matrix); **change-diff per group** — header, payee, vehicle, costs, route, rider — including a no-op edit producing `changes: []` and a route switch producing one `route.routePlanId` entry; **masking of money inside `changes`** for a non-party in the mapper spec. `decide-ujp.usecase.spec.ts` gains `expectedVersion` mismatch → **409 `UJP_STALE`** with nothing written, match → the existing approve/reject paths unchanged, and the idempotent re-approve path checked *before* the version check |
+| Integration (nest) | `.github/workflows/test.yml` with a `postgres:16` service, `pnpm db:migrate`, jest `projects` with `*.integration.spec.ts`: two concurrent approves → one shipment; rollback when `write` throws; 20 parallel creates → unique sequential references; `shipments.ujp_id` unique. **New `route-plan.integration.spec.ts`** seeding `addresses` + `geocode_distance` and exercising LANE / DIRECTIONS (Mapbox stubbed) / HAVERSINE (Mapbox failing) plus the DRAFT write-back. Fake `CoreService`/`DriverService`, real database. **CR-3:** `ujp-edit.integration.spec.ts` — a concurrent edit and decision run in both orders against the real row lock, asserting that exactly one commits its intent, that the loser gets `UJP_STALE` or `UJP_DECIDED`, and that no request is ever left approved against a version the approver did not send |
 | Regression (**mandatory, critical**) | `create-direct4w.usecase.spec.ts` unchanged plus a delegation case after extraction · `direct4w-creation.service.spec.ts` **null `routePlanId` path byte-identical** · `AddressResolverService` existing specs green after the `RoadDistanceService` extraction (refactor first, behaviour second — CR2-D13) · `CreateShipment4WModal.test.tsx` **manual stop path green** plus new asserts for "Isi dari rute" |
 | Unit (web) | API modules (URL/body/envelope) · `useUjpEstimate` (out-of-order, abort, error → stale) · `useRoutePlanLegs` (debounce, abort, sequence, 500 → manual km) · wizard validators and the `routePlanId` payload · list URL round-trip and states · panel button visibility per persona, masked rendering, 409 banner, rute flags · axe assertions |
+| Unit (web, **CR-3**) | Panel footer by status × persona: requester sees **Ubah** on SUBMITTED and **Ubah & ajukan ulang** on REJECTED, nothing on APPROVED / CANCELLED, and an approver or third party sees neither · wizard **edit mode** — prefilled from the detail, title "Ubah UJP-{ref}", primary label per status, rejection banner on step 1, `PUT` payload identical in shape to the create payload · decision with a stale version → `409 UJP_STALE` → refetch + "Diperbarui · lihat perubahan" banner rather than a dead toast · history change-list rendering (per-field `dari → ke`, empty list, masked money for a non-party) · axe assertions on the edit-mode wizard and the change list |
 | Unit (web, **CR-2 pages**) | `route-planner/index.test.tsx` (list per client with URL params, search, empty state, create via drawer → row + toast, partial write-back → warning + Coba lagi, deactivate → confirm → hidden from pickers, drift badge → refresh updates the snapshot) · `RoutePlanBuilder.test.tsx` (pick a place from `/addresses/places`, manual stop → `addressId` null, reorder / role change / remove → legs recomputed, source badges LANE/DIRECTIONS/HAVERSINE, edit km → `edited` + totals, totals all/charged + client-rule banner) · UJP step Rute (pick plan → stops/legs/km default; "Buat rute baru" → drawer → plan selected; redo from a UJP whose plan is inactive → snapshot + badge) · `Direct4WStopsStep` prefill (charged vs uncharged client → pool stops kept or greyed) |
-| Contract (**CR2-D11**) | `services/api/schemas/{ujp,routePlans,addresses}.ts` infer the TS types and guard `unwrap()` in dev/test; `collection-contract.test.ts` validates **every** response example under `dash-api-collections/.../Logistic/{UJP,Route Plans,Addresses}` (path via env, skipped when absent) and runs in CI. `Detail UJP` first — the flat-versus-grouped mismatch found 2026-09-17 is the motivating bug |
+| Contract (**CR2-D11**) | `services/api/schemas/{ujp,routePlans,addresses}.ts` infer the TS types and guard `unwrap()` in dev/test; `collection-contract.test.ts` validates **every** response example under `dash-api-collections/.../Logistic/{UJP,Route Plans,Addresses}` (path via env, skipped when absent) and runs in CI. `Detail UJP` first — the flat-versus-grouped mismatch found 2026-09-17 is the motivating bug. **CR-3 extends the same schemas**: `header.version`, `viewer.canEdit`, the optional `history[].changes`, the `PUT` response, and the `expectedVersion` field on the decision body — plus the new `Update UJP.yml` examples |
 | Shared fixture | `shipmentStopsFromPlan` (web) and the server approve stop rule assert against **one** fixture table: 3 route shapes × 2 client configs, also used as the collection example (CR2-D7/D18) |
 | CI | nest `test.yml` on PR (unit + integration) · web `test.yml` on PR (`npm run test:ci` + contract test) |
 | QA | test plan in `~/.gstack/projects/dash/*eng-review-test-plan*.md` (pages, interactions, edge cases, critical paths) |
@@ -775,9 +851,14 @@ flowchart LR
   C["C · docs: PRD/TRD v3 · ERD · prototype · simulation"]
   L0 --> B5
   L0 --> C
+  L0 --> E1
+  E1["E1 · CR-3 · migration 0096 · ujp.version · history.changes"] --> E2
+  E2["E2 · CR-3 · PUT /v1/ujp/:id · diff + audit · expectedVersion on decision"] --> E3
+  A4 --> E2
+  E3["E3 · CR-3 web · panel Ubah + Diperbarui · wizard edit mode · stale refetch · change list"]
 ```
 
-Order: Lane 0 (contract) first, then `{A0 ∥ A1 → A2 → A4, A3, A5} ∥ {B1 → B2 → {B3 ∥ B4}, B5} ∥ C`. Migration number `0095` is claimed once, by A1. **Conflict flag:** A2 and A4 both touch module imports around `ujp.module.ts` / `route.module.ts` — run them sequentially, not in parallel worktrees. A0 must land before A2 so the planner never reaches into the shipment module for distance.
+Order: Lane 0 (contract) first, then `{A0 ∥ A1 → A2 → A4, A3, A5} ∥ {B1 → B2 → {B3 ∥ B4}, B5} ∥ C`, with the CR-3 lane `E1 → E2 → E3` behind it. Migration number `0095` is claimed once, by A1; **`0096` is claimed once, by E1** (§4.2). **Conflict flag:** A2 and A4 both touch module imports around `ujp.module.ts` / `route.module.ts` — run them sequentially, not in parallel worktrees. A0 must land before A2 so the planner never reaches into the shipment module for distance. **E2 must land after A4**: both rewrite the UJP response mapper and the create/decide use cases, so running them in parallel worktrees would conflict in the same files; E1 and E3 are otherwise independent of the CR-2 lanes. CR-3 adds no new module, no new page and no cross-module interface, so it is the cheapest of the three change requests to schedule — it can also ship *after* CR-2 goes live without a migration ordering problem, since `0096` is purely additive.
 
 Effort delta versus CR-1: ≈ **+1 week human / +1 hour CC net** — the new page is largely offset by the deletions (`UjpRouteBuilder`, `useRouteLegs`, `/v1/ujp/routes*`, `saveAs`).
 
@@ -799,7 +880,7 @@ Tasks with effort estimates: `ASSESSMENT-UJP-PORT-4W.md` §16.8 (T1–T13) in th
 | D6 | Email allowlist approver gate, server-enforced; self-approval blocked; fail closed | JWT carries only client roles today; RBAC is a follow-up |
 | D7 | `ujp_vehicles` master, SQL-seeded, autofill with override | No vehicle table exists; baseline/price are the riskiest hand-typed inputs |
 | D8 | Lift 4W modal Steps 2/3 into shared components first | One implementation of stops, workflows, map, rider auto-select |
-| D9 | Full state machine: lock, idempotent re-approve, pre-tx re-validation, reason codes, no DRAFT | Every race and stale-reference case has a defined outcome |
+| D9 | Full state machine: lock, idempotent re-approve, pre-tx re-validation, reason codes, no DRAFT, ~~no edit after submit~~ → **the edit exclusion is superseded by CR-3** (§14.4); everything else stands | Every race and stale-reference case has a defined outcome — CR-3 adds the edit-versus-decision race to that list rather than reopening it |
 | D10 | Nested DTOs mirroring wizard steps; stops/rider reuse 4W DTOs | One step = one DTO = one validation scope |
 | D11 | Postgres service container + integration specs in a PR workflow | Lock, rollback and counter races cannot be proven with mocks |
 | D12 | `search_text` + GIN + composite indexes; LEFT JOIN shipment | Proven pattern on `shipments` |
@@ -852,6 +933,22 @@ Step-0 findings that shaped these: server road distance **already exists** (`Add
 | CR2-D18 | **Keep D7-A** — the web helper mirrors the server stop rule against one shared fixture. A UJP endpoint serving the shipment wizard was rejected: it would point `shipment` at `ujp`. |
 | CR2-D19 | **Take CR-2 now.** Product call with the simulation in hand; both repos are unmerged feature branches with no PRs, so there is no production cut to phase and the rework mostly deletes code. |
 
+### 14.4 CR-3 (2026-09-17) — the requester edits an undecided UJP
+
+Stakeholder ask: ops can change a UJP while it is *Menunggu persetujuan* or *Ditolak*. This **supersedes the D9 exclusion "no edit-after-submit"** and replaces the REJECTED → "Buat ulang dari UJP ini" (new number) path with an in-place edit. Routine calls, stated as assumptions — re-open only if one is wrong. Source: `ASSESSMENT-UJP-PORT-4W.md` §17.
+
+| # | Decision |
+|---|---|
+| CR3-D1 | **Who and when**: requester only (`requester_email` = JWT email), status ∈ {`SUBMITTED`, `REJECTED`}. `APPROVED` / `CANCELLED` → 409 "UJP sudah diputuskan". **Approvers do not edit** — they reject with a reason; the person who authorizes the cash must not be the person who can change it. |
+| CR3-D2 | **Endpoint** `PUT /v1/ujp/:id`, body identical to `POST /v1/ujp` (all groups; server recomputes money, re-snapshots client / rider / vendor / plan, ignores client totals). Reference ID unchanged. Row-level `FOR UPDATE`. A full body rather than a PATCH: one validation scope per step, and no half-validated request. |
+| CR3-D3 | **Transitions**: `SUBMITTED --edit--> SUBMITTED` (`version += 1`, `updated_at`); `REJECTED --edit--> SUBMITTED` (resubmit: `reason_code`, `decision_note`, `decided_by` / `decided_at` cleared, `version += 1`). Still no `DRAFT` — the wizard's local state is the draft. |
+| CR3-D4 | **Audit**: `ujp_status_history` gains `changes jsonb NULL` — a list of `{field, from, to}` across the header / payee / vehicle / costs / route / rider groups — written on an `EDITED` row (from = to = `SUBMITTED`) or a `RESUBMITTED` row (`REJECTED` → `SUBMITTED`). Money fields inside `changes` are **masked for non-parties in the response mapper**, on the same rule as the totals, so the audit is not a side channel. New `ujp.version int NOT NULL DEFAULT 1`. |
+| CR3-D5 | **Stale-decision guard**: `POST /v1/ujp/:id/decision` gains `expectedVersion`; a mismatch answers 409 `UJP_STALE` — "UJP diperbarui oleh requester, muat ulang". The detail returns `version`; the panel refetches and shows "Diperbarui · lihat perubahan" (the history diff). Checked inside the locked transaction, after the idempotent re-approve check. |
+| CR3-D6 | **Web**: the panel footer shows **Ubah** (SUBMITTED) or **Ubah & ajukan ulang** (REJECTED) for the requester, replacing "Buat ulang dari UJP ini". The existing wizard gains an edit mode seeded by `formFromDetail` (written for the redo path it replaces) — title "Ubah UJP-{ref}", primary "Simpan perubahan" / "Ajukan ulang", the rejection banner kept visible on step 1 so the fix is guided; the server estimate flow is unchanged. History rows render the change list. |
+| CR3-D7 | **Route plan**: an edit may switch or rebuild the plan through the CR-2 drawer; the snapshot is replaced, and "Rute diperbarui setelah pengajuan" compares against the new `ujp.updated_at` rather than `created_at` — otherwise every edited request would flag its own freshly chosen plan. |
+
+Consequences elsewhere in this document: §2.5 (REJECTED is no longer terminal), §2.9 (lock ordering), §3.1 (`PUT`, `expectedVersion`, the `UJP_DECIDED` / `UJP_STALE` codes), §3.4 (`version`, `editedAfterSubmit`, `canEdit`, `changes`), §4.2 (migration `0096`), §5 (an edit recomputes like a create), §7 (requester-only), §11 and §12 (the concurrency rows and their specs).
+
 ---
 
 ## 15. Follow-ups and open questions
@@ -863,12 +960,17 @@ Recorded in the dash workspace `TODOS.md`:
 - **TODO-31** a Playwright (or equivalent) E2E harness. Open question: the planner → wizard → approve → shipment path is the first flow in this product that crosses three pages and two wizards; jest/RTL can assert each half but not the handoff. Until it exists, that handoff is covered only by the shared fixture (CR2-D7) and manual QA.
 - **TODO-32** places for consumer-destination clients whose lanes never reach `addresses`. Open question: is there a second source for those endpoints, or do those clients stay on manual stops permanently? Until answered, their plans produce DRAFT lanes on every save, which is the write-back path working as designed but at a volume nobody has sized.
 
+- **TODO-33 (CR-3)** — **does `ujp` already have `updated_at`?** `0093_ujp_module` is not reproduced in this document, and §2.4 lists only `created_at`. If the base table already defines it, drop that one line from migration `0096` (§4.2) and keep everything else; if it does not, `0096` adds it. Either way `version` and `changes` are unaffected. Settle it by reading the table file before writing the migration — it is a one-line check, not a design question.
+- **Open question (CR-3), not blocking:** should the **age chip** of a resubmitted request keep counting from the original submission, or restart at the resubmit? The PRD (req 45) keeps the original baseline, on the grounds that the trip has been waiting since it was first raised. If finance starts treating resubmits as fresh work, the chip becomes misleading and this flips — the data to decide it (`created_at` and the `RESUBMITTED` history rows) is recorded either way.
+- **Open question (CR-3), not blocking:** the change list renders a field's raw `from` / `to`. For `route.routePlanId` and `rider.id` that is a UUID, which reads badly; the first implementation should resolve those two to their snapshot names in the mapper. Whether every id-shaped field deserves the same treatment is a copy decision for the first review of a real edited request.
+
 No blocking open questions for implementation.
 
 ---
 
 ## 16. Changelog
 
+- 2026-09-17 — **v3.0.1**: change request CR-3 (§14.4, CR3-D1…D7) — the requester may edit a UJP while it is `SUBMITTED` or `REJECTED`. New `PUT /v1/ujp/:id` (create body, requester-only, 409 `UJP_DECIDED` on a decided request); `POST /v1/ujp/:id/decision` gains `expectedVersion` with 409 `UJP_STALE`; migration **`0096_ujp_edit`** adds `ujp.version int NOT NULL DEFAULT 1`, `ujp.updated_at` and `ujp_status_history.changes jsonb NULL`; `GET /v1/ujp/:id` gains `header.version`, `header.editedAfterSubmit`, `viewer.canEdit` and the optional `history[].changes`, with money inside the change list masked for non-parties; `REJECTED` stops being terminal (§2.5) and the route-drift flag now compares against `ujp.updated_at`; web gains the panel's **Ubah** / **Ubah & ajukan ulang**, the wizard's edit mode and the change-list rendering, and loses "Buat ulang dari UJP ini". Supersedes the D9 exclusion "no edit-after-submit". ERD updated in the same change.
 - 2026-09-17 — **v3.0**: change request CR-2 (§14.3, CR2-D1…D19) — the route planner becomes a template sub-domain of the `route` module. `ujp_routes` → `route_plans` (migration `0095`), `routes.route_plan_id`, `ujp.route_id` → `route_plan_id`; new `/v1/route-plans` (list, create, patch, get + drift, legs) and `GET /v1/addresses/places`; `/v1/ujp/routes*` and `route.saveAs` removed, `route.routeId` → `route.routePlanId`; `GET /v1/ujp/:id` regrouped (§3.4); `RoadDistanceService` extracted into the address module and leg km measured server-side with a `LANE | DIRECTIONS | HAVERSINE` source; new web page `/route-planner` feeding both the UJP wizard and the 4W stops step; `UjpRouteBuilder.tsx` and `useRouteLegs.ts` deleted. Restores D16/D17 in their correct form and supersedes CR-D2 / CR-D9. ERD updated in the same change. Supersedes [TRD v2](./ujp-trd-v2.md).
 - 2026-09-15 — v2.1: change request CR-1 from the stakeholder simulation review; supersedes D16/D17, amends D2/D5/D7; ERD gains `ujp_routes`, `ujp_client_configs`, `ujp_energy_prices`, `ujp_subcon_vendors`.
 - 2026-09-12 — v2 TRD split out of the combined `ujp-prd-trd-v2.md`; high-level design added as mermaid (before/after, components, module graph, ERD, lifecycle, approve sequence, estimate flow, lanes) so it renders on GitHub alongside [ujp-hld-v1.html](./ujp-hld-v1.html).

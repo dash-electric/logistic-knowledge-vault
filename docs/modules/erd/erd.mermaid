@@ -510,6 +510,7 @@ erDiagram
         uuid id PK
         text reference_id UK "UJP-YYYYMMDD-NNNN, daily counter"
         text status "SUBMITTED|APPROVED|REJECTED|CANCELLED"
+        integer version "CR-3 (0096): 1 at create, +1 per requester edit; decision sends it back as expectedVersion → 409 UJP_STALE on a mismatch"
         int client_id "CoreService provider; jsonb snapshot"
         date delivery_date
         text payee_type "driver|subcon"
@@ -538,6 +539,7 @@ erDiagram
         text to_status
         text changed_by
         text reason_code
+        jsonb changes "CR-3 (0096), nullable: [{field, from, to}] on EDITED and RESUBMITTED rows; money entries masked for non-parties on read"
         timestamptz changed_at
     }
     ujp_daily_counters {

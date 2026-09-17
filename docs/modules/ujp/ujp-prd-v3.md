@@ -2,7 +2,7 @@
 title: UJP Native in react-logistic-web — Product Requirements
 module: ujp
 doctype: prd
-version: 3.0
+version: 3.0.1
 status: draft
 supersedes: ./ujp-prd-v2.md
 product_owner: muhamad.zulfikar@dashelectric.co
@@ -15,6 +15,7 @@ reviews:
   cr1: 2026-09-15 (plan-eng-review on the stakeholder simulation review, 9 decisions)
   cr2: 2026-09-17 (plan-eng-review Route Planner, CLEAR, 19 decisions + outside voice)
   cr2: 2026-09-17 (plan-eng-review, Route Planner as a Routes-module extension, 19 decisions)
+  cr3: 2026-09-17 (requirement from stakeholder; decisions CR3-D1–D7 in assessment §17)
 links:
   trd: ./ujp-trd-v3.md
   context: ./ujp-context-v1.md
@@ -27,7 +28,7 @@ links:
 
 # UJP Native in react-logistic-web — PRD v3
 
-> Port the **UJP** (*Usulan Jasa Pengangkutan*, the per-trip running-cost request that authorizes a driver's *uang jalan*) from the Supabase app `logisticdash` into the logistics console. **Approving a UJP creates the DIRECT_4W shipment in the same transaction.** v3 adds **CR-2**: route building leaves the UJP wizard and becomes a **Route Planner** master page owned by the Routes module, fed by the Addresses lane book and by server-measured distances. The technical design, architecture diagrams and API contract are in [ujp-trd-v3.md](./ujp-trd-v3.md) (mermaid, renders on GitHub) and [ujp-hld-v1.html](./ujp-hld-v1.html); background in [ujp-context-v1.md](./ujp-context-v1.md); the UI is demonstrated in [ujp-flow-simulation-v2.html](./ujp-flow-simulation-v2.html) and [ujp-prototype-v2.html](./ujp-prototype-v2.html).
+> Port the **UJP** (*Usulan Jasa Pengangkutan*, the per-trip running-cost request that authorizes a driver's *uang jalan*) from the Supabase app `logisticdash` into the logistics console. **Approving a UJP creates the DIRECT_4W shipment in the same transaction.** v3 adds **CR-2**: route building leaves the UJP wizard and becomes a **Route Planner** master page owned by the Routes module, fed by the Addresses lane book and by server-measured distances. **CR-3** then lets the requester **change a request that has not been decided yet** — while it is *Menunggu persetujuan* or *Ditolak* — instead of cancelling it and raising a new number. The technical design, architecture diagrams and API contract are in [ujp-trd-v3.md](./ujp-trd-v3.md) (mermaid, renders on GitHub) and [ujp-hld-v1.html](./ujp-hld-v1.html); background in [ujp-context-v1.md](./ujp-context-v1.md); the UI is demonstrated in [ujp-flow-simulation-v2.html](./ujp-flow-simulation-v2.html) and [ujp-prototype-v2.html](./ujp-prototype-v2.html).
 
 ---
 
@@ -47,9 +48,9 @@ For CR-2 three things already exist and are reused rather than rebuilt: the **Ad
 
 | User | Job | Sees |
 |---|---|---|
-| Ops requester | Propose one trip and its cost; know when it is approved | Queue of their requests with age; a 5-step wizard with a live total; the panel with "Menunggu persetujuan finance" |
+| Ops requester | Propose one trip and its cost; fix it while it waits or after a rejection; know when it is approved | Queue of their requests with age; a 5-step wizard with a live total; the panel with "Menunggu persetujuan finance"; **Ubah** / **Ubah & ajukan ulang** on their own undecided request (CR-3) |
 | Ops route curator | Keep the routes a client actually runs, once, so every request and shipment starts from them | Route Planner page per client: list, drawer builder, stops picked from the lane book, per-leg km with its source, aktif/nonaktif |
-| Finance approver (allowlisted) | Authorize the cash and, by the same click, the trip | Money first, then the shipment that approval will create, full bank details, Setujui & buat shipment / Tolak |
+| Finance approver (allowlisted) | Authorize the cash and, by the same click, the trip — and never authorize a version they did not read | Money first, then the shipment that approval will create, full bank details, Setujui & buat shipment / Tolak; "Diperbarui · lihat perubahan" when the requester edited it after submission (CR-3) |
 | Other ops user | Look up a request | Same panel, account number masked, total hidden, no actions |
 | Shipment creator (4W wizard) | Create a 4W shipment on a route that already exists | "Isi dari rute" on the stops step, prefilled per the client's pool rule |
 | Driver (via driver app) | Run the route | The DIRECT_4W route created on approve; nothing UJP-specific |
@@ -60,6 +61,7 @@ For CR-2 three things already exist and are reused rather than rebuilt: the **Ad
 - **Create** a UJP: Info → Rute → Biaya → Driver → Review, with a server-computed live estimate.
 - **Queue list** with status tabs and counts, age chips, URL-backed filters, server-side search and pagination.
 - **Detail / approval panel** with approve, reject (reason code required), cancel (requester only), audit history, masking for non-parties.
+- **Edit while undecided** (CR-3): the requester changes their own UJP while it is SUBMITTED, or fixes and resubmits it after a rejection — same reference, same row, every change audited, and the approver's decision is protected against deciding a version they did not see.
 - **Approve creates the DIRECT_4W shipment** (shipment, route, stops, links) in the decision transaction, and links it back (`shipments.ujp_id`).
 - **Route Planner** master page (CR-2): per-client route plans, created and edited in a drawer, stops picked from the Addresses lane book with a manual fallback, per-leg km measured by the server, deactivation that only hides.
 - The **UJP wizard's Rute step** and the **4W shipment wizard's stops step** both consume route plans; neither builds a route of its own.
@@ -72,7 +74,9 @@ For CR-2 three things already exist and are reused rather than rebuilt: the **Ad
 - Schedule auto-create: the route created on approve is the schedule.
 - Combine (second linked UJP): multi-drop stops cover the common case.
 - Revert of a decision: a live shipment exists after approve; reversal is shipment cancellation with reason codes.
-- Edit after submit: cancel and "Buat ulang dari UJP ini" keep the audit trail honest.
+- ~~Edit after submit: cancel and "Buat ulang dari UJP ini" keep the audit trail honest.~~ **Superseded by CR-3** (requirements 43–49): editing while SUBMITTED or REJECTED is now in scope and the audit trail is kept by versioning the request and recording the change list, not by forcing a new number. What stays out:
+  - **Edit after APPROVED (or CANCELLED)**: a live shipment and an authorized cash amount already exist; the correction path stays shipment cancellation with a reason code, not a silent rewrite of what finance approved.
+  - **Approver edits**: an approver who disagrees rejects with a reason and the requester fixes it. Letting the person who authorizes the money also change it removes the second pair of eyes.
 - Ring / PER_RING tariff: billing-side; no tariff tables in this service.
 - **Route-plan versioning and an approval workflow for plans**: plans are editable in place and the UJP keeps its snapshot; versioning waits until reviewers actually ask "what changed" (CR2-D17).
 - **Blocking deactivation of a plan that a live UJP used**: the UJP reads its snapshot, so a 409 would buy nothing and would point the Routes module at UJP (CR2-D16).
@@ -104,7 +108,7 @@ For CR-2 three things already exist and are reused rather than rebuilt: the **Ad
 14. Footer: primary **"Setujui & buat shipment"** and outline-danger **"Tolak"** for an allowlisted approver who is not the requester; ghost **"Batalkan pengajuan"** for the requester while SUBMITTED; nothing for others.
 15. **Reject** requires a reason from `GET /v1/reasons?type=UJP_REJECTION` (BIAYA_TIDAK_WAJAR, RUTE_TIDAK_SESUAI, DRIVER_TIDAK_SESUAI, DATA_TIDAK_LENGKAP, LAINNYA with mandatory note) plus an optional note; the primary is disabled until a reason is chosen.
 16. **Approve** shows a loading state ("Menyetujui…", panel not closable), then a toast "UJP-… disetujui · Shipment {waybill} dibuat" with "Lihat shipment"; the panel re-fetches. A 409 (already decided) shows "Sudah diputuskan oleh {name}" and re-fetches.
-17. A rejected request shows the reason and note prominently; the requester gets **"Buat ulang dari UJP ini"** which opens the wizard prefilled (new reference on submit).
+17. A rejected request shows the reason and note prominently; ~~the requester gets **"Buat ulang dari UJP ini"** which opens the wizard prefilled (new reference on submit)~~ — *(the redo action is superseded by CR-3 req 43: the requester gets **"Ubah & ajukan ulang"**, which edits the same request under the same reference. The prominent rejection reason stays, and is now also shown inside the wizard's first step.)*
 18. **Masking:** anyone who is neither an allowlisted approver nor the requester sees the account number as `•••• 1234` with a lock icon and tooltip, and the nominal as "Disembunyikan". Approver and requester see the full number with "Salin".
 
 ### Cross-cutting
@@ -144,9 +148,31 @@ Route building becomes its own master, owned by the Routes module, fed by the Ad
 39. **UJP wizard step Rute is a picker.** Ops selects one of the client's active plans, or clicks **Buat rute baru** to open the Route Planner drawer in place — saving it selects the new plan without leaving the wizard. The stops, legs and totals come from the plan, and **KM diajukan** defaults to the plan's charged or all-leg total per the client's rule (req 28) and stays editable. The in-wizard manual builder and the "Simpan sebagai rute tersimpan" checkbox are gone.
 40. **The UJP always keeps its own snapshot of the route it was submitted with.** Editing or deactivating the plan afterwards never changes a submitted, approved or rejected request.
 41. **4W create-shipment wizard gains "Isi dari rute".** On the stops step, picking one of the client's active plans prefills the stops. The client's pool rule decides what is prefilled: when pool legs are charged, all stops are used; when they are not, the Pool and Kembali-ke-pool stops are dropped — and shown greyed with the reason, so the difference is visible rather than silent. Manual stop entry is unchanged and remains the default path.
-42. **UJP detail flags plan changes.** The panel shows **"Rute nonaktif"** when the plan behind the request has since been deactivated, and **"Rute diperbarui setelah pengajuan"** when it was edited after submission. Both are informational: the request still displays its snapshot, approve still uses the snapshot, and **"Buat ulang dari UJP ini"** works from an inactive plan (it reopens the wizard on the snapshot and asks ops to pick a current plan before submitting).
+42. **UJP detail flags plan changes.** The panel shows **"Rute nonaktif"** when the plan behind the request has since been deactivated, and **"Rute diperbarui setelah pengajuan"** when it was edited after submission. Both are informational: the request still displays its snapshot, approve still uses the snapshot, and ~~**"Buat ulang dari UJP ini"**~~ *(superseded by CR-3 req 43 — read as **"Ubah"** / **"Ubah & ajukan ulang"**)* works from an inactive plan (it reopens the wizard on the snapshot and asks ops to pick a current plan before saving).
 
 Copy additions: Route Planner · Rute · Buat rute · Buat rute baru · Ubah rute · Nama rute · Nama rute sudah dipakai · Tempat · Cari tempat · Semua client · Isi manual · Tambah di Alamat · Urutkan · Hapus stop · Lane · Terukur · Estimasi · diubah manual · Alamat berubah · Perbarui dari Addresses · Estimasi tidak tersedia · Rute tersimpan · Rute tersimpan · {n} alamat belum masuk Addresses · Coba lagi · Aktif · Nonaktif · Nonaktifkan rute · Aktifkan kembali · Belum ada rute untuk client ini · Tidak ada rute untuk “{q}” · diperbarui oleh · Isi dari rute · Stop tidak dipakai: leg pool tidak ditagih · Rute nonaktif · Rute diperbarui setelah pengajuan.
+
+## Change request CR-3 (2026-09-17) — Mengubah pengajuan
+
+A request that nobody has decided yet is a draft in everything but name: today a typo in the km, a wrong plate or the fix for a rejection all cost a cancellation and a new number, which breaks the thread finance is following. CR-3 makes the request itself editable while it is undecided. **Supersedes the out-of-scope line "Edit after submit"** and the redo action in requirement 17 (and its echo in requirement 42). Decisions CR3-D1…D7 in `ASSESSMENT-UJP-PORT-4W.md` §17.
+
+### Who edits, and when
+
+43. **The requester edits their own request while it is Menunggu persetujuan or Ditolak.** The panel footer shows **Ubah** when the request is SUBMITTED and **Ubah & ajukan ulang** when it is REJECTED — both in place of "Buat ulang dari UJP ini", which is gone. Nobody else sees either button: an approver who disagrees rejects with a reason, and other ops users still get a read-only panel. An APPROVED or CANCELLED request is not editable and the attempt is refused with **"UJP sudah diputuskan"** — for those the correction path is shipment cancellation, as before.
+44. **Edit opens the same wizard, prefilled, on the same request.** Five steps, same validation, same live server estimate, title **"Ubah UJP-{ref}"**; the primary button reads **"Simpan perubahan"** while SUBMITTED and **"Ajukan ulang"** while REJECTED. The **reference number never changes** — it is the same row, the same thread in the queue. When the request was rejected, the rejection reason and note stay visible on step 1 of the wizard, so the fix is guided by what was wrong rather than remembered. The requester may change any group: header, route, biaya, driver/payee, cargo.
+
+### What an edit means
+
+45. **Saving while Menunggu keeps it Menunggu; saving a rejected one puts it back in the queue.** A rejected request that is resubmitted returns to **Menunggu persetujuan** and **the rejection is cleared from the panel** — reason, note and who decided it stop being the request's current state and become history. It reappears in the Menunggu tab and its counts, and its age chip continues from the original submission (the request is not new; only its content is).
+46. **The route plan may be switched or rebuilt during an edit.** The Rute step is the same picker as requirement 39, including **Buat rute baru**; the request's snapshot is replaced by the plan chosen at save time, and the "Rute diperbarui setelah pengajuan" flag (requirement 42) is measured against the moment of the last edit, not the original submission — otherwise every edited request would show it forever.
+47. **Money is never carried over from the browser.** An edit recomputes the total server-side from the submitted inputs exactly as a new request does, so an edited request can never show a total that its inputs do not produce.
+
+### What the approver and the audit see
+
+48. **The approver can tell that it changed, and decides only on what they read.** A request edited after submission shows **"Diperbarui · lihat perubahan"** in the panel, which opens the change list in the history. If the requester edits while the approver has the panel open, the decision is refused with **"UJP diperbarui oleh requester, muat ulang"**, the panel refetches and shows the newer version with its changes — no approval or rejection ever lands on a version the approver did not see. Nothing is lost: the approver re-reads and decides again.
+49. **Every edit is in the audit trail, field by field.** Each save writes a history row — *Diubah* while SUBMITTED, *Diajukan ulang* for a resubmit — with who, when, and the list of what changed as **dari → ke** per field across header, payee, vehicle, biaya, rute and driver. The original rejection row stays exactly where it was. **Money values inside the change list are masked for non-parties** on the same rule as requirement 18: someone who is neither the requester nor an allowlisted approver sees that a cost field changed, not the amounts it moved between.
+
+Copy additions: Ubah · Ubah & ajukan ulang · Ubah UJP-{ref} · Simpan perubahan · Ajukan ulang · Perubahan disimpan · UJP-{ref} diajukan ulang · Diperbarui · lihat perubahan · Perubahan · dari → ke · Diubah · Diajukan ulang · UJP sudah diputuskan · UJP diperbarui oleh requester, muat ulang · Alasan penolakan sebelumnya. Removed with CR-3: Buat ulang dari UJP ini.
 
 ## Edge cases and failure states
 
@@ -175,6 +201,14 @@ Copy additions: Route Planner · Rute · Buat rute · Buat rute baru · Ubah rut
 | **Lane behind a stop edited in Addresses** | Plan row badges "Alamat berubah" with **Perbarui dari Addresses**; no silent change |
 | **Client has no UJP config row** | Pool legs treated as not charged (the conservative default); the 4W prefill greys the pool stops |
 | **4W prefill from a plan, then manual edits** | Manual editing stays available on every prefilled stop; the manual path is unchanged |
+| **Requester edits while the approver is deciding** | The decision is refused with "UJP diperbarui oleh requester, muat ulang"; the panel refetches, shows "Diperbarui · lihat perubahan" and the approver decides again |
+| **Approver decides while the requester is saving an edit** | The edit is refused with "UJP sudah diputuskan"; the wizard closes and the panel refetches on the decided request — nothing half-saved |
+| **Someone who is not the requester opens an editable request** | No Ubah button; a direct attempt is refused (403). Approvers reject with a reason instead |
+| **Edit attempted on an APPROVED or CANCELLED request** | Refused with "UJP sudah diputuskan"; the panel refetches |
+| **Rejected request resubmitted** | Back to Menunggu, rejection cleared from the panel and kept in history; same reference, same age baseline |
+| **Edit changes nothing** | Saving is still allowed; the history row records the edit with an empty change list rather than pretending it did not happen |
+| **Non-party opens the change list** | Field names are visible, money values are masked exactly as the totals are (req 18) |
+| **Route plan deactivated between submit and edit** | The wizard opens on the snapshot with "Rute nonaktif" and asks for a current plan before saving |
 
 ## Success criteria
 
@@ -186,6 +220,9 @@ Copy additions: Route Planner · Rute · Buat rute · Buat rute baru · Ubah rut
 - **Route km stops being retyped**: the share of legs left at their server value (source Lane or Terukur, not "diubah manual") is visible in the planner and is the baseline for trusting the estimate.
 - **The lane book grows instead of drifting**: every manual stop a planner enters ends up as a DRAFT lane in Addresses, so the second plan through the same place picks it rather than retyping it.
 - **The 4W wizard and UJP agree**: for the same plan and the same client config, the stops the 4W wizard prefills are exactly the stops approve would create.
+- **A correction keeps its number**: after CR-3, a rejected request that gets fixed is resubmitted under the same reference — the count of cancelled-then-recreated requests goes to zero, and finance follows one thread per trip instead of two.
+- **No decision lands on an unread version**: every approval and rejection is recorded against the version the approver had on screen; a stale attempt is refused rather than silently applied.
+- **An edited request is readable at a glance**: for any edited request, the approver can see what changed without comparing two screens — the change list answers it in the panel.
 
 ## UI contract
 
@@ -193,10 +230,12 @@ Copy additions: Route Planner · Rute · Buat rute · Buat rute baru · Ubah rut
 - **Components:** `FormModal size="2xl"` + `StepIndicator` (+ compact prop) · `SegmentedControl` · `SearchSelect` · `Tag` · `Switch` · `DatePicker` · `MoneyInput` / `KmInput` (new, co-located) · shared `Direct4WStopsStep` / `Direct4WRiderStep` · `RouteStopsMap` · `Hint` · `InformationBanner` · `Badge` · `Button` (primary / outline-danger / ghost / white, loading) · `SideBarModal position="right" width="md"` (panel) and `width="lg"` (route-plan drawer) · `Modal width="sm" iconTone="danger"` (deactivate confirm) · `TableData` + `Paginator` + hairline tabs · `EmptyState` · `Skeleton` · sonner toaster · eyebrow labels · `font-mono tabular-nums` for ids, km and rupiah · `AddressEndpointFields` + `AddressAutocomplete` reused for the manual stop.
 - **Copy set (constants file):** Buat Pengajuan UJP · Uang jalan 4W: info, rute, biaya, driver, lalu review. · Info · Rute · Biaya · Driver · Review · Kembali · Batal · Lanjut · Ajukan UJP · Estimasi total · Flazz · Transfer · Estimasi belum diperbarui · Estimasi gagal · Coba lagi · Dihitung server · Payee & kendaraan · Biaya operasional (uang jalan) · Rincian estimasi · Tidak dipakai untuk subcon · Override BBM · dari kendaraan · diubah manual · KM diajukan · Logistic · UJP · Pengajuan UJP · Buat UJP · Menunggu · Disetujui · Ditolak · Dibatalkan · Semua · Belum ada pengajuan UJP · Tidak ada UJP untuk “{q}” · Hapus filter · Gagal memuat · Menunggu persetujuan · Menunggu persetujuan finance · Dibuat saat disetujui · Belum dibuat · Lihat shipment {waybill} · Rincian biaya · Rekening driver · Rekening subcon · Salin · Disembunyikan · Hanya requester & approver dapat melihat · Stops · Riwayat · Setujui & buat shipment · Tolak · Tolak UJP · Batalkan pengajuan · Buat ulang dari UJP ini · Ubah · UJP-{ref} diajukan · UJP-{ref} disetujui · Shipment {waybill} dibuat · UJP-{ref} ditolak · Pengajuan dibatalkan · Nomor rekening disalin · Sudah diputuskan oleh {name} · UJP tidak ditemukan · Alasan belum dikonfigurasi.
 - **CR-1 additions:** Pool / Pickup / Drop / Kembali ke pool · Leg pool ditagih · Leg pool tidak ditagih: leg pertama & terakhir tidak dihitung · KM semua leg · KM ditagih · Uang jalan QRIS · Perjalanan reverse · Biaya reverse (client) · Konfigurasi UJP client · Vendor subcon · Tidak dibuat: subcon.
+- **CR-3 additions:** the edit copy listed under §CR-3 (Ubah · Ubah & ajukan ulang · Ubah UJP-{ref} · Simpan perubahan · Ajukan ulang · Perubahan disimpan · UJP-{ref} diajukan ulang · Diperbarui · lihat perubahan · Perubahan · Diubah · Diajukan ulang · UJP sudah diputuskan · UJP diperbarui oleh requester, muat ulang · Alasan penolakan sebelumnya). Components: the existing `FormModal` wizard in edit mode (no new shell), `InformationBanner` for the rejection reason on step 1 and for the stale-decision refusal, `Badge` for "Diperbarui", and the history list rendering the per-field change rows in `font-mono tabular-nums` for money and km. Removed with CR-3: Buat ulang dari UJP ini.
 - **CR-2 additions:** the Route Planner copy listed under §CR-2. Removed with CR-2: Rute tersimpan (as a wizard label) · Buat rute manual · Simpan sebagai rute tersimpan · Jarak lane (estimasi) · Jumlah jarak lane, bukan rute berantai · Stops diubah manual; lane tidak lagi mengisi otomatis · Reset dari lane · Lane harus dari origin yang sama · Lane tidak ditemukan untuk {client}.
 
 ## Changelog
 
+- 2026-09-17 — v3.0.1: change request CR-3 — the requester may change a UJP while it is Menunggu persetujuan or Ditolak (requirements 43–49). Supersedes the out-of-scope line "Edit after submit", the redo action in requirement 17 and its echo in requirement 42: **"Buat ulang dari UJP ini" is replaced by "Ubah" / "Ubah & ajukan ulang"** on the same reference. Resubmitting a rejected request clears the rejection from the panel and keeps it in history; every edit is audited as a per-field change list with money masked for non-parties; the approver sees "Diperbarui · lihat perubahan" and cannot decide a version they did not read. Editing after APPROVED, and approver-side edits, stay out of scope. Decisions CR3-D1…D7 in `ASSESSMENT-UJP-PORT-4W.md` §17.
 - 2026-09-17 — v3.0: change request CR-2 — Route Planner as a Routes-module extension (requirements 30–42). Supersedes requirement 23 (in-wizard builder, "simpan sebagai rute") and what remained of requirement 3 (lane picker in the wizard). Stops now come from the Addresses lane book with a DRAFT write-back fallback, leg km is server-measured with a visible source, and the 4W shipment wizard consumes the same plans. Supersedes [PRD v2](./ujp-prd-v2.md).
 - 2026-09-15 — v2.1: change request CR-1 added (requirements 23–29).
 - 2026-09-12 — split into PRD (this file) and [TRD v2](./ujp-trd-v2.md); content unchanged.
