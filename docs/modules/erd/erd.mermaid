@@ -607,8 +607,7 @@ erDiagram
     ujp_vehicles }o--|| ujp_energy_prices : "fuel_type → price @ date"
 
     %% ── Route Planner, CR-2 (ujp-trd-v3 §14.3) ───────────────────
-    %% and has no DB FK; it appears here only to carry the ownership arrow —
-    %% a route plan is always scoped to one client.
+    %% route_plans.client_id is an external core-service master (snapshot rule above, no arrow).
     route_plans ||--o{ ROUTES : "routes.route_plan_id (executed from the template, nullable)"
     route_plans ||--o{ ujp : "ujp.route_plan_id + ujp.route snapshot"
     route_plans }o--o{ addresses : "stops point at lane endpoints (JSONB address_id, not a FK); manual stops write DRAFT lanes back"
