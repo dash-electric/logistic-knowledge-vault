@@ -524,6 +524,12 @@ erDiagram
         numeric total_uang_jalan_flazz
         numeric total_uang_jalan_transfer
         numeric estimated_amount
+        uuid tariff_config_id FK "CR-4 (0097): → tariff_configs.id, nullable — tagged at create, resolved effective on delivery_date at approve"
+        uuid ring_id FK "CR-4 (0097): → tariff_rings.id, nullable — PER_RING clients only; auto-suggested, approver-confirmed"
+        numeric revenue_amount "CR-4 (0097): nullable — snapshot at approve; NULL unless revenue_status = OK (never fabricated)"
+        numeric margin_amount "CR-4 (0097): nullable — revenue_amount − cost, one approve-time basis; sign stored even when negative"
+        text revenue_status "CR-4 (0097): OK|MISSING_TARIFF|UNSUPPORTED_MODE|MISSING_RING — only OK yields a margin"
+        jsonb tariff "CR-4 (0097): tariff + ring snapshot at approve (tipe, rates, asuransi, ring) — approver-only in the mapper"
         jsonb stops
         jsonb rider
         text requester_email
@@ -576,6 +582,7 @@ erDiagram
         numeric total_km "sum of all legs"
         numeric km_charged "legs touching no POSITIONING/RETURN stop"
         boolean active "false = hidden from pickers, never deleted"
+        uuid default_ring_id FK "CR-4 (0097): → tariff_rings.id, nullable — pre-fills the wizard ring for PER_RING clients; the UJP still owns its own ring_id snapshot"
         text created_by
         text updated_by
     }
@@ -613,3 +620,39 @@ erDiagram
     route_plans ||--o{ ROUTES : "routes.route_plan_id (executed from the template, nullable)"
     route_plans ||--o{ ujp : "ujp.route_plan_id + ujp.route snapshot"
     route_plans }o--o{ addresses : "stops point at lane endpoints (JSONB address_id, not a FK); manual stops write DRAFT lanes back"
+
+    %% ── Tariff master, CR-4 (ujp-trd-v3 §14.5, migration 0097_tariff) ──
+    %% The REVENUE side, client-scoped, dated — the counterpart to the COST-side
+    %% ujp_client_configs (two configs, different concerns, no merge). Owned by a new
+    %% `tariff` module; the UJP imports TariffRepository (arrow tariff ← ujp, like route ← ujp).
+    %% Rings are config-scoped, NOT global: tariff_rings.tariff_config_id FK (mirrors source
+    %% tarif_ring.tarif_id). The UJP tags tariff_config_id + ring_id at create and snapshots
+    %% revenue_amount / margin_amount / revenue_status / tariff at approve; revenue is never
+    %% fabricated (NULL unless revenue_status = OK). Deferred to CR-4b: per-body rates,
+    %% distance_tiers, driver/helper shares, a standalone margin dashboard.
+    tariff_configs {
+        uuid id PK
+        int client_id "CoreService provider — one active config per (client_id, date window)"
+        text tipe "TARIFF_TIPE: PER_TRIP_FLAT|FIXED|PER_RING"
+        numeric rate_flat "PER_TRIP_FLAT single-drop rate"
+        numeric rate_flat_multi "PER_TRIP_FLAT multi-drop rate (0/unset → MULTI_RATE_FALLBACK to single)"
+        numeric rate_fixed "FIXED rate"
+        numeric asuransi "added to every resolved revenue, default 0"
+        boolean mode_supported "false when the client's tariff needs a deferred mode (per-body/tier) → UNSUPPORTED_MODE"
+        date berlaku_mulai "effective from — resolution picks the config active on delivery_date"
+        date berlaku_sampai "effective until, nullable = open-ended"
+        boolean active
+        text created_by
+        text updated_by
+    }
+    tariff_rings {
+        uuid id PK
+        uuid tariff_config_id FK "→ tariff_configs.id — rings are config-scoped, not a global master"
+        text nama "ring name, matched by suggestRing against the destination stop"
+        int urutan "ordering + tie-break for the auto-suggest"
+        numeric rate_per_trip "PER_RING single-drop rate"
+        numeric rate_per_trip_multi "PER_RING multi-drop rate (0/unset → MULTI_RATE_FALLBACK to single)"
+    }
+    tariff_configs ||--o{ tariff_rings : "config-scoped rings (tariff_config_id)"
+    tariff_configs ||--o{ ujp : "tariff_config_id tagged at create, snapshotted at approve"
+    route_plans ||--o| tariff_rings : "default_ring_id (nullable) pre-fills the wizard ring"
