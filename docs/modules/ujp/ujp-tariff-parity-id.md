@@ -2,7 +2,7 @@
 title: Tarif Parity — logisticdash vs Port Baru setelah CR-4b (Bahasa Indonesia)
 module: ujp
 doctype: reference
-version: 1.0
+version: 1.1
 status: draft
 updated: 2026-09-20
 language: id
@@ -17,7 +17,7 @@ checker_artifact: https://claude.ai/code/artifact/ecd683e9-975b-4a7d-b843-34fdaf
 
 # Tarif & margin: apa yang logisticdash hitung vs yang kita hitung sekarang
 
-Ringkasan: 40 fitur tarif dibandingkan — **Ada 27, Sebagian 5, Belum 8**. Semua aturan harga **per satu trip** sudah setara sejak CR-4b; yang tersisa adalah aturan **lintas-UJP / bulanan** (CR-4c, TODO-36).
+Ringkasan: 40 fitur tarif dibandingkan — **Ada 30, Sebagian 4, Belum 6** (v1.1: cek tumpang-tindih, fallback satu ring, nonaktifkan ring ditutup). Semua aturan harga **per satu trip** sudah setara sejak CR-4b; yang tersisa adalah aturan **lintas-UJP / bulanan** (CR-4c, TODO-36).
 
 ## 1. Tabel parity fitur tarif
 
@@ -42,13 +42,13 @@ Ringkasan: 40 fitur tarif dibandingkan — **Ada 27, Sebagian 5, Belum 8**. Semu
 | Jendela | Periode berlaku | berlaku_mulai/sampai | Sama | Ada |
 | Jendela | Hari operasi | [MON..SUN] | Sama (hari dari string tanggal) | Ada |
 | Jendela | Shift operasi | [Dawn..Night] | Sama; UJP tanpa shift hanya cocok config tanpa batasan | Ada |
-| Jendela | Cek tumpang-tindih saat simpan | isOverlapWithDays (UI) | belum; paling baru menang | Belum [P2] |
+| Jendela | Cek tumpang-tindih saat simpan | isOverlapWithDays (UI) | 409 `TARIFF_OVERLAP` bila tanggal ∧ hari ∧ shift beririsan dengan tarif aktif lain | Ada |
 | Lain | Tagih per rit / cap unit-hari | cap harian di laporan | disimpan + ditampilkan; tak berlaku per UJP | Sebagian [P2] |
 | Lain | Catatan / keterangan ring | ada | Sama | Ada |
 | Lain | Urutan ring | urutan | Sama | Ada |
 | Lain | Pin tarif/ring di rute | routes.tariff_config_id/ring_id + cek kedaluwarsa | route_plans.default_ring_id pre-fill; tarif diresolve per tanggal | Sebagian [P3] |
 | Ring | Auto-suggest dari tujuan | ring-match.ts keyword kota | Port setara BE + FE | Ada |
-| Ring | Fallback satu-satunya ring | auto pakai kalau 1 ring | belum (MISSING_RING) | Belum [P3] |
+| Ring | Fallback satu-satunya ring | auto pakai kalau 1 ring | Sama + catatan `RING_AUTO_SINGLE`; ring nonaktif diabaikan | Ada |
 | Ring | Batch fixer ring kosong | MissingRingPanel | belum (laporan) | Belum [P3] |
 | Resolusi | Paling baru berlaku_mulai menang | ya | Sama | Ada |
 | Resolusi | Revenue tidak difabrikasi | revenue 0 + warning | MISSING_TARIFF/RING/TIER → null | Ada (net-new) |
@@ -61,7 +61,7 @@ Ringkasan: 40 fitur tarif dibandingkan — **Ada 27, Sebagian 5, Belum 8**. Semu
 | Akses | Harga hanya approver | tidak dimasking | field-tier masking | Ada (net-new) |
 | UI | Editor konfigurasi tarif | TariffTab | /ujp/tariffs, semua field + editor tier, label Indonesia | Ada |
 | UI | Editor ring | daftar ring + per body + porsi | Sama | Ada |
-| UI | Hapus konfigurasi / ring | hapus | nonaktifkan config; ring hanya ubah | Sebagian [P3] |
+| UI | Hapus konfigurasi / ring | hapus | nonaktifkan config dan ring (`tariff_rings.active`) | Ada |
 | UI | Rincian harga di panel approver | di laporan | RevenueBlock: rate + sumber, tier, asuransi, surcharge, reverse, komisi, catatan | Ada (net-new) |
 
 ## 2. Alur harga saat approve (port kita)
@@ -76,15 +76,15 @@ komisi   = payee DRIVER ? porsiDriver (multi > 0 ? multi : single) : 0
 margin   = revenue − uangJalan − komisi          → snapshot beku di ujp.tariff
 ```
 
-## 3. Edge case yang diuji (48)
+## 3. Edge case yang diuji (57)
 
-Rate ladder (7), DISTANCE_TIER (8), surcharge (5), reverse & asuransi (4), komisi & margin (6), jendela hari/shift (5), ring auto-suggest (7), persistensi & kontrak (6). Hasil: BE unit 1932/185 hijau, integrasi DB nyata 11/11, FE 440/45, tsc + lint bersih.
+Rate ladder (7), DISTANCE_TIER (8), surcharge (5), reverse & asuransi (4), komisi & margin (6), jendela hari/shift (5), tumpang-tindih saat simpan (6), fallback satu ring (3), ring auto-suggest (7), persistensi & kontrak (6). Hasil: BE unit 1980/189 hijau, integrasi DB nyata 14/14, FE 490/46, tsc + lint bersih.
 
 ## 4. Gap tersisa
 
 - **[P1]** Prorata FIXED bulanan; Laporan Margin bulanan (CR-4c, TODO-36).
-- **[P2]** Additional Revenue; revenue bulanan; cek tumpang-tindih konfigurasi saat simpan; tagih per rit di laporan.
-- **[P3]** Daftar body type baku; porsi helper aktif saat UJP punya helper; no_driver_fee; fallback satu-satunya ring; batch fixer ring; pin tarif di rute; hapus ring.
+- **[P2]** Additional Revenue; revenue bulanan; tagih per rit di laporan.
+- **[P3]** Daftar body type baku; porsi helper aktif saat UJP punya helper; no_driver_fee; batch fixer ring; pin tarif di rute.
 
 ## 5. Catatan
 
