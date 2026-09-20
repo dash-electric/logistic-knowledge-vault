@@ -13,6 +13,7 @@ sumber:
   - logisticdash (Supabase / TanStack Router)
   - nest-logistic-service + react-logistic-web (assessment §1–§19)
 checker_artifact: https://claude.ai/code/artifact/3f639e9b-7b2b-4c38-b4c4-704f096cbcd7
+tariff_checker: ./ujp-tariff-parity-id.md
 ---
 
 # UJP: apa yang ada di logisticdash vs yang sudah kita port
@@ -20,7 +21,7 @@ checker_artifact: https://claude.ai/code/artifact/3f639e9b-7b2b-4c38-b4c4-704f09
 Perbandingan fitur per fitur, alur end-to-end, dan gap. Status: **Ada** (setara/lebih),
 **Sebagian** (beda nilai/cakupan), **Belum** (belum dibangun), **Skip** (sengaja ditunda).
 
-Ringkasan: 38 fitur dibandingkan — Ada 25, Sebagian 4, Belum 5, Sengaja skip 4 (v1.1 setelah CR-4b: tipe tarif, ring per-body/porsi, ring auto-suggest, reverse revenue naik ke Ada).
+Ringkasan: 38 fitur dibandingkan — Ada 24, Sebagian 5, Belum 5, Sengaja skip 4 (v1.1 setelah CR-4b: tipe tarif, ring per-body/porsi, ring auto-suggest, reverse revenue naik ke Ada).
 
 ## 1. Tabel parity fitur
 
