@@ -287,7 +287,7 @@ erDiagram
         integer leg_distance_m "provider leg ending here"
         integer leg_duration_sec
         text status "PENDING|COMPLETED|FAILED|SKIPPED default PENDING"
-        jsonb workflow "nullable — WorkflowSnapshot (definition + submission state); null = m-app static workflow"
+        jsonb workflow "nullable — WorkflowSnapshot (definition + submission state); null = m-app static workflow; CR-5: + fallback, pinnedWorkflowId, fallbackReason when a plan pin fell back to the slot default"
         timestamptz arrived_at "nullable — rider arrival at the stop"
         timestamptz resolved_at
         text resolved_by
@@ -578,7 +578,7 @@ erDiagram
         uuid id PK
         int client_id "CoreService provider — saved per client"
         text name "UNIQUE per client, case-insensitive"
-        jsonb stops "ordered [{seq, role POSITIONING|PICKUP|DROP_OFF|RETURN, name, address, latitude, longitude, intent, address_id, endpoint origin|destination}]"
+        jsonb stops "ordered [{seq, role POSITIONING|PICKUP|DROP_OFF|RETURN, name, address, latitude, longitude, intent, address_id, endpoint origin|destination}]" -- CR-5: each stop also carries workflow_id (pinned) + workflow_name
         jsonb legs "[{seq, fromSeq, toSeq, km, source LANE|DIRECTIONS|HAVERSINE, edited}]"
         numeric total_km "sum of all legs"
         numeric km_charged "legs touching no POSITIONING/RETURN stop"
@@ -674,6 +674,7 @@ erDiagram
         numeric driver_share_multi "CR-4b: multi-drop komisi, 0 → single"
         numeric helper_share_multi "CR-4b: multi-drop komisi, 0 → single"
         text keterangan "CR-4b"
+        boolean active "0099: soft deactivate — hidden from the picker/auto-suggest; a tagged UJP keeps pricing"
     }
     tariff_configs ||--o{ tariff_rings : "config-scoped rings (tariff_config_id)"
     tariff_configs ||--o{ ujp : "tariff_config_id tagged at create, snapshotted at approve"
