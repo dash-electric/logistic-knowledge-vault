@@ -2,13 +2,13 @@
 title: UJP Native in react-logistic-web — Product Requirements
 module: ujp
 doctype: prd
-version: 3.1
+version: 3.2
 status: draft
 supersedes: ./ujp-prd-v2.md
 product_owner: muhamad.zulfikar@dashelectric.co
 engineer: muhamad.zulfikar@dashelectric.co
 created: 2026-09-11
-updated: 2026-09-18
+updated: 2026-09-20
 reviews:
   eng: 2026-09-10 (plan-eng-review, CLEAR, 17 decisions)
   design: 2026-09-11 (plan-design-review, 4/10 → 9/10, 14 decisions)
@@ -272,6 +272,7 @@ Copy additions: Tarif · Tarif client · Konfigurasi tarif · Tipe tarif · Flat
 
 ## Changelog
 
+- 2026-09-20 — v3.2: change request CR-4b — **full tariff parity** with logisticdash's price model. The tariff master gains the **Tier jarak (KM)** tipe (`DISTANCE_TIER`: a ladder of `maxKm → rate` priced on the UJP's KM diajukan), **rate khusus per tipe unit** (per-body overrides on flat and ring, single and multi), **porsi driver/helper** (komisi — a cost in the margin, applied for a driver payee only; helper share recorded), a **surcharge multidrop** (drops above the free points × extra rate), a **revenue-side harga reverse**, **hari/shift operasi** windows (the tariff only applies on those days/shifts) and `tagih per rit` + `catatan` (stored, shown; the daily cap belongs to the report). `margin = revenue − cost − komisi`; the approver sees the breakdown (rate applied + its source, tier, asuransi, surcharge, reverse, komisi) and several advisory notes at once (`MULTI_RATE_FALLBACK`, `BODY_RATE_DEFAULT`, `TIER_ABOVE_MAX`); `revenueStatus` gains `MISSING_TIER`. The ring auto-suggest becomes the source's **city-keyword matcher** (ambiguous → empty, never a guess). Still deferred to CR-4c: monthly FIXED prorate, additional revenue, the Laporan Margin dashboard, daily cap. Decisions CR4b-D1…D13 in `ASSESSMENT-UJP-PORT-4W.md` §20. ERD updated in the same change.
 - 2026-09-18 — v3.1: change request CR-4 — the revenue side (requirements 50–55). A per-client, dated **tariff master** (tipe Flat per trip / Fixed / Per ring + `asuransi`) with a config-scoped **ring master**, set by approvers on a new `/ujp/tariffs` page. The UJP **tags** its tariff and ring at create and **snapshots revenue + margin** (`margin = revenue − cost`, one approve-time basis) at approve; `/estimate` stays cost-only. Revenue, margin and the tariff are **approver-only** — the single "party" mask splits into a cost tier (requester + approver) and a price tier (approver only). Per-ring clients get a wizard **ring auto-suggest** (editable, plan-default-prefilled, approver-confirmed) and a queue badge for a missing ring. A **negative margin** is a confirm, not a block, and fires only on a known revenue. Revenue is **never fabricated**: `revenueStatus` ∈ OK / MISSING_TARIFF / UNSUPPORTED_MODE / MISSING_RING, with a MULTI_RATE_FALLBACK note surfaced. Supersedes the out-of-scope line "Ring / PER_RING tariff"; the accounting detail is deferred (CR-4b). Decisions CR4-D1…D10 in `ASSESSMENT-UJP-PORT-4W.md` §18. ERD updated in the same change; UI in [ujp-prototype-v3.html](./ujp-prototype-v3.html) / [ujp-flow-simulation-v3.html](./ujp-flow-simulation-v3.html).
 - 2026-09-17 — v3.0.1: change request CR-3 — the requester may change a UJP while it is Menunggu persetujuan or Ditolak (requirements 43–49). Supersedes the out-of-scope line "Edit after submit", the redo action in requirement 17 and its echo in requirement 42: **"Buat ulang dari UJP ini" is replaced by "Ubah" / "Ubah & ajukan ulang"** on the same reference. Resubmitting a rejected request clears the rejection from the panel and keeps it in history; every edit is audited as a per-field change list with money masked for non-parties; the approver sees "Diperbarui · lihat perubahan" and cannot decide a version they did not read. Editing after APPROVED, and approver-side edits, stay out of scope. Decisions CR3-D1…D7 in `ASSESSMENT-UJP-PORT-4W.md` §17.
 - 2026-09-17 — v3.0: change request CR-2 — Route Planner as a Routes-module extension (requirements 30–42). Supersedes requirement 23 (in-wizard builder, "simpan sebagai rute") and what remained of requirement 3 (lane picker in the wizard). Stops now come from the Addresses lane book with a DRAFT write-back fallback, leg km is server-measured with a visible source, and the 4W shipment wizard consumes the same plans. Supersedes [PRD v2](./ujp-prd-v2.md).

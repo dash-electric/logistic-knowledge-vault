@@ -2,9 +2,9 @@
 title: UJP Parity — logisticdash vs Port Baru (Bahasa Indonesia)
 module: ujp
 doctype: reference
-version: 1.0
+version: 1.1
 status: draft
-updated: 2026-09-18
+updated: 2026-09-20
 language: id
 links:
   - ./ujp-trd-v3.md
@@ -20,7 +20,7 @@ checker_artifact: https://claude.ai/code/artifact/3f639e9b-7b2b-4c38-b4c4-704f09
 Perbandingan fitur per fitur, alur end-to-end, dan gap. Status: **Ada** (setara/lebih),
 **Sebagian** (beda nilai/cakupan), **Belum** (belum dibangun), **Skip** (sengaja ditunda).
 
-Ringkasan: 38 fitur dibandingkan — Ada 21, Sebagian 8, Belum 5, Sengaja skip 4.
+Ringkasan: 38 fitur dibandingkan — Ada 25, Sebagian 4, Belum 5, Sengaja skip 4 (v1.1 setelah CR-4b: tipe tarif, ring per-body/porsi, ring auto-suggest, reverse revenue naik ke Ada).
 
 ## 1. Tabel parity fitur
 
@@ -35,7 +35,7 @@ Ringkasan: 38 fitur dibandingkan — Ada 21, Sebagian 8, Belum 5, Sengaja skip 4
 | Toll/parkir/bongkar/makan/lain | Field terpisah | Sama | Ada | |
 | E-money bucket | Biner (no→Transfer, else Flazz); 2 kolom | Tiga bucket Flazz/QRIS/Transfer | Ada | **QRIS net-new** |
 | Subcon 100% transfer | payee_type=subcon | Sama; approve subcon = tanpa shipment | Ada | |
-| Reverse / PP | PP ×2 KM + ring Reverse + harga_reverse | Baris biaya reverse dari config (tidak ×2 KM) | Sebagian | **Semantik beda — lihat Catatan** |
+| Reverse / PP | PP ×2 KM + ring Reverse + harga_reverse | Biaya reverse (cost, CR-1) + harga_reverse (revenue, CR-4b); tidak ×2 KM | Sebagian | **Semantik ×2 KM beda — lihat Catatan** |
 | Rute / route plan | Tak ada `ujp_routes`; schedules + extra_drops + delivery_legs | Modul `route_plans` + legs server + places Addresses + DRAFT write-back | Ada | CR-2, lebih terstruktur |
 | Places dari Addresses | Mapbox picker + master routes | `GET /v1/addresses/places` | Ada | CR-2 |
 | Approve → jadi apa | Update status + schedule + push Basecamp + Dispatch API | Buat shipment DIRECT_4W dalam 1 tx | Ada | Beda target; kita shipment nyata |
@@ -51,10 +51,10 @@ Ringkasan: 38 fitur dibandingkan — Ada 21, Sebagian 8, Belum 5, Sengaja skip 4
 | Master harga BBM/energi (dated) | `vehicle_cost_configs` per kendaraan | `ujp_energy_prices` GLOBAL per fuel | Ada | **Granularitas beda** |
 | Master vendor subcon | `subcon_vendors` CRUD | `ujp_subcon_vendors` (SQL seed) | Sebagian | Belum CRUD UI [P3] |
 | Config per client (leg pool ditagih) | `origin_is_depot` per-request | `ujp_client_configs` per client | Ada | CR-1, net-new |
-| Tipe tarif | PER_RING, PER_TRIP_FLAT, FIXED, DISTANCE_TIER | PER_TRIP_FLAT, FIXED, PER_RING | Sebagian | DISTANCE_TIER → CR-4b [P2] |
-| Ring + rate (per-body, porsi driver/helper) | rate + per-body + driver/helper share | rate + rate_multi (tanpa per-body/share) | Sebagian | CR-4b/TODO-35 [P2] |
+| Tipe tarif | PER_RING, PER_TRIP_FLAT, FIXED, DISTANCE_TIER | Keempatnya (CR-4b; tier pakai KM diajukan, inklusif, MISSING_TIER kalau kosong) | Ada | CR-4b |
+| Ring + rate (per-body, porsi driver/helper) | rate + per-body + driver/helper share | Sama: override per tipe unit (single/multi) + porsi driver/helper sebagai komisi (driver payee) | Ada | CR-4b; helper share dicatat, belum dipakai (UJP tanpa helper) |
 | Asuransi | ditambah ke revenue | Sama | Ada | |
-| Ring auto-suggest | Peta kata kunci kota + batch fixer | `suggestRingId` (substring) | Sebagian | CR-4; tanpa keyword map/batch [P3] |
+| Ring auto-suggest | Peta kata kunci kota + batch fixer | Port `ring-match.ts` (keyword kota, ambigu → kosong); tanpa batch fixer | Ada | CR-4b; batch fixer = bagian laporan |
 | Margin / Laporan Margin | Engine allocation, report besar | Margin per-UJP di panel approver; dashboard belum | Sebagian | **CR-4b — dashboard belum diport** [P1] |
 | Masking harga & rekening | TIDAK ADA (rekening penuh) | Field-tier: harga approver-only, rekening ****last4 | Ada | **NET-NEW** |
 | Workflow per stop | Tidak ada | CR-5 di-assess, belum dibangun | Belum [P2] | CR-5 (arah baru) |
@@ -75,12 +75,11 @@ Ringkasan: 38 fitur dibandingkan — Ada 21, Sebagian 8, Belum 5, Sengaja skip 4
 
 - **[P1] Laporan Margin (dashboard)** — kita cuma margin per-UJP; dashboard lintas-UJP belum diport (CR-4b).
 - **[P1] Margin KM angka beda** — logisticdash 5,26% vs kita default 10% (set env kalau ingin sama).
-- **[P2] DISTANCE_TIER + per-body rate + porsi driver/helper** — tarif belum lengkap (CR-4b/TODO-35).
 - **[P2] Workflow per stop** — CR-5 di-assess, belum dibangun.
 - **[P2] Deteksi anomali approval queue** — belum ada, belum tercatat.
 - **[P2] Revert, Combine, Schedules auto-create, Sheet mirror, Basecamp** — sengaja ditunda (§9).
 - **[P2] Master kendaraan admin UI** — TODO-22.
-- **[P3] Ring auto-suggest** (peta kata kunci + batch fixer), **vendor CRUD UI**, **import data historis** (TODO-23), **semantik reverse** (×2 KM).
+- **[P3] Batch ring fixer** (laporan), **vendor CRUD UI**, **import data historis** (TODO-23), **semantik reverse** (×2 KM), **surcharge multidrop / hari-shift / tagih per rit di laporan** (CR-4c, TODO-36).
 
 ## 4. Yang kita punya, logisticdash tidak
 
