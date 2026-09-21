@@ -21,7 +21,7 @@ tariff_checker: ./ujp-tariff-parity-id.md
 Perbandingan fitur per fitur, alur end-to-end, dan gap. Status: **Ada** (setara/lebih),
 **Sebagian** (beda nilai/cakupan), **Belum** (belum dibangun), **Skip** (sengaja ditunda).
 
-Ringkasan: 39 fitur dibandingkan — Ada 27, Sebagian 3, Belum 4, Sengaja skip 5 (v1.4: "Tim ops" sengaja tidak diport — requester sudah dari auth, tanpa master).
+Ringkasan: 40 fitur dibandingkan — Ada 27, Sebagian 3, Belum 4, Sengaja skip 6 (v1.4: "Tim ops" dan "Jam mulai/selesai" sengaja tidak diport — dead input: requester dari auth, jam adalah field jadwal).
 
 ## 1. Tabel parity fitur
 
@@ -63,6 +63,7 @@ Ringkasan: 39 fitur dibandingkan — Ada 27, Sebagian 3, Belum 4, Sengaja skip 5
 | Basecamp spend-control | POST saat approve | Belum | Skip [P2] | §9 |
 | Dispatch API push | Buat delivery saat approve | Belum (shipment lokal) | Skip | Beda arsitektur |
 | Tim ops (`nama_ops_team`, master `ujp_ops_teams`) | Dropdown tim ops + master; dipakai sebagai nama requester ke Basecamp | Tidak ada — requester = `requester_email` dari auth; breakdown per pool bisa dari stop pool | Skip | Keputusan 2026-09-21: tidak perlu master |
+| Jam mulai / selesai | Field jadwal (`schedules.jam_*`, default dari master shift), dibawa UJP untuk auto-schedule | Tidak ada — schedules di-skip, tak ada pembaca; `shift` tetap (window tarif) | Skip | Dihapus 2026-09-21 |
 | Data historis / import | Kolom legacy + Sheet | Belum diputuskan | **Belum** [P3] | TODO-23 (finance) |
 | Uang jalan otoritatif + contract test | Total bisa diketik manual saat edit | Server-only + zod contract test | Ada | **NET-NEW** |
 | Stale/negative-margin guard | Tidak ada | `expectedVersion`→409 UJP_STALE; margin negatif konfirmasi | Ada | **NET-NEW** |
