@@ -51,7 +51,7 @@ Ringkasan: 43 fitur dibandingkan — Ada 29, Sebagian 3, Belum 4, Sengaja skip 7
 | Master kendaraan | vehicles CRUD | `/ujp/masters`: CRUD kendaraan + harga BBM/energi bertanggal (approver; plat unik, aturan ICE/EV) | Ada | TODO-22 selesai |
 | Master harga BBM/energi (dated) | `vehicle_cost_configs` per kendaraan | `ujp_energy_prices` GLOBAL per fuel | Ada | **Granularitas beda** |
 | Master vendor subcon | `subcon_vendors` CRUD | CRUD di `/ujp/masters` (approver), nonaktifkan/aktifkan | Ada | TODO-22 selesai |
-| Config per client (leg pool ditagih) | `origin_is_depot` per-request | `ujp_client_configs` sebagai default + override per stop pool di route plan (CR-8, dua arah, badge beda aturan) | Ada | CR-1 + CR-8; stop pool selalu ikut shipment |
+| Config per client (leg pool ditagih) | `origin_is_depot` per-request | `ujp_client_configs` sebagai default + toggle "Ditagih ke client" di stop pertama/terakhir (pool = ujung rute yang tidak ditagih, CR-8b; dua arah, badge beda aturan) | Ada | CR-1 + CR-8; stop pool selalu ikut shipment |
 | Tipe tarif | PER_RING, PER_TRIP_FLAT, FIXED, DISTANCE_TIER | Keempatnya (CR-4b; tier pakai KM diajukan, inklusif, MISSING_TIER kalau kosong) | Ada | CR-4b |
 | Ring + rate (per-body, porsi driver/helper) | rate + per-body + driver/helper share | Sama: override per tipe unit (single/multi) + porsi driver/helper sebagai komisi (driver payee) | Ada | CR-4b; helper share dicatat, belum dipakai (UJP tanpa helper) |
 | Asuransi | ditambah ke revenue | Sama | Ada | |
