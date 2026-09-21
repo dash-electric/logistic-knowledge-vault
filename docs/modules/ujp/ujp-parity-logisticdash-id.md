@@ -2,7 +2,7 @@
 title: UJP Parity — logisticdash vs Port Baru (Bahasa Indonesia)
 module: ujp
 doctype: reference
-version: 1.3
+version: 1.4
 status: draft
 updated: 2026-09-21
 language: id
@@ -21,7 +21,7 @@ tariff_checker: ./ujp-tariff-parity-id.md
 Perbandingan fitur per fitur, alur end-to-end, dan gap. Status: **Ada** (setara/lebih),
 **Sebagian** (beda nilai/cakupan), **Belum** (belum dibangun), **Skip** (sengaja ditunda).
 
-Ringkasan: 38 fitur dibandingkan — Ada 27, Sebagian 3, Belum 4, Sengaja skip 4 (v1.2 setelah CR-4b, CR-5, dan master admin: tipe tarif, ring, auto-suggest, workflow per stop, master kendaraan & vendor naik ke Ada).
+Ringkasan: 39 fitur dibandingkan — Ada 27, Sebagian 3, Belum 4, Sengaja skip 5 (v1.4: "Tim ops" sengaja tidak diport — requester sudah dari auth, tanpa master).
 
 ## 1. Tabel parity fitur
 
@@ -62,6 +62,7 @@ Ringkasan: 38 fitur dibandingkan — Ada 27, Sebagian 3, Belum 4, Sengaja skip 4
 | Google Sheet mirror | Sheets v4 | Belum | Skip [P2] | §9 |
 | Basecamp spend-control | POST saat approve | Belum | Skip [P2] | §9 |
 | Dispatch API push | Buat delivery saat approve | Belum (shipment lokal) | Skip | Beda arsitektur |
+| Tim ops (`nama_ops_team`, master `ujp_ops_teams`) | Dropdown tim ops + master; dipakai sebagai nama requester ke Basecamp | Tidak ada — requester = `requester_email` dari auth; breakdown per pool bisa dari stop pool | Skip | Keputusan 2026-09-21: tidak perlu master |
 | Data historis / import | Kolom legacy + Sheet | Belum diputuskan | **Belum** [P3] | TODO-23 (finance) |
 | Uang jalan otoritatif + contract test | Total bisa diketik manual saat edit | Server-only + zod contract test | Ada | **NET-NEW** |
 | Stale/negative-margin guard | Tidak ada | `expectedVersion`→409 UJP_STALE; margin negatif konfirmasi | Ada | **NET-NEW** |
