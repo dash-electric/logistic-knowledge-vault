@@ -287,7 +287,7 @@ erDiagram
         integer leg_distance_m "provider leg ending here"
         integer leg_duration_sec
         text status "PENDING|COMPLETED|FAILED|SKIPPED default PENDING"
-        jsonb workflow "nullable — WorkflowSnapshot (definition + submission state); null = m-app static workflow"
+        jsonb workflow "nullable — WorkflowSnapshot (definition + submission state); null = m-app static workflow; CR-5: + fallback, pinnedWorkflowId, fallbackReason when a plan pin fell back to the slot default"
         timestamptz arrived_at "nullable — rider arrival at the stop"
         timestamptz resolved_at
         text resolved_by
@@ -524,6 +524,13 @@ erDiagram
         numeric total_uang_jalan_flazz
         numeric total_uang_jalan_transfer
         numeric estimated_amount
+        uuid tariff_config_id FK "CR-4 (0097): → tariff_configs.id, nullable — tagged at create, resolved effective on delivery_date at approve"
+        uuid ring_id FK "CR-4 (0097): → tariff_rings.id, nullable — PER_RING clients only; auto-suggested, approver-confirmed"
+        numeric revenue_amount "CR-4 (0097): nullable — snapshot at approve; NULL unless revenue_status = OK (never fabricated)"
+        numeric margin_amount "CR-4 (0097): nullable — revenue_amount − cost − komisi_amount (CR-4b), one approve-time basis; sign stored even when negative"
+        numeric komisi_amount "CR-4b (0098): nullable — driver komisi applied to the margin (DRIVER payee only)"
+        text revenue_status "CR-4 (0097): OK|MISSING_TARIFF|UNSUPPORTED_MODE|MISSING_RING — only OK yields a margin"
+        jsonb tariff "CR-4 (0097): tariff + ring snapshot at approve (tipe, rates, asuransi, ring) — approver-only in the mapper"
         jsonb stops
         jsonb rider
         text requester_email
@@ -571,11 +578,12 @@ erDiagram
         uuid id PK
         int client_id "CoreService provider — saved per client"
         text name "UNIQUE per client, case-insensitive"
-        jsonb stops "ordered [{seq, role POSITIONING|PICKUP|DROP_OFF|RETURN, name, address, latitude, longitude, intent, address_id, endpoint origin|destination}]"
+        jsonb stops "ordered [{seq, role POSITIONING|PICKUP|DROP_OFF|RETURN, name, address, latitude, longitude, intent, address_id, endpoint origin|destination, workflow_id + workflow_name (CR-5 pin), type PICKUP|DROP_OFF + intent GENERIC|UNLOAD|RETURN_CONTAINER + pool (CR-6; role is derived)}]"
         jsonb legs "[{seq, fromSeq, toSeq, km, source LANE|DIRECTIONS|HAVERSINE, edited}]"
         numeric total_km "sum of all legs"
         numeric km_charged "legs touching no POSITIONING/RETURN stop"
         boolean active "false = hidden from pickers, never deleted"
+        uuid default_ring_id FK "CR-4 (0097): → tariff_rings.id, nullable — pre-fills the wizard ring for PER_RING clients; the UJP still owns its own ring_id snapshot"
         text created_by
         text updated_by
     }
@@ -613,3 +621,61 @@ erDiagram
     route_plans ||--o{ ROUTES : "routes.route_plan_id (executed from the template, nullable)"
     route_plans ||--o{ ujp : "ujp.route_plan_id + ujp.route snapshot"
     route_plans }o--o{ addresses : "stops point at lane endpoints (JSONB address_id, not a FK); manual stops write DRAFT lanes back"
+
+    %% ── Tariff master, CR-4 (ujp-trd-v3 §14.5, migration 0097_tariff) ──
+    %% The REVENUE side, client-scoped, dated — the counterpart to the COST-side
+    %% ujp_client_configs (two configs, different concerns, no merge). Owned by a new
+    %% `tariff` module; the UJP imports TariffRepository (arrow tariff ← ujp, like route ← ujp).
+    %% Rings are config-scoped, NOT global: tariff_rings.tariff_config_id FK (mirrors source
+    %% tarif_ring.tarif_id). The UJP tags tariff_config_id + ring_id at create and snapshots
+    %% revenue_amount / margin_amount / revenue_status / tariff at approve; revenue is never
+    %% fabricated (NULL unless revenue_status = OK). Deferred to CR-4b: per-body rates,
+    %% distance_tiers, driver/helper shares, a standalone margin dashboard.
+    tariff_configs {
+        uuid id PK
+        int client_id "CoreService provider — one active config per (client_id, date window)"
+        text tipe "TARIFF_TIPE: PER_TRIP_FLAT|FIXED|PER_RING|DISTANCE_TIER (CR-4b, 0098)"
+        numeric rate_flat "PER_TRIP_FLAT single-drop rate"
+        numeric rate_flat_multi "PER_TRIP_FLAT multi-drop rate (0/unset → MULTI_RATE_FALLBACK to single)"
+        numeric rate_fixed "FIXED rate"
+        numeric asuransi "added to every resolved revenue, default 0"
+        boolean mode_supported "legacy (CR-4): false → UNSUPPORTED_MODE; nothing sets it since CR-4b"
+        jsonb rates_flat_per_body "CR-4b (0098): {unit_type: rate} single-drop overrides, 0/absent → base"
+        jsonb rates_flat_per_body_multi "CR-4b: {unit_type: rate} multi-drop overrides"
+        numeric driver_share_flat "CR-4b: komisi driver per trip (cost side of margin), default 0"
+        numeric helper_share_flat "CR-4b: komisi helper per trip — recorded, not applied (no helper on a UJP)"
+        numeric driver_share_flat_multi "CR-4b: multi-drop komisi, 0 → single"
+        numeric helper_share_flat_multi "CR-4b: multi-drop komisi, 0 → single"
+        numeric harga_reverse "CR-4b: added to revenue when ujp.is_reverse, default 0"
+        jsonb hari_operasi "CR-4b: [MON..SUN] applicability, [] = every day"
+        jsonb shift_operasi "CR-4b: [Dawn|Morning|Noon|Night] applicability, [] = every shift"
+        boolean tagih_per_rit "CR-4b: stored + shown; the daily cap belongs to the report (CR-4c)"
+        jsonb distance_tiers "CR-4b: [{maxKm, rate}] asc — DISTANCE_TIER prices km_yang_diajukan"
+        int multidrop_free_points "CR-4b: drops included before the surcharge, default 3"
+        numeric multidrop_extra_rate "CR-4b: per extra drop above free points, 0 = off"
+        text catatan "CR-4b"
+        date berlaku_mulai "effective from — resolution picks the config active on delivery_date"
+        date berlaku_sampai "effective until, nullable = open-ended"
+        boolean active
+        text created_by
+        text updated_by
+    }
+    tariff_rings {
+        uuid id PK
+        uuid tariff_config_id FK "→ tariff_configs.id — rings are config-scoped, not a global master"
+        text nama "ring name, matched by suggestRing against the destination stop"
+        int urutan "ordering + tie-break for the auto-suggest"
+        numeric rate_per_trip "PER_RING single-drop rate"
+        numeric rate_per_trip_multi "PER_RING multi-drop rate (0/unset → MULTI_RATE_FALLBACK to single)"
+        jsonb rates_per_body "CR-4b (0098): {unit_type: rate} single-drop overrides"
+        jsonb rates_per_body_multi "CR-4b: {unit_type: rate} multi-drop overrides"
+        numeric driver_share "CR-4b: komisi driver per trip"
+        numeric helper_share "CR-4b: komisi helper per trip (recorded only)"
+        numeric driver_share_multi "CR-4b: multi-drop komisi, 0 → single"
+        numeric helper_share_multi "CR-4b: multi-drop komisi, 0 → single"
+        text keterangan "CR-4b"
+        boolean active "0099: soft deactivate — hidden from the picker/auto-suggest; a tagged UJP keeps pricing"
+    }
+    tariff_configs ||--o{ tariff_rings : "config-scoped rings (tariff_config_id)"
+    tariff_configs ||--o{ ujp : "tariff_config_id tagged at create, snapshotted at approve"
+    route_plans ||--o| tariff_rings : "default_ring_id (nullable) pre-fills the wizard ring"
