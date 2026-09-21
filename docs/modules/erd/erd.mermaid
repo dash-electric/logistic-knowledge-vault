@@ -578,7 +578,7 @@ erDiagram
         uuid id PK
         int client_id "CoreService provider — saved per client"
         text name "UNIQUE per client, case-insensitive"
-        jsonb stops "ordered [{seq, role POSITIONING|PICKUP|DROP_OFF|RETURN, name, address, latitude, longitude, intent, address_id, endpoint origin|destination}]" -- CR-5: each stop also carries workflow_id (pinned) + workflow_name
+        jsonb stops "ordered [{seq, role POSITIONING|PICKUP|DROP_OFF|RETURN, name, address, latitude, longitude, intent, address_id, endpoint origin|destination, workflow_id + workflow_name (CR-5 pin), type PICKUP|DROP_OFF + intent GENERIC|UNLOAD|RETURN_CONTAINER + pool (CR-6; role is derived)}]"
         jsonb legs "[{seq, fromSeq, toSeq, km, source LANE|DIRECTIONS|HAVERSINE, edited}]"
         numeric total_km "sum of all legs"
         numeric km_charged "legs touching no POSITIONING/RETURN stop"
