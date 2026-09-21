@@ -2,7 +2,7 @@
 title: UJP Parity — logisticdash vs Port Baru (Bahasa Indonesia)
 module: ujp
 doctype: reference
-version: 1.5
+version: 1.6
 status: draft
 updated: 2026-09-21
 language: id
@@ -21,7 +21,7 @@ tariff_checker: ./ujp-tariff-parity-id.md
 Perbandingan fitur per fitur, alur end-to-end, dan gap. Status: **Ada** (setara/lebih),
 **Sebagian** (beda nilai/cakupan), **Belum** (belum dibangun), **Skip** (sengaja ditunda).
 
-Ringkasan: 43 fitur dibandingkan — Ada 29, Sebagian 3, Belum 4, Sengaja skip 7 (v1.5: biaya tambahan CR-7; v1.4: dead input "Tim ops", "Jam mulai/selesai", dan detail pengiriman sengaja tidak diport; rekening driver di-prefill dari master driver-service).
+Ringkasan: 43 fitur dibandingkan — Ada 29, Sebagian 3, Belum 4, Sengaja skip 7 (v1.6: CR-8 leg pool ditagih per stop; v1.5: biaya tambahan CR-7; v1.4: dead input "Tim ops", "Jam mulai/selesai", dan detail pengiriman sengaja tidak diport; rekening driver di-prefill dari master driver-service).
 
 ## 1. Tabel parity fitur
 
@@ -51,7 +51,7 @@ Ringkasan: 43 fitur dibandingkan — Ada 29, Sebagian 3, Belum 4, Sengaja skip 7
 | Master kendaraan | vehicles CRUD | `/ujp/masters`: CRUD kendaraan + harga BBM/energi bertanggal (approver; plat unik, aturan ICE/EV) | Ada | TODO-22 selesai |
 | Master harga BBM/energi (dated) | `vehicle_cost_configs` per kendaraan | `ujp_energy_prices` GLOBAL per fuel | Ada | **Granularitas beda** |
 | Master vendor subcon | `subcon_vendors` CRUD | CRUD di `/ujp/masters` (approver), nonaktifkan/aktifkan | Ada | TODO-22 selesai |
-| Config per client (leg pool ditagih) | `origin_is_depot` per-request | `ujp_client_configs` per client | Ada | CR-1, net-new |
+| Config per client (leg pool ditagih) | `origin_is_depot` per-request | `ujp_client_configs` sebagai default + override per stop pool di route plan (CR-8, dua arah, badge beda aturan) | Ada | CR-1 + CR-8; stop pool selalu ikut shipment |
 | Tipe tarif | PER_RING, PER_TRIP_FLAT, FIXED, DISTANCE_TIER | Keempatnya (CR-4b; tier pakai KM diajukan, inklusif, MISSING_TIER kalau kosong) | Ada | CR-4b |
 | Ring + rate (per-body, porsi driver/helper) | rate + per-body + driver/helper share | Sama: override per tipe unit (single/multi) + porsi driver/helper sebagai komisi (driver payee) | Ada | CR-4b; helper share dicatat, belum dipakai (UJP tanpa helper) |
 | Asuransi | ditambah ke revenue | Sama | Ada | |
