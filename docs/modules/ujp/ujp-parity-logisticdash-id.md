@@ -2,9 +2,9 @@
 title: UJP Parity — logisticdash vs Port Baru (Bahasa Indonesia)
 module: ujp
 doctype: reference
-version: 1.2
+version: 1.3
 status: draft
-updated: 2026-09-20
+updated: 2026-09-21
 language: id
 links:
   - ./ujp-trd-v3.md
@@ -37,7 +37,7 @@ Ringkasan: 38 fitur dibandingkan — Ada 27, Sebagian 3, Belum 4, Sengaja skip 4
 | E-money bucket | Biner (no→Transfer, else Flazz); 2 kolom | Tiga bucket Flazz/QRIS/Transfer | Ada | **QRIS net-new** |
 | Subcon 100% transfer | payee_type=subcon | Sama; approve subcon = tanpa shipment | Ada | |
 | Reverse / PP | PP ×2 KM + ring Reverse + harga_reverse | Biaya reverse (cost, CR-1) + harga_reverse (revenue, CR-4b); tidak ×2 KM | Sebagian | **Semantik ×2 KM beda — lihat Catatan** |
-| Rute / route plan | Tak ada `ujp_routes`; schedules + extra_drops + delivery_legs | Modul `route_plans` + legs server + places Addresses + DRAFT write-back | Ada | CR-2, lebih terstruktur |
+| Rute / route plan | Tak ada `ujp_routes`; schedules + extra_drops + delivery_legs | Modul `route_plans` + legs server + places Addresses + DRAFT write-back; stop = Pickup/Drop off · intent · leg pool (kosakata workflow, CR-6) | Ada | CR-2 + CR-6 |
 | Places dari Addresses | Mapbox picker + master routes | `GET /v1/addresses/places` | Ada | CR-2 |
 | Approve → jadi apa | Update status + schedule + push Basecamp + Dispatch API | Buat shipment DIRECT_4W dalam 1 tx | Ada | Beda target; kita shipment nyata |
 | Gate approve | Role owner/manager/finance | `UJP_APPROVER_EMAILS` + tak bisa approve sendiri | Ada | Self-approve block net-new |
@@ -82,7 +82,7 @@ Ringkasan: 38 fitur dibandingkan — Ada 27, Sebagian 3, Belum 4, Sengaja skip 4
 
 ## 4. Yang kita punya, logisticdash tidak
 
-Bucket QRIS · workflow per stop di route plan (pin → shipment, fallback bertanda) · uang jalan otoritatif server · field-tier masking (harga/rekening) · self-approve diblokir + allowlist · Route Planner sebagai modul (legs terukur + DRAFT write-back) · stale-decision guard · negative-margin confirm · contract test (zod vs koleksi).
+Bucket QRIS · satu kosakata stop = enum workflow (CR-6) · workflow per stop di route plan (pin → shipment, fallback bertanda) · uang jalan otoritatif server · field-tier masking (harga/rekening) · self-approve diblokir + allowlist · Route Planner sebagai modul (legs terukur + DRAFT write-back) · stale-decision guard · negative-margin confirm · contract test (zod vs koleksi).
 
 ## 5. Catatan penting
 

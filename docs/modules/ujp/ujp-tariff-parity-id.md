@@ -78,7 +78,7 @@ margin   = revenue − uangJalan − komisi          → snapshot beku di ujp.ta
 
 ## 3. Edge case yang diuji (57)
 
-Rate ladder (7), DISTANCE_TIER (8), surcharge (5), reverse & asuransi (4), komisi & margin (6), jendela hari/shift (5), tumpang-tindih saat simpan (6), fallback satu ring (3), ring auto-suggest (7), persistensi & kontrak (6). Hasil: BE unit 1980/189 hijau, integrasi DB nyata 14/14, FE 490/46, tsc + lint bersih.
+Rate ladder (7), DISTANCE_TIER (8), surcharge (5), reverse & asuransi (4), komisi & margin (6), jendela hari/shift (5), tumpang-tindih saat simpan (6), fallback satu ring (3), ring auto-suggest (7), persistensi & kontrak (6). Hasil: BE unit 1997/190 hijau, integrasi DB nyata 15/15, FE 543/47, tsc + lint bersih.
 
 ## 4. Gap tersisa
 
