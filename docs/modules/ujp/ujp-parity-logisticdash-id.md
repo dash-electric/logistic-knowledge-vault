@@ -21,7 +21,7 @@ tariff_checker: ./ujp-tariff-parity-id.md
 Perbandingan fitur per fitur, alur end-to-end, dan gap. Status: **Ada** (setara/lebih),
 **Sebagian** (beda nilai/cakupan), **Belum** (belum dibangun), **Skip** (sengaja ditunda).
 
-Ringkasan: 42 fitur dibandingkan — Ada 27, Sebagian 4, Belum 4, Sengaja skip 7 (v1.4: dead input "Tim ops", "Jam mulai/selesai", dan detail pengiriman sengaja tidak diport; rekening driver di-prefill dari UJP terakhir karena master driver eksternal tanpa field bank).
+Ringkasan: 42 fitur dibandingkan — Ada 28, Sebagian 3, Belum 4, Sengaja skip 7 (v1.4: dead input "Tim ops", "Jam mulai/selesai", dan detail pengiriman sengaja tidak diport; rekening driver di-prefill dari master driver-service).
 
 ## 1. Tabel parity fitur
 
@@ -64,7 +64,7 @@ Ringkasan: 42 fitur dibandingkan — Ada 27, Sebagian 4, Belum 4, Sengaja skip 7
 | Dispatch API push | Buat delivery saat approve | Belum (shipment lokal) | Skip | Beda arsitektur |
 | Tim ops (`nama_ops_team`, master `ujp_ops_teams`) | Dropdown tim ops + master; dipakai sebagai nama requester ke Basecamp | Tidak ada — requester = `requester_email` dari auth; breakdown per pool bisa dari stop pool | Skip | Keputusan 2026-09-21: tidak perlu master |
 | Detail pengiriman (pengirim/penerima/barang/bobot) | Kolom cargo di request, dikirim ke Dispatch API | Tidak ada — shipment ambil pengirim/penerima dari stop; tak ada pembaca | Skip | Dihapus 2026-09-21 |
-| Rekening driver | Dari master `drivers` (nama_bank, nomor_rekening, atas_nama) | Prefill dari UJP terakhir driver (`GET /ujp/riders/:id/last-bank`); driver-service belum punya field bank | Sebagian | **Sumber beda — master driver eksternal tanpa bank** |
+| Rekening driver | Dari master `drivers` lokal (nama_bank, nomor_rekening, atas_nama) | Prefill dari master driver-service (`GET /v3/drivers/:id` → `driver_bank`), bisa diubah | Ada | Master eksternal, sumber setara |
 | Jam mulai / selesai | Field jadwal (`schedules.jam_*`, default dari master shift), dibawa UJP untuk auto-schedule | Tidak ada — schedules di-skip, tak ada pembaca; `shift` tetap (window tarif) | Skip | Dihapus 2026-09-21 |
 | Data historis / import | Kolom legacy + Sheet | Belum diputuskan | **Belum** [P3] | TODO-23 (finance) |
 | Uang jalan otoritatif + contract test | Total bisa diketik manual saat edit | Server-only + zod contract test | Ada | **NET-NEW** |
