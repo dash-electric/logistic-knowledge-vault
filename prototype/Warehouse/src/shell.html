@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<!--
+  doctype: mockup
+  module: warehouse-management
+  title: Warehouse (WMS) di Mithril — Inbound (vendor, PO, GR) · Outbound → Picking FEFO → Shipping → AWB · Transfer antar hub · Return
+  version: 2
+  status: draft
+  created: 2026-10-05
+  design: react-logistic-web kit 2026-07 (CSS di-compile dari src/index.css + design-system/styles/tokens.css)
+  links:
+    prd-trd: docs/modules/warehouse-management/wms-prd-trd-v2.md
+  changelog:
+    2026-10-08 — demo-proof: wizard outbound (Regular/Transfer) · PO (Regular/Return, SKU baru di tempat) · goods receipt (put-away level mana pun, upload PDF);
+                 master Vendor & SKU; PO transfer otomatis saat ship outbound transfer; panel Demo script 4 act + reset; seed 2 hub (KMG, BLM) × FORE/SwipeRX; state key v4
+    2026-10-07 — integrasi Shipments lewat panggilan interface (FulfillmentGateway + hook status); outbound request bisa dibuat manual dan upload CSV
+    reference: monorepo-frontend-upstream-ops (WMS eFishery) — struktur menu & flow
+  build: cd react-logistic-web && node ../logistic-knowledge-vault/prototype/Warehouse/src/build.mjs
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dash Logistics — Warehouse (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>/*__CSS__*/</style>
+<style>
+  html, body, #app { height: 100%; }
+  body { margin: 0; }
+  .mk-anim-in { animation: mk-in .16s ease-out; }
+  .mk-slide-in { animation: mk-slide .2s ease-out; }
+  @keyframes mk-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @keyframes mk-slide { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+  .mk-pulse { animation: mk-pulse 1.6s ease-in-out infinite; }
+  @keyframes mk-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(94,42,172,.35); } 50% { box-shadow: 0 0 0 6px rgba(94,42,172,0); } }
+
+  #print-root { display: none; }
+  @media print {
+    @page { size: A4; margin: 10mm; }
+    body > *:not(#print-root) { display: none !important; }
+    #print-root { display: block !important; color: #171717; }
+    body { background: #fff !important; }
+  }
+</style>
+</head>
+<body class="bg-bg-weak-50 font-sans text-text-strong-950 antialiased">
+<div id="app"></div>
+<div id="print-root" aria-hidden="true"></div>
+<div id="toasts" aria-live="polite" class="pointer-events-none fixed top-3 left-1/2 z-[80] flex w-[400px] max-w-[calc(100vw-2.5rem)] -translate-x-1/2 flex-col gap-2"></div>
+<script>
+window.__ICONS__ = /*__ICONS__*/;
+(function () {
+'use strict';
+/*__APP__*/
+})();
+</script>
+</body>
+</html>

@@ -514,6 +514,10 @@ erDiagram
     %% ref to the causing doc, no FK). Reserve at GI creation (FEFO by expiry, lot age
     %% tiebreak), deduct at ship. Documents are never deleted — status transitions only.
     %% No stock opname / count adjustment in MVP (decided 2026-08-12). All quantities numeric(12,2).
+    %% v2 DRAFT (wms-prd-trd-v2): outbound orders (manual form, CSV upload, client API later), CSV upload log,
+    %% purchase orders, surat jalan, picking qty. Integration with shipments is a synchronous interface call
+    %% (ports & adapters) in the same transaction — WMS has NO FK into other modules; the link is the soft
+    %% reference wh_outbound_orders.fulfillment_shipment_id.
     WH_STORAGES ||--o{ WH_STORAGES : "path (ltree, self-ref)"
     WH_STORAGES ||--o{ WH_STOCKS : "holds (BIN only)"
     WH_STORAGES ||--o{ WH_GOODS_RECEIPT_LINES : "receives into"
@@ -522,6 +526,14 @@ erDiagram
     WH_GOODS_ISSUES ||--o{ WH_GOODS_ISSUE_LINES : contains
     WH_STOCKS ||--o{ WH_GOODS_ISSUE_LINES : "reserved against"
     WH_TRANSFERS ||--o{ WH_TRANSFER_LINES : contains
+    WH_OUTBOUND_ORDERS ||--o{ WH_OUTBOUND_ORDER_LINES : contains
+    WH_OUTBOUND_ORDERS ||--o{ WH_OUTBOUND_ORDER_EVENTS : "timeline"
+    WH_OUTBOUND_ORDERS ||--o| WH_GOODS_ISSUES : "fulfilled by (active GI)"
+    WH_PURCHASE_ORDERS ||--o{ WH_PURCHASE_ORDER_LINES : contains
+    WH_PURCHASE_ORDERS ||--o{ WH_GOODS_RECEIPTS : "received by"
+    WH_PURCHASE_ORDER_LINES ||--o{ WH_GOODS_RECEIPT_LINES : "received as"
+    WH_OUTBOUND_ORDER_UPLOADS ||--o{ WH_OUTBOUND_ORDERS : "created by CSV commit"
+    SHIPMENTS ||--o| WH_OUTBOUND_ORDERS : "fulfillment_shipment_id (soft ref, no FK)"
 
     WH_STORAGES {
         uuid id PK
@@ -562,6 +574,11 @@ erDiagram
         integer client_id
         jsonb client "ClientSnapshot"
         text supplier_name "free text — no vendor master in MVP"
+        uuid purchase_order_id FK "v2 — nullable → wh_purchase_orders.id (null = receipt without PO: return/compensating)"
+        timestamptz arrived_at "v2"
+        text delivery_note_no "v2 — supplier surat jalan number"
+        text delivery_note_photo_url "v2"
+        boolean closes_backorder "v2 default false — closes remaining PO qty"
         text notes
         text status "DRAFT|POSTED — post commits stock, irreversible (no adjustment feature in MVP; correction = compensating GR or GI/transfer out)"
         timestamptz posted_at
@@ -575,6 +592,7 @@ erDiagram
         uuid id PK
         uuid goods_receipt_id FK "→ wh_goods_receipts.id CASCADE"
         uuid storage_id FK "→ wh_storages.id — destination bin, must be ACTIVE at post"
+        uuid purchase_order_line_id FK "v2 — nullable → wh_purchase_order_lines.id"
         text sku
         text item_name
         text uom_name
@@ -592,8 +610,12 @@ erDiagram
         jsonb hub "HubSnapshot"
         integer client_id
         jsonb client "ClientSnapshot"
-        text reference "free text — external order/waybill link (soft)"
-        text status "RESERVED|PICKED|SHIPPED|CANCELLED — reserve at create, deduct at ship; shipped cannot cancel"
+        text reference "free text — external order/waybill link (soft); v2 = outbound order code"
+        uuid outbound_order_id FK "v2 — nullable → wh_outbound_orders.id"
+        text status "RESERVED|PICKED|READY_TO_PICKUP(v2)|SHIPPED|CANCELLED — reserve at create, deduct at ship; shipped cannot cancel"
+        text surat_jalan_no "v2 — unique, SJ/{hubCode}/{yymm}/{seq4}, stamped at ready-to-pickup"
+        timestamptz ready_at "v2"
+        text ready_by "v2"
         text picker_name
         timestamptz picked_at
         timestamptz shipped_at
@@ -615,6 +637,7 @@ erDiagram
         text uom_name
         text lot_number
         numeric qty_reserved "check > 0"
+        numeric qty_picked "v2 default 0 — check 0 <= qty_picked <= qty_reserved"
         timestamptz created_at
     }
 
@@ -654,4 +677,134 @@ erDiagram
         numeric qty_delta "signed; append-only — ledger sum per stock row == qty_on_hand"
         text created_by
         timestamptz created_at
+    }
+
+    WH_SKUS {
+        uuid id PK
+        integer client_id "external core-service.clients.id"
+        jsonb client "ClientSnapshot {id,name}"
+        text sku "unique per client — receipts/issues/orders pick from this catalog"
+        text item_name
+        text uom_name "fixed UoM list, validated in code"
+        numeric length_cm "nullable"
+        numeric width_cm "nullable"
+        numeric height_cm "nullable"
+        numeric weight_kg "v2 — nullable, per unit; drives shipment item weight"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WH_OUTBOUND_ORDERS {
+        uuid id PK
+        text code "unique — OO{yymmdd}{random5}"
+        text source "MANUAL|CSV|CLIENT_API"
+        text external_id "idempotency key (defaults to code for manual orders) — unique (client_id, external_id, is_sandbox)"
+        uuid upload_id FK "nullable → wh_outbound_order_uploads.id (source CSV)"
+        bigint hub_id
+        jsonb hub "HubSnapshot {id,name,code}"
+        integer client_id
+        jsonb client "ClientSnapshot"
+        text status "OPEN|PREPARING|READY_TO_PICKUP|SHIPPED|IN_DELIVERY|DELIVERED|FAILED|CANCELLED — projection of GI + fulfillment"
+        text service_type "SAME_DAY|NEXT_DAY, default SAME_DAY"
+        text method "DELIVERY"
+        text recipient_name
+        text recipient_phone
+        text destination_address
+        numeric destination_lat
+        numeric destination_long
+        text destination_notes
+        text notes
+        timestamptz order_date
+        date expected_delivery_date
+        boolean is_sandbox
+        uuid api_key_id "nullable — phase 2 client API"
+        uuid goods_issue_id "nullable — active GI"
+        text fulfillment_status "nullable — AT_HUB|DISPATCHED|IN_DELIVERY|DELIVERED|FAILED|RETURNED|CANCELLED"
+        uuid fulfillment_shipment_id "nullable, indexed — soft ref shipments.id (set at ship, same tx)"
+        text fulfillment_waybill "nullable"
+        timestamptz cancelled_at
+        text cancelled_by
+        text cancellation_reason
+        text created_by
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WH_OUTBOUND_ORDER_LINES {
+        uuid id PK
+        uuid outbound_order_id FK "→ wh_outbound_orders.id CASCADE"
+        text sku "validated against wh_skus at create"
+        text item_name
+        text uom_name
+        numeric qty "check > 0"
+        text notes
+        timestamptz created_at
+    }
+
+    WH_OUTBOUND_ORDER_EVENTS {
+        uuid id PK
+        uuid outbound_order_id FK "→ wh_outbound_orders.id"
+        text status "nullable — status after the event"
+        text title
+        text note
+        text actor
+        text origin "WMS|FULFILLMENT|CLIENT"
+        timestamptz occurred_at
+    }
+
+    WH_PURCHASE_ORDERS {
+        uuid id PK
+        text code "unique — PO{yymmdd}{random5}"
+        bigint hub_id
+        jsonb hub "HubSnapshot"
+        integer client_id
+        jsonb client "ClientSnapshot"
+        text supplier_name "free text"
+        timestamptz est_arrival_at
+        text notes
+        text status "DRAFT|CONFIRMED|CANCELLED"
+        text receipt_status "nullable — SCHEDULED|PARTIAL_RECEIPT|FINISHED; inbound request = CONFIRMED PO"
+        timestamptz confirmed_at
+        text confirmed_by
+        timestamptz cancelled_at
+        text cancelled_by
+        text cancellation_reason
+        text created_by
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WH_PURCHASE_ORDER_LINES {
+        uuid id PK
+        uuid purchase_order_id FK "→ wh_purchase_orders.id CASCADE"
+        text sku
+        text item_name
+        text uom_name
+        numeric qty "check > 0"
+        numeric qty_received "default 0 — check 0 <= qty_received <= qty"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+
+
+    WH_DOCUMENT_SEQUENCES {
+        text scope PK "e.g. SJ:3:2610 (doc:hub:yymm)"
+        integer last_value
+        timestamptz updated_at
+    }
+
+    WH_OUTBOUND_ORDER_UPLOADS {
+        uuid id PK
+        text code "unique — OOU{yymmdd}{random5}"
+        bigint hub_id
+        jsonb hub "HubSnapshot"
+        integer client_id
+        jsonb client "ClientSnapshot"
+        text file_name
+        integer total_rows
+        integer created_count
+        integer skipped_count "external_id already existed"
+        text created_by
+        timestamptz created_at "one row per successful CSV commit (all-or-nothing)"
     }
