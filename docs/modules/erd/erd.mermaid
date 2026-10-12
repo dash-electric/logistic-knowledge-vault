@@ -546,6 +546,34 @@ erDiagram
         text type "on LOCATION: STORAGE|QUARANTINE|STAGING (inherited by children — only STORAGE lineage is FEFO-allocatable); null on SECTION/BIN"
         ltree path "hierarchy — parent = subpath(path, 0, nlevel(path)-1)"
         text status "ACTIVE|INACTIVE default ACTIVE — inactive rejects new stock, keeps existing"
+        numeric width_cm "PROPOSED (wms-storage-occupancy prd-trd v1 DRAFT) — nullable, bin dimensions"
+        numeric depth_cm "PROPOSED — nullable"
+        numeric height_cm "PROPOSED — nullable"
+        numeric capacity_cbm "PROPOSED — nullable; null = belum diset (not zero); derived from dims, editable"
+        numeric capacity_kg "PROPOSED — nullable, optional"
+        numeric capacity_qty "PROPOSED — nullable, optional (single-SKU bins)"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    %% PROPOSED (wms-storage-occupancy prd-trd v1 DRAFT, deferred 2026-10-12): warehouse map layout.
+    %% One row per PLACED storage; pure presentation data, no FK into stock. Occupancy itself is a
+    %% view over WH_STOCKS x WH_SKUS (used_cbm = sum qty * cbm_per_unit), never stored.
+    WH_STORAGES ||--o| WH_STORAGE_LAYOUTS : "placed on map (PROPOSED)"
+    WH_STORAGE_LAYOUTS {
+        uuid id PK
+        uuid storage_id FK "→ wh_storages.id — unique"
+        bigint hub_id
+        integer x "cm — LOCATION: from hub origin; SECTION: from its location origin"
+        integer y "cm"
+        integer w "LOCATION only — nullable"
+        integer h "LOCATION only — nullable"
+        smallint rotation "0|90 default 0"
+        text shape "SECTION only — RACK|FLOOR; bins are laid out from bin order (rack: col = i div levels, level = i mod levels)"
+        smallint levels "RACK — nullable"
+        smallint rows "FLOOR — nullable"
+        smallint cell_cm "FLOOR — nullable"
+        text created_by
         timestamptz created_at
         timestamptz updated_at
     }
@@ -642,25 +670,120 @@ erDiagram
         timestamptz created_at
     }
 
+    %% wms-transfer-opname prd-trd v1 (2026-10-12): the instant transfer became an approval document.
+    %% Reserve at create (qty_reserved += qty), move + TRANSFER ledger rows at DONE, release at REJECTED.
+    WH_TRANSFERS ||--o{ WH_TRANSFER_EVENTS : "timeline"
     WH_TRANSFERS {
         uuid id PK
-        text code "unique — TRF{yymmdd}{seq5}"
+        text code "unique — TRF-INT-{MMDDYY}-{RAND4}"
         bigint hub_id
         jsonb hub "HubSnapshot"
         uuid source_storage_id FK "→ wh_storages.id"
         uuid dest_storage_id FK "→ wh_storages.id — same hub as source"
+        text status "REQUESTED|APPROVED|PREPARING|DONE|REJECTED — default DONE serves rows from before the column (instant transfers)"
         text notes
+        timestamptz approved_at
+        text approved_by
+        timestamptz preparing_at
+        text preparing_by
+        timestamptz done_at
+        text done_by
+        timestamptz rejected_at
+        text rejected_by
+        text reject_reason
         text created_by
-        timestamptz created_at "transfer executes atomically at create — no status column"
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     WH_TRANSFER_LINES {
         uuid id PK
         uuid transfer_id FK "→ wh_transfers.id CASCADE"
+        integer line_no
+        uuid stock_id FK "→ wh_stocks.id — source lot reserved at create (null on legacy rows)"
         text sku
-        text lot_number
-        numeric qty "check > 0 — source available must cover it"
+        text item_name
+        text uom_name
+        text batch_number
+        date expired_date "snapshot"
+        numeric qty "check > 0 — source available must cover it at create"
         timestamptz created_at
+    }
+
+    WH_TRANSFER_EVENTS {
+        uuid id PK
+        uuid transfer_id FK "→ wh_transfers.id CASCADE"
+        text status "status after the event; null = informational"
+        text title
+        text note
+        text actor
+        timestamptz occurred_at
+    }
+
+    %% Stock opname (wms-transfer-opname prd-trd v1): count per storage × sku × batch, two approvals.
+    %% gap == 0 for every line → DONE/WITHOUT_ADJUSTMENT at create. Manager approve reserves |gap| on deficit
+    %% lines; FAT approve posts on_hand += gap (new batches insert a stock row) and writes ADJUSTMENT ledger rows.
+    %% A (storage, sku) pair can sit in only one non-terminal opname per hub (OPNAME_LOCKED).
+    WH_STOCK_OPNAMES ||--o{ WH_STOCK_OPNAME_LINES : contains
+    WH_STOCK_OPNAMES ||--o{ WH_STOCK_OPNAME_EVENTS : "timeline"
+    WH_STORAGES ||--o{ WH_STOCK_OPNAME_LINES : "counted in"
+    WH_STOCKS ||--o{ WH_STOCK_OPNAME_LINES : "counted lot (null when new batch)"
+    WH_STOCK_OPNAMES {
+        uuid id PK
+        text code "unique — OPN-{MMDDYY}-{RAND4}"
+        bigint hub_id
+        jsonb hub "HubSnapshot"
+        integer client_id
+        jsonb client "ClientSnapshot"
+        text type "WITH_ADJUSTMENT|WITHOUT_ADJUSTMENT — decided at create from the gaps"
+        text status "WAITING_MANAGER_APPROVAL|WAITING_FAT_APPROVAL|DONE|REJECTED_BY_MANAGER|REJECTED_BY_FAT"
+        text notes
+        text report_url "berita acara / countsheet — required, warehouse upload URL"
+        integer line_count
+        integer gap_line_count
+        numeric total_qty_system
+        numeric total_qty_physical
+        numeric total_gap "signed"
+        timestamptz approved_at
+        text approved_by
+        timestamptz fat_approved_at
+        text fat_approved_by
+        timestamptz rejected_at
+        text rejected_by
+        text reject_reason
+        timestamptz done_at
+        text created_by
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WH_STOCK_OPNAME_LINES {
+        uuid id PK
+        uuid stock_opname_id FK "→ wh_stock_opnames.id CASCADE"
+        integer line_no
+        uuid storage_id FK "→ wh_storages.id"
+        uuid stock_id FK "→ wh_stocks.id — null while is_new_batch (set at FAT approve)"
+        text sku
+        text item_name
+        text uom_name
+        text batch_number "existing batch, or generated from the opname code + expiry when new"
+        date expired_date
+        boolean is_new_batch
+        numeric qty_system "qty_on_hand at create (0 for a new batch)"
+        numeric qty_physical "check >= 0"
+        numeric qty_gap "qty_physical - qty_system, signed"
+        text notes
+        timestamptz created_at
+    }
+
+    WH_STOCK_OPNAME_EVENTS {
+        uuid id PK
+        uuid stock_opname_id FK "→ wh_stock_opnames.id CASCADE"
+        text status
+        text title
+        text note
+        text actor
+        timestamptz occurred_at
     }
 
     WH_STOCK_MOVEMENTS {
@@ -669,8 +792,8 @@ erDiagram
         integer client_id
         text sku
         text lot_number
-        text type "INBOUND|OUTBOUND|TRANSFER"
-        text ref_type "GOODS_RECEIPT|GOODS_ISSUE|TRANSFER — polymorphic, no FK"
+        text type "INBOUND|OUTBOUND|TRANSFER|ADJUSTMENT (stock opname, signed delta)"
+        text ref_type "GOODS_RECEIPT|GOODS_ISSUE|TRANSFER|STOCK_OPNAME — polymorphic, no FK"
         uuid ref_id "id of the causing document"
         text ref_code "denormalized document code"
         uuid storage_from_id "nullable — null for INBOUND"

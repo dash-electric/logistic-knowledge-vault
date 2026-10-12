@@ -1,0 +1,1557 @@
+<!--
+title: Storage occupancy & peta gudang — Mockup
+module: warehouse-management
+doctype: mockup
+version: 1
+status: draft            # draft | in-review | approved | shipped | superseded
+owner: yogi.ermanto@dashelectric.co
+created: 2026-10-12
+links:
+  prd-trd: ./wms-storage-occupancy-prd-trd-v1.md
+  context: ./wms-context-v1.md
+  related: ./wms-prd-trd-v2.md
+
+Scope: simulasi klikabel empat halaman yang membaca satu data storage yang sama —
+Storage (CRUD + kapasitas per bin), Peta gudang (denah isometrik + editor layout),
+Okupansi storage (board + daftar per bin × SKU, pola dashboard Storage Capacity
+eFishery), Warehouse (info hub). Tombol "Simulasi e2e" kanan bawah menjalankan alur
+rak baru → tempatkan → stok masuk → pantau → lengkapi kapasitas → stok keluar.
+Data contoh di dalam file; tidak memanggil API. Kapasitas adalah properti bin
+(capacity_cbm/kg/qty), bukan properti hub/warehouse — lihat Key decisions di PRD/TRD.
+-->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peta Gudang WMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: the logistic web shell — sidebar + page; page = header, KPI tiles, map card + detail card, storage table. Light only, like the app. */
+:root {
+  --accent: #5e2aac; --accent-soft: rgba(94,42,172,.08); --accent-medium: rgba(94,42,172,.16);
+  --ink: #171717; --neutral: #5c5c5c; --soft: #8f8f8f;
+  --rule: rgba(23,23,23,.10); --tint: rgba(23,23,23,.04);
+  --page: #f6f6f6; --panel: #ffffff; --sheet: #fafafa; --unset: #e9e9e9; --grid: #f0f0f0; --faint: #a3a3a3; --line: #e5e5e5;
+  --ok: #1f9d55; --ok-soft: #e4f5ec; --warn: #d4891c; --warn-soft: #fcefd9; --err: #d93025; --err-soft: #fde5e3;
+  --full: #d93025; --full-soft: #fde5e3; --quarantine: #6d28d9; --staging: #0e7490;
+  --font: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif; --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; font-feature-settings: 'ss01','cv11','cv02'; }
+.app { display: grid; grid-template-columns: 240px minmax(0,1fr); min-height: 100%; }
+@media (max-width: 900px) { .app { grid-template-columns: minmax(0,1fr); } .side { display: none; } }
+/* sidebar */
+.side { background: var(--panel); border-right: 1px solid var(--rule); padding: 18px 14px; display: flex; flex-direction: column; gap: 18px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 2px 6px; }
+.brand .logo { width: 26px; height: 26px; border-radius: 6px; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+.brand b { display: block; font-size: 14px; font-weight: 800; letter-spacing: -.01em; }
+.brand small { display: block; font-size: 9px; letter-spacing: .22em; color: var(--neutral); text-transform: uppercase; }
+.grp { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--neutral); font-weight: 600; padding: 0 8px; margin-bottom: 6px; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 13.5px; }
+.nav a i { width: 16px; text-align: center; color: var(--soft); font-style: normal; font-size: 12px; }
+.nav a.sub { padding-left: 26px; font-size: 13px; }
+.nav a.sub2 { padding-left: 44px; font-size: 13px; }
+.nav a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
+.user { margin-top: auto; display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.user .av { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+.user b { display: block; font-size: 13px; } .user small { color: var(--neutral); font-size: 11.5px; }
+/* page */
+.main { min-width: 0; }
+.topbar { height: 48px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; padding: 0 24px; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--neutral); font-weight: 600; background: var(--panel); }
+.page { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+@media (max-width: 600px) { .page { padding: 16px; } }
+.ph { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding-bottom: 20px; }
+.eyebrow { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--neutral); font-weight: 600; margin: 0 0 8px; }
+.eyebrow b { color: var(--accent); font-weight: 700; margin-right: 12px; }
+h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+.ph p.desc { margin: 8px 0 0; color: var(--neutral); max-width: 60ch; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: #fff; cursor: pointer; }
+.btn.stroke { background: var(--panel); color: var(--ink); border-color: var(--rule-strong, rgba(23,23,23,.22)); }
+.btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn[disabled] { opacity: .45; cursor: default; }
+.btn:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+select { font: inherit; font-size: 13px; padding: 7px 10px; border-radius: 8px; border: 1px solid rgba(23,23,23,.22); background: var(--panel); color: var(--ink); }
+/* KPI tiles — the Stock page's */
+.tiles { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 12px; }
+@media (max-width: 1100px) { .tiles { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (max-width: 600px) { .tiles { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+.tile { background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.tile .l { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--neutral); font-weight: 600; }
+.tile .v { font-size: 24px; font-weight: 800; letter-spacing: -.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.tile .s { font-size: 12px; color: var(--neutral); margin-top: 2px; }
+/* cards */
+.grid { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 20px; }
+@media (max-width: 1100px) { .grid { grid-template-columns: minmax(0,1fr); } }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; min-width: 0; }
+.card > .hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--rule); }
+.card > .hd h3 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.card > .hd .meta { margin: 2px 0 0; }
+.card > .bd { padding: 16px; }
+.meta { font-size: 12px; color: var(--neutral); margin: 0; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border: 0; background: transparent; color: var(--neutral); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button.on { background: var(--ink); color: #fff; }
+.editbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--rule); background: var(--accent-soft); }
+.editbar .spacer { flex: 1; }
+.editbar .btn { padding: 6px 12px; font-size: 12.5px; }
+.steps { list-style: none; margin: 0; padding: 14px 16px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.steps li { position: relative; padding: 10px 12px 10px 40px; border: 1px solid var(--rule); border-radius: 10px; font-size: 12.5px; color: var(--neutral); background: #fff; }
+.steps li b { display: block; color: var(--ink); font-size: 13px; margin-bottom: 2px; }
+.steps li i { position: absolute; left: 12px; top: 11px; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line); font-style: normal; font-size: 11px; display: flex; align-items: center; justify-content: center; color: var(--neutral); background: #fff; }
+.steps li.done { border-color: color-mix(in srgb, var(--ok) 50%, #fff); background: color-mix(in srgb, var(--ok) 6%, #fff); }
+.steps li.done i { background: var(--ok); border-color: var(--ok); color: #fff; }
+.steps li.active { border-color: var(--accent); background: var(--accent-soft); }
+.steps li.active i { background: var(--accent); border-color: var(--accent); color: #fff; }
+.steps li .act { margin-top: 8px; }
+.steps li .act .btn { padding: 4px 10px; font-size: 12px; }
+@media (max-width: 1100px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+.chev { display: inline-block; width: 18px; color: var(--neutral); cursor: pointer; user-select: none; }
+tr.loc td { background: var(--tint); border-top: 2px solid var(--rule); }
+tr.sub td { background: var(--tint); padding: 8px 12px 10px 36px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--line); background: #fff; color: var(--neutral); }
+.chip.has { border-color: var(--accent); color: var(--accent); }
+.chip.unset { border-style: dashed; }
+pre.json { margin: 0; padding: 12px 16px; font-family: var(--mono); font-size: 11.5px; line-height: 1.45; color: var(--neutral); background: var(--tint); border-top: 1px solid var(--rule); max-height: 260px; overflow: auto; white-space: pre; }
+#dirty[hidden] { display: none; }
+/* e2e guide */
+.e2e { position: fixed; right: 20px; bottom: 20px; width: 360px; background: #fff; border: 1px solid var(--rule); border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,.18); z-index: 30; font-size: 13px; }
+.e2e .eh { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--rule); } .e2e .eh b { flex: 1; font-size: 13.5px; }
+.e2e .eh .x { font: inherit; border: 0; background: none; color: var(--neutral); cursor: pointer; font-size: 16px; }
+.e2e .eb { padding: 12px 14px; }
+.e2e .step { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+.e2e h4 { margin: 0 0 6px; font-size: 14px; } .e2e p { margin: 0; color: var(--neutral); line-height: 1.45; }
+.e2e .log { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--tint); font-family: var(--mono); font-size: 11.5px; color: var(--ink); white-space: pre-wrap; max-height: 120px; overflow: auto; }
+.e2e .ef { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--rule); }
+.e2e .dots { display: flex; gap: 4px; } .e2e .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--grid); } .e2e .dots i.on { background: var(--accent); } .e2e .dots i.done { background: var(--ok); }
+.e2e .ef .btn { padding: 6px 12px; font-size: 12.5px; }
+.e2e[hidden] { display: none; }
+#e2e-open { position: fixed; right: 20px; bottom: 20px; z-index: 30; } #e2e-open[hidden] { display: none; }
+.tabs { display: flex; gap: 2px; padding: 0 16px; border-bottom: 1px solid var(--rule); }
+.tabs button { font: inherit; font-size: 13px; font-weight: 600; padding: 10px 12px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--neutral); cursor: pointer; margin-bottom: -1px; }
+.tabs button.on { color: var(--accent); border-bottom-color: var(--accent); }
+.cell-in { width: 110px; font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid rgba(23,23,23,.22); border-radius: 6px; text-align: right; }
+.cell-in.bad { border-color: var(--err); background: var(--err-soft); }
+.empty { text-align: center; padding: 28px 16px; color: var(--neutral); font-size: 13px; }
+.empty .btn { margin-top: 10px; }
+.guide { border: 1px solid color-mix(in srgb, var(--accent) 35%, #fff); background: var(--accent-soft); border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; }
+.guide ol { margin: 6px 0 0; padding-left: 18px; } .guide li { margin-bottom: 3px; }
+.result { border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 10px; }
+.result ul { margin: 6px 0 0; padding-left: 18px; color: var(--err); }
+/* occupancy page — eFishery Storage Capacity layout */
+.alert { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--warn) 45%, #fff); background: var(--warn-soft); border-radius: 10px; font-size: 13px; }
+.alert i { width: 18px; height: 18px; border-radius: 50%; background: var(--warn); color: #fff; font-style: normal; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.alert .spacer { flex: 1; } .alert .btn { padding: 5px 10px; font-size: 12px; }
+.frow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--rule); }
+.frow label { display: block; font-size: 11.5px; font-weight: 600; color: var(--neutral); margin-bottom: 4px; }
+.frow input, .frow select { width: 100%; font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; background: #fff; box-sizing: border-box; }
+@media (max-width: 900px) { .frow { grid-template-columns: 1fr; } }
+.board { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--rule); }
+@media (max-width: 1100px) { .board { grid-template-columns: 1fr 1fr; } } @media (max-width: 760px) { .board { grid-template-columns: 1fr; } }
+.ocard { border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; background: #fff; }
+.ocard .t { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.ocard .t b { font-size: 15px; display: inline-flex; align-items: center; gap: 8px; } .ocard .t b i { font-style: normal; color: var(--accent); }
+.ocard .t .pct { font-size: 16px; font-weight: 700; }
+.ocard .bar { height: 8px; border-radius: 999px; background: var(--grid); overflow: hidden; margin-bottom: 10px; } .ocard .bar i { display: block; height: 100%; border-radius: 999px; }
+.ocard .used { font-size: 12.5px; color: var(--neutral); display: flex; justify-content: space-between; align-items: center; }
+.ocard .used.hot { color: var(--err); font-weight: 600; }
+.ocard .used .link { font: inherit; font-size: 12px; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
+.ocard .det { border-top: 1px solid var(--rule); margin-top: 10px; padding-top: 10px; }
+.ocard .det b { display: block; font-size: 13px; margin-bottom: 8px; }
+.ocard .det .rows { max-height: 195px; overflow: auto; padding-right: 8px; }
+.ocard .det .row { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; margin-bottom: 8px; } .ocard .det .row span:last-child { color: var(--neutral); white-space: nowrap; }
+.bnav { position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--rule); background: #fff; box-shadow: 0 8px 35px rgba(0,0,0,.1); cursor: pointer; font-size: 14px; z-index: 2; }
+.bnav.l { left: 2px; } .bnav.r { right: 2px; } .bnav[hidden] { display: none; }
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 16px; font-size: 12.5px; color: var(--neutral); }
+.pager .pg { display: flex; gap: 4px; align-items: center; } .pager .pg button, .pager select { font: inherit; font-size: 12.5px; padding: 4px 9px; border: 1px solid var(--rule); border-radius: 6px; background: #fff; cursor: pointer; } .pager .pg button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.drawer { position: fixed; inset: 0 0 0 auto; width: min(380px, 100%); background: #fff; box-shadow: -20px 0 60px rgba(0,0,0,.18); z-index: 40; display: flex; flex-direction: column; }
+.drawer[hidden] { display: none; }
+.drawer .dh { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--rule); } .drawer .dh h3 { margin: 0; font-size: 16px; }
+.drawer .db { padding: 16px 20px; flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+.drawer .db label { display: block; font-size: 11.5px; font-weight: 600; color: var(--neutral); margin-bottom: 4px; } .drawer .db input, .drawer .db select { width: 100%; font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; box-sizing: border-box; }
+.drawer .df { padding: 12px 20px 16px; border-top: 1px solid var(--rule); } .drawer .df .btn { width: 100%; }
+.drawer .chk { display: flex; flex-wrap: wrap; gap: 6px; } .drawer .chk label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--ink); border: 1px solid var(--rule); border-radius: 8px; padding: 5px 10px; margin: 0; cursor: pointer; } .drawer .chk input { width: auto; }
+.fbadge[hidden] { display: none; }
+.fbadge { display: inline-flex; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--ok); color: #fff; font-size: 11px; font-weight: 700; align-items: center; justify-content: center; margin-left: 6px; }
+.tag-st { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; border: 1px solid; }
+.tag-st.green { color: #047857; background: #ecfdf5; border-color: #a7f3d0; } .tag-st.yellow { color: #a16207; background: #fefce8; border-color: #fde68a; } .tag-st.orange { color: #c2410c; background: #fff7ed; border-color: #fed7aa; } .tag-st.red { color: #be123c; background: #fff1f2; border-color: #fecdd3; } .tag-st.volcano { color: #9a3412; background: #fff7ed; border-color: #fdba74; }
+.page[hidden], #a-type-wrap[hidden], #a-gen[hidden], fieldset[hidden] { display: none; }
+/* tree table */
+table.list tr.lv0 td { background: var(--tint); font-weight: 600; }
+table.list tr.lv1 td:first-child { padding-left: 30px; }
+table.list tr.lv2 td { color: var(--neutral); } table.list tr.lv2 td:first-child { padding-left: 54px; color: var(--ink); }
+table.list tr.inactive td { opacity: .55; }
+.chev { display: inline-block; width: 16px; color: var(--neutral); cursor: pointer; user-select: none; margin-right: 4px; }
+.chev.none { visibility: hidden; }
+.rowacts { position: relative; display: flex; gap: 4px; }
+.dd-btn { font: inherit; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border: 1px solid var(--rule); border-radius: 6px; background: #fff; cursor: pointer; }
+.dd { position: fixed; min-width: 200px; background: #fff; border: 1px solid var(--rule); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.14); padding: 4px; z-index: 20; display: flex; flex-direction: column; }
+.dd[hidden] { display: none; }
+.dd button { font: inherit; font-size: 12.5px; text-align: left; padding: 7px 10px; border: 0; background: none; border-radius: 6px; cursor: pointer; color: var(--ink); }
+.dd button:hover { background: var(--tint); }
+#page-storage table.list th, #page-storage table.list td, #page-occ table.list th, #page-occ table.list td { padding-left: 10px; padding-right: 10px; }
+#page-storage .prog { width: 70px; }
+table.list .sticky { position: sticky; right: 0; background: #fff; box-shadow: -8px 0 8px -8px rgba(0,0,0,.15); }
+table.list tr.lv0 td.sticky { background: var(--tint); } table.list tbody tr:hover td.sticky { background: var(--tint); }
+.rowacts button { font: inherit; font-size: 11.5px; font-weight: 600; padding: 3px 8px; border: 1px solid var(--rule); border-radius: 6px; background: #fff; color: var(--ink); cursor: pointer; }
+.rowacts button:hover { border-color: var(--ink); }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--rule); }
+.filters input, .filters select { font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; background: #fff; }
+.filters input { min-width: 220px; }
+/* modal — ActionDialog */
+.overlay { position: fixed; inset: 0; background: rgba(23,23,23,.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+.overlay[hidden] { display: none; }
+.dialog { background: #fff; border-radius: 14px; width: min(560px, 100%); max-height: 92vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.dialog .dh { padding: 16px 20px 10px; border-bottom: 1px solid var(--rule); } .dialog .dh h3 { margin: 0; font-size: 16px; } .dialog .dh p { margin: 4px 0 0; }
+.dialog .db { padding: 14px 20px; } .dialog .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px 16px; border-top: 1px solid var(--rule); }
+.form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.form .full { grid-column: 1 / -1; }
+.form label { display: block; font-size: 11.5px; font-weight: 600; color: var(--neutral); margin-bottom: 4px; }
+.form input, .form select, .form textarea { width: 100%; font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; background: #fff; box-sizing: border-box; }
+.form input:disabled { background: var(--tint); color: var(--neutral); }
+.form textarea { font-family: var(--mono); font-size: 12px; min-height: 120px; }
+.form .hint { font-size: 11.5px; color: var(--neutral); margin-top: 4px; }
+.form fieldset { grid-column: 1 / -1; border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px 12px; margin: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px 12px; }
+.form fieldset legend { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--neutral); font-weight: 600; padding: 0 6px; }
+.form .check { display: flex; align-items: center; gap: 8px; font-size: 13px; } .form .check input { width: auto; }
+.nav a { cursor: pointer; }
+.tray { flex-basis: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; font-size: 12px; color: var(--neutral); }
+.tray:empty { display: none; }
+.tray .tray-h { grid-column: 1 / -1; font-weight: 600; color: var(--ink); margin-top: 2px; }
+.tray .tray-h span { font-weight: 400; color: var(--neutral); }
+.tray-g { border: 1px solid var(--rule); border-radius: 10px; background: #fff; padding: 8px 10px; }
+.tray-gh { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-weight: 600; color: var(--ink); }
+.tray-gh .spacer { flex: 1; }
+.tray-gh .meta { font-weight: 400; }
+.tray-gh .link { font: inherit; font-size: 11.5px; font-weight: 500; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
+.tray .chips button { font: inherit; font-size: 12px; padding: 3px 9px; border: 1px dashed var(--accent); border-radius: 8px; background: #fff; color: var(--accent); cursor: pointer; }
+.tray .chips button:disabled { border-color: var(--line); color: var(--faint); cursor: not-allowed; }
+.tray .chips button.zone-btn { border-style: solid; background: var(--accent-soft); }
+.field select { width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; background: #fff; }
+.sheet.edit { cursor: default; outline: 2px dashed var(--accent); outline-offset: -2px; }
+.sheet.edit .section, .sheet.edit .bin { cursor: move; }
+.toast { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: var(--ink); color: #fff; font-size: 12.5px; padding: 8px 14px; border-radius: 8px; display: none; z-index: 6; }
+.field { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.field label { font-size: 11px; color: var(--neutral); display: block; margin-bottom: 3px; }
+.field input { width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; }
+.sheet { position: relative; height: 520px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; cursor: grab; touch-action: none; }
+.sheet.dragging { cursor: grabbing; }
+@media (max-width: 600px) { .sheet { height: 400px; } }
+.sheet svg { width: 100%; height: 100%; display: block; }
+.scale { position: absolute; right: 12px; bottom: 10px; display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10.5px; color: var(--neutral); background: var(--panel); border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px; }
+.scale i { width: 90px; height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--panel), var(--accent)); border: 1px solid var(--rule); }
+.scale b { color: var(--err); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--neutral); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; } .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; border: 1px solid var(--rule); }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: #fff; font-size: 11.5px; padding: 6px 8px; border-radius: 8px; max-width: 240px; line-height: 1.4; display: none; z-index: 5; }
+.tip b { font-family: var(--mono); font-weight: 600; }
+/* KV rows — the detail pages' */
+.kvs { display: flex; flex-direction: column; }
+.kv { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--rule); font-size: 13px; }
+.kv:last-child { border-bottom: 0; }
+.kv span:first-child { color: var(--neutral); } .kv span:last-child { text-align: right; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.dash { color: var(--faint); }
+.mono { font-family: var(--mono); font-size: 12px; }
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--tint); color: var(--neutral); }
+.badge i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge.success { background: var(--ok-soft); color: var(--ok); } .badge.warning { background: var(--warn-soft); color: var(--warn); } .badge.error { background: var(--err-soft); color: var(--err); } .badge.faded { background: var(--tint); color: var(--neutral); }
+.tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 6px; background: var(--tint); color: var(--neutral); }
+.acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.acts .btn { padding: 6px 12px; font-size: 12.5px; }
+table.tbl-mini { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12.5px; }
+table.tbl-mini th { text-align: left; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--neutral); font-weight: 600; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+table.tbl-mini td { padding: 7px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* storage table — the list pages' */
+.tbl { overflow-x: auto; }
+table.list { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.list th { text-align: left; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--neutral); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+table.list td { padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: middle; white-space: nowrap; }
+table.list tbody tr { cursor: pointer; } table.list tbody tr:hover td { background: var(--tint); }
+.prog { display: inline-block; width: 90px; height: 6px; border-radius: 999px; background: var(--grid); overflow: hidden; vertical-align: middle; margin-right: 8px; }
+.prog i { display: block; height: 100%; border-radius: 999px; }
+/* assessment (collapsed) */
+details.doc-wrap { border: 1px solid var(--rule); border-radius: 12px; background: var(--panel); }
+details.doc-wrap > summary { cursor: pointer; padding: 12px 16px; font-weight: 700; font-size: 15px; list-style: none; }
+details.doc-wrap > summary::before { content: '›'; display: inline-block; margin-right: 10px; color: var(--neutral); transition: transform .15s; }
+details.doc-wrap[open] > summary::before { transform: rotate(90deg); }
+section.doc { padding: 0 16px 16px; } section.doc .doc-h { font-size: 16px; margin: 18px 0 6px; } section.doc p { max-width: 72ch; margin: 0 0 10px; }
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-block: 10px 16px; }
+@media (max-width: 760px) { .cols { grid-template-columns: minmax(0,1fr); } }
+section.doc .card { padding: 14px 16px; } section.doc .card h4 { margin: 0 0 6px; font-size: 14px; } section.doc .card ul { margin: 0; padding-left: 18px; } section.doc .card li { margin-bottom: 4px; }
+section.doc .tbl { border: 1px solid var(--rule); border-radius: 10px; margin-block: 8px 16px; } section.doc .tbl table { border-collapse: collapse; width: 100%; font-size: 13px; }
+section.doc .tbl th, section.doc .tbl td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; } section.doc .tbl th { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--neutral); font-weight: 600; } section.doc .tbl tr:last-child td { border-bottom: 0; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: .05em .35em; border-radius: 4px; }
+.note { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 10px 14px; border-radius: 0 8px 8px 0; margin-block: 10px 16px; max-width: 72ch; }
+.phases { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; } @media (max-width: 760px) { .phases { grid-template-columns: minmax(0,1fr); } }
+.phases .ph { display: block; border: 0; padding: 0; font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <aside class="side" aria-label="Navigasi">
+    <div class="brand"><div class="logo">D</div><div><b>Dash Electric</b><small>Mithril</small></div></div>
+    <nav class="nav"><div class="grp">Analytics</div><a href="#"><i>▦</i>Docking Dashboard</a></nav>
+    <nav class="nav"><div class="grp">Hub ops</div><a href="#"><i>◆</i>Shipments</a><a href="#"><i>▣</i>UJP</a><a href="#"><i>▤</i>Packages</a><a href="#"><i>▥</i>Inbound</a><a href="#"><i>➤</i>Dispatches</a><a href="#"><i>◷</i>Jadwal Dispatch</a><a href="#"><i>▭</i>Delivery</a><a href="#"><i>⊜</i>COD Reconciliation</a><a href="#"><i>▯</i>Invoices</a></nav>
+    <nav class="nav"><div class="grp">Warehouse ops</div><a href="#"><i>⌂</i>Warehouse</a><a class="sub" href="#"><i>◔</i>Dashboard</a><a class="sub2" href="#">Stock</a><a class="sub2" href="#" id="nav-occ">Okupansi storage</a><a class="sub2 active" href="#" id="nav-map" aria-current="page">Peta gudang</a><a class="sub" href="#"><i>▦</i>Warehouse management</a><a class="sub2" href="#" id="nav-hub">Warehouse</a><a class="sub2" href="#" id="nav-storage">Storage</a><a class="sub2" href="#">SKU</a><a class="sub" href="#"><i>↥</i>Outbound management</a><a class="sub" href="#"><i>▤</i>Supply management</a><a class="sub" href="#"><i>↧</i>Inbound management</a></nav>
+    <div class="user"><div class="av">OG</div><div><b>Ops Gudang</b><small>ops.gudang@dashelectric.co</small></div></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">· Dash · Logistic</div>
+    <div class="page" id="page-map">
+      <header class="ph">
+        <div>
+          <p class="eyebrow"><b>06</b>Warehouse · Dashboard</p>
+          <h1>Peta gudang</h1>
+          <p class="desc">Okupansi storage per bin di satu hub. Data contoh — simulasi menggerakkan stok masuk/keluar.</p>
+        </div>
+        <div class="actions">
+          <select id="hub" aria-label="Hub"><option>Dash Hub Kemang</option><option>Dash Hub Blok M</option></select>
+          <button class="btn stroke" id="fit">Refresh</button>
+          <button class="btn stroke" id="sim-reset">Reset data</button>
+          <button class="btn" id="sim-auto">Jalankan simulasi</button>
+        </div>
+      </header>
+
+      <div class="tiles">
+        <div class="tile"><div class="l">Bin aktif</div><div class="v" id="k-bins">—</div><div class="s">tipe Storage</div></div>
+        <div class="tile"><div class="l">Bin terpakai</div><div class="v" id="k-used">—</div><div class="s" id="k-used-s">—</div></div>
+        <div class="tile"><div class="l">Okupansi volume</div><div class="v" id="k-cbm">—</div><div class="s" id="k-cbm-s">—</div></div>
+        <div class="tile"><div class="l">Bin penuh</div><div class="v" id="k-hot">—</div><div class="s">okupansi &gt; 80%</div></div>
+        <div class="tile"><div class="l">Belum diset</div><div class="v" id="k-unset">—</div><div class="s">bin tanpa kapasitas</div></div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <div><h3>Simulasi layout: dari data Storage ke denah</h3><p class="meta">Data storage sudah ada dari menu Storage. Layout dibuat belakangan: tempatkan section ke denah, rapikan, simpan. Stok dan okupansi ikut dari data, bukan dari layout.</p></div>
+          <div class="actions">
+            <button class="btn stroke" id="g-start">Mulai dari awal (hapus semua layout)</button>
+            <button class="btn stroke" id="g-auto" disabled>Tempatkan otomatis satu per satu</button>
+            <button class="btn stroke" id="g-restore" disabled>Kembali ke layout tersimpan</button>
+          </div>
+        </div>
+        <ol class="steps" id="steps"></ol>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="hd">
+            <div><h3>Denah hub</h3><p class="meta">Klik bin atau rak untuk detail · scroll zoom · drag geser</p></div>
+            <div class="actions">
+              <div class="seg" id="mode"><button data-mode="cbm" class="on">Volume</button><button data-mode="qty">Jumlah</button><button data-mode="bin">Bin terpakai</button></div>
+              <select id="floor" aria-label="Lokasi"><option value="all">Semua lokasi</option></select>
+              <select id="client" aria-label="Client"><option value="all">Semua client</option></select>
+              <button class="btn stroke" id="edit">Atur layout</button>
+            </div>
+          </div>
+          <div class="editbar" id="editbar" hidden>
+            <span class="meta">Peta hanya mengatur <b>posisi dan bentuk</b> section. Nama, jumlah bin, dan kapasitas tetap dari menu Storage.</span>
+            <span class="spacer"></span>
+            <span class="badge warning" id="dirty" hidden><i></i><span id="dirty-n">0</span> perubahan belum disimpan</span>
+            <button class="btn stroke" id="rotate" disabled>Putar 90°</button>
+            <button class="btn stroke" id="unplace" disabled>Lepas dari peta</button>
+            <button class="btn" id="save" disabled>Simpan layout</button>
+            <div class="tray" id="tray"></div>
+          </div>
+          <div class="bd">
+            <div class="sheet" id="sheet">
+              <svg id="svg" xmlns="http://www.w3.org/2000/svg" role="application" aria-label="Denah gudang"></svg>
+              <div class="tip" id="tip"></div>
+              <div class="scale"><span>0%</span><i></i><span>100%</span><b>over</b></div>
+              <div class="toast" id="toast"></div>
+            </div>
+            <div class="legend"><span><i style="background:var(--panel)"></i>Kosong</span><span><i style="background:color-mix(in srgb, var(--accent) 45%, #fff)"></i>Terisi (makin pekat makin penuh)</span><span><i style="background:var(--full-soft);border-color:var(--full)"></i>Over kapasitas</span><span><i style="background:var(--unset)"></i>Kapasitas belum diset</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="hd"><h3 id="insp-title">Detail</h3></div>
+          <div class="bd" id="insp"><p class="meta">Klik bin, rak, atau baris tabel.</p></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd"><div><h3>Data Storage <span class="meta" id="storage-count"></span></h3><p class="meta">Isi <span class="mono">GET /storages?hubID=906&withStock=true</span>: satu baris per location, section, dan bin (▸ untuk buka). Dikelola di menu <a href="#" id="go-storage">Storage</a>; peta cuma menyimpan posisi (kolom "Di peta").</p></div><div class="actions"><span id="changes" class="meta"></span><button class="btn stroke" id="json-toggle">Lihat JSON</button></div></div>
+        <pre class="json" id="json" hidden></pre>
+        <div class="tbl"><table class="list">
+          <thead><tr><th>Storage</th><th>Kategori</th><th>Tipe</th><th class="num">Bin</th><th class="num">Terpakai</th><th class="num">Volume</th><th>Okupansi</th><th>Status</th><th>Di peta</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table></div>
+      </div>
+
+      <details class="doc-wrap">
+        <summary>Assessment model okupansi eFishery → Dash</summary>
+        <section class="doc" id="assessment">
+    <h3 class="doc-h">Assessment: model okupansi eFishery → Dash</h3>
+    <p>Dibaca dari <code>be-warehouse-management-system</code> (service <code>storagecapacity</code>, view <code>storage_sku_capacity_view</code>) dan dashboard <em>Storage Capacity</em> di <code>monorepo-frontend-upstream-ops</code>.</p>
+
+    <div class="cols">
+      <div class="card">
+        <h4>Yang dipakai eFishery</h4>
+        <ul>
+          <li><b>Kapasitas per SKU per warehouse</b> (<code>warehouse_stock_capacity.quantity_capacity</code>): "1 bin muat N unit SKU ini". Diisi lewat import CSV (product_external_id, product_name, uom, quantity_capacity).</li>
+          <li><b>Okupansi bin</b> = on-hand SKU di bin ÷ quantity_capacity. Status: <code>TERSEDIA</code> (kosong), <code>TERISI</code> (&gt;0%), <code>HAMPIR_PENUH</code> (&gt;50%), <code>PENUH</code> (&gt;80%), <code>KAPASITAS_SKU_BELUM_DIATUR</code> (ada stok, kapasitas belum diset).</li>
+          <li><b>Occupancy board</b> per warehouse: bin terpakai ÷ total bin, dirinci per section (rack/floor), kartu progress bar + tabel list per SKU dengan filter lokasi/section/bin/status, export CSV.</li>
+          <li>Section punya tipe <code>RACK</code> / <code>FLOOR</code>; bin di-generate massal dengan kode urut.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Keterbatasannya buat logistik Dash</h4>
+        <ul>
+          <li>Satu bin dianggap milik satu SKU; bin campur (beberapa SKU/batch) tidak bisa dihitung persennya.</li>
+          <li>Kapasitas berbasis <em>jumlah</em>, bukan ruang: tidak tahu CBM/berat, jadi tidak bisa menjawab "masih muat berapa kubik".</li>
+          <li>Tidak ada koordinat/dimensi storage, jadi tidak ada denah. Tidak ada riwayat okupansi dari waktu ke waktu.</li>
+          <li>Status mengikuti SKU — bin dengan stok tapi SKU-nya belum diset kapasitas jatuh ke "belum diatur", sering terjadi saat katalog baru.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note"><b>Yang sudah dipunya Dash</b> dan tidak perlu dibangun ulang: SKU sudah punya <code>weightKg</code>, <code>lengthCm/widthCm/heightCm</code> → <code>cbmPerUnit</code>; stok tersimpan per storage per batch (<code>wh_stocks</code>) di level apa pun pohon Location → Section → Bin; roll-up on-hand per subtree sudah ada di list storage (<code>withStock</code>). Jadi okupansi volume bisa dihitung tanpa tabel kapasitas per SKU.</div>
+
+    <h3 class="doc-h">Usulan model untuk Dash</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Bagian</th><th>Usulan</th><th>Catatan</th></tr></thead>
+      <tbody>
+        <tr><td>Kapasitas storage</td><td>Kolom di <code>wh_storages</code>: <code>capacity_cbm</code>, <code>capacity_kg</code>, <code>capacity_qty</code> (semua nullable), plus dimensi fisik <code>width_cm × depth_cm × height_cm</code> (CBM bisa diturunkan).</td><td>Diset di bin (atau section FLOOR). Null = belum diset → status "belum diset" seperti eFishery, tapi per storage bukan per SKU.</td></tr>
+        <tr><td>Okupansi</td><td>View/materialized: per storage, <code>used_cbm = Σ qty × cbmPerUnit</code>, <code>used_kg</code>, <code>used_qty</code>; persen = used ÷ capacity. Roll-up ke section/location pakai <code>path &lt;@</code> yang sudah ada.</td><td>Bin campur SKU otomatis benar karena satuannya CBM. Mode qty tetap tersedia untuk SKU seragam.</td></tr>
+        <tr><td>Status</td><td>Ambang sama dengan eFishery supaya ops familiar: &gt;0 Terisi, &gt;50 Hampir penuh, &gt;80 Penuh; tambah <b>Over</b> &gt;100 (ops menaruh melebihi kapasitas tercatat).</td><td>Ambang disimpan sebagai konstanta, bukan hardcode di SQL.</td></tr>
+        <tr><td>Denah</td><td>Tabel <code>wh_storage_layouts</code> (1 baris per storage yang ditempatkan): <code>storage_id, x, y, rotation, shape (RACK/FLOOR), levels/rows, cell_cm</code>, cm relatif ke origin location. Pohon storage dan bin tetap dari <code>wh_storages</code>; peta hanya menata bin yang sudah ada (rak: kolom = bin ÷ level).</td><td>Yang digambar di mockup ini. Section tanpa baris layout masuk tray "belum ditempatkan"; menambah/menghapus bin tetap lewat menu Storage.</td></tr>
+        <tr><td>Rekomendasi put-away</td><td>Saat goods receipt, usulkan bin default = bin aktif tipe Storage dengan sisa kapasitas cukup, terdekat ke staging (jarak dari layout).</td><td>Fase 3; hari ini default bin = bin pertama.</td></tr>
+        <tr><td>Peringatan</td><td>KPI "Penuh / hampir penuh" di Stock dashboard + Slack alert saat okupansi hub &gt; 85%.</td><td>Pakai jalur alert Slack yang sudah ada.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 class="doc-h">Tahapan</h3>
+    <div class="phases">
+      <div class="card"><div class="ph">Fase 1 · 1 minggu</div><h4>Kapasitas + okupansi</h4><ul><li>Kolom kapasitas &amp; dimensi di storage (edit storage sudah ada).</li><li>View okupansi + endpoint <code>GET /storages/occupancy</code> (hub, per section, per bin).</li><li>Kolom Okupansi % + status di list Storage; KPI di Stock.</li></ul></div>
+      <div class="card"><div class="ph">Fase 2 · 1–2 minggu</div><h4>Denah 2D</h4><ul><li>Tabel layout + editor posisi/ukuran rak (drag, snap ke grid 50 cm).</li><li>Halaman <em>Peta gudang</em> seperti mockup: zoom/pan, warna okupansi, inspector bin, filter client.</li><li>Export PNG/PDF lembar denah.</li></ul></div>
+      <div class="card"><div class="ph">Fase 3</div><h4>Operasional</h4><ul><li>Saran bin saat put-away &amp; picking walk order dari koordinat.</li><li>Riwayat okupansi harian (snapshot) → tren per hub.</li><li>Alert okupansi tinggi.</li></ul></div>
+    </div>
+  </section>
+      </details>
+    </div>
+
+    <div class="page" id="page-occ" hidden>
+      <header class="ph">
+        <div>
+          <p class="eyebrow"><b>06</b>Warehouse · Dashboard</p>
+          <h1>Okupansi storage</h1>
+          <p class="desc">Okupansi bin per hub: board per location dan daftar per bin × SKU. Mengikuti dashboard Storage Capacity eFishery, dengan kapasitas m³ per bin.</p>
+        </div>
+        <div class="actions">
+          <button class="btn stroke" id="o-filter">Filter<span class="fbadge" id="o-fcount" hidden>0</span></button>
+          <button class="btn" id="o-export">Export CSV</button>
+        </div>
+      </header>
+      <div class="alert" id="o-alert" hidden><i>!</i><span id="o-alert-text"></span><span class="spacer"></span><button class="btn" id="o-alert-go">Atur sekarang</button></div>
+      <div class="card">
+        <div class="frow">
+          <div><label for="of-q">Pencarian</label><input id="of-q" type="search" placeholder="Cari SKU atau bin di sini"></div>
+          <div><label for="of-hub">Hub</label><select id="of-hub"><option value="906">Dash Hub Kemang</option><option value="all">Semua hub</option></select></div>
+          <div><label for="of-status">Status bin</label><select id="of-status"><option value="">Pilih status</option><option value="TERSEDIA">Tersedia</option><option value="TERISI">Terisi</option><option value="HAMPIR_PENUH">Hampir penuh</option><option value="PENUH">Penuh</option><option value="OVER">Over kapasitas</option><option value="KAPASITAS_BELUM_DIATUR">Kapasitas belum diatur</option></select></div>
+        </div>
+        <div class="board" id="o-board"></div>
+        <div class="tbl"><table class="list">
+          <thead><tr><th>Client</th><th>Hub</th><th>Lokasi</th><th>Section</th><th>Bin</th><th>SKU</th><th>Nama produk</th><th class="num">Qty on hand</th><th class="num" id="o-cap-h">Kapasitas bin</th><th>Status</th></tr></thead>
+          <tbody id="o-rows"></tbody>
+        </table></div>
+        <div class="pager"><span id="o-total"></span><div class="pg" id="o-pg"></div><select id="o-size"><option>10</option><option>20</option><option>50</option></select></div>
+      </div>
+    </div>
+    <div class="drawer" id="o-drawer" hidden>
+      <div class="dh"><h3>Filter</h3><button class="btn stroke" id="od-reset">Reset</button></div>
+      <div class="db">
+        <div><label for="od-loc">Lokasi</label><input id="od-loc" placeholder="Cari lokasi di sini"></div>
+        <div><label for="od-sec">Section</label><input id="od-sec" placeholder="Cari section di sini"></div>
+        <div><label for="od-bin">Bin</label><input id="od-bin" placeholder="Cari bin di sini"></div>
+        <div><label>Client</label><div class="chk" id="od-client"></div></div>
+      </div>
+      <div class="df"><button class="btn" id="od-apply">Terapkan</button></div>
+    </div>
+
+    <div class="page" id="page-hub" hidden>
+      <header class="ph">
+        <div>
+          <p class="eyebrow"><b>06</b>Warehouse · Warehouse management</p>
+          <h1>Warehouse</h1>
+          <p class="desc">Data hub. Kapasitas tidak disimpan di sini: kapasitas adalah properti storage (bin) dan diatur di menu Storage.</p>
+        </div>
+        <div class="actions"><button class="btn stroke" id="h-back" hidden>← Daftar hub</button><button class="btn" id="h-edit" hidden>Edit hub</button></div>
+      </header>
+      <div class="card" id="h-list">
+        <div class="hd"><div><h3>Daftar hub</h3><p class="meta">Klik hub untuk detail.</p></div></div>
+        <div class="tbl"><table class="list"><thead><tr><th>Kode</th><th>Nama</th><th>Alamat</th><th>Status</th><th class="num">Storage</th><th class="num">Bin berkapasitas</th><th>Aksi</th></tr></thead><tbody id="h-rows"></tbody></table></div>
+      </div>
+      <div class="card" id="h-detail" hidden>
+        <div class="hd"><div><h3 id="h-title"></h3><p class="meta" id="h-sub"></p></div></div>
+        <div class="bd" id="h-tab-info"></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-storage" hidden>
+      <header class="ph">
+        <div>
+          <p class="eyebrow"><b>06</b>Warehouse · Warehouse management</p>
+          <h1>Storage</h1>
+          <p class="desc">Pohon storage per hub: location → section → bin. Kapasitas diset di sini dan dipakai untuk okupansi di Stock dan Peta gudang.</p>
+        </div>
+        <div class="actions">
+          <select aria-label="Hub"><option>Dash Hub Kemang</option><option>Dash Hub Blok M</option></select>
+          <button class="btn stroke" id="s-import">Import kapasitas (CSV)</button>
+          <button class="btn stroke" id="s-export">Export CSV</button>
+          <button class="btn" id="s-add">+ Tambah storage</button>
+        </div>
+      </header>
+      <div class="tiles">
+        <div class="tile"><div class="l">Storage</div><div class="v" id="s-k-total">—</div><div class="s" id="s-k-total-s">—</div></div>
+        <div class="tile"><div class="l">Bin aktif</div><div class="v" id="s-k-bins">—</div><div class="s" id="s-k-bins-s">—</div></div>
+        <div class="tile"><div class="l">Kapasitas belum diset</div><div class="v" id="s-k-unset">—</div><div class="s">bin tanpa kapasitas</div></div>
+        <div class="tile"><div class="l">Okupansi hub</div><div class="v" id="s-k-occ">—</div><div class="s" id="s-k-occ-s">—</div></div>
+        <div class="tile"><div class="l">Belum di peta</div><div class="v" id="s-k-unplaced">—</div><div class="s">section tanpa posisi</div></div>
+      </div>
+      <div class="card">
+        <div class="hd"><div><h3>Daftar storage <span class="meta" id="s-count"></span></h3><p class="meta">Edit nama/status/kapasitas per baris. Set kapasitas sekaligus untuk semua bin di satu section. Bin baru dibuat dari section (generate kolom × level).</p></div>
+          <div class="actions"><button class="btn stroke" id="s-expand">Buka semua</button><button class="btn stroke" id="s-collapse">Tutup semua</button></div></div>
+        <div class="filters">
+          <input id="sf-q" type="search" placeholder="Cari nama storage / path">
+          <select id="sf-cat"><option value="all">Semua kategori</option><option value="LOCATION">Location</option><option value="SECTION">Section</option><option value="BIN">Bin</option></select>
+          <select id="sf-type"><option value="all">Semua tipe</option><option value="STORAGE">Storage</option><option value="QUARANTINE">Quarantine</option><option value="STAGING">Staging</option></select>
+          <select id="sf-status"><option value="all">Semua status</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select>
+          <select id="sf-occ"><option value="all">Semua okupansi</option><option value="empty">Kosong</option><option value="ok">Terisi</option><option value="mid">Hampir penuh</option><option value="high">Penuh</option><option value="full">Over kapasitas</option><option value="unset">Kapasitas belum diset</option></select>
+        </div>
+        <div class="tbl"><table class="list">
+          <thead><tr><th>Storage</th><th>Status</th><th class="num">Bin</th><th class="num">Terpakai / kapasitas</th><th>Okupansi</th><th>Di peta</th><th class="sticky">Aksi</th></tr></thead>
+          <tbody id="s-rows"></tbody>
+        </table></div>
+      </div>
+    </div>
+  </div>
+</div>
+<button class="btn" id="e2e-open">▶ Simulasi e2e</button>
+<div class="e2e" id="e2e" hidden><div class="eh"><b>Simulasi end-to-end okupansi (versi Dash)</b><button class="x" id="e2e-close" aria-label="Tutup">×</button></div><div class="eb"><div class="step" id="e2e-step"></div><h4 id="e2e-title"></h4><p id="e2e-text"></p><div class="log" id="e2e-log" hidden></div></div><div class="ef"><div class="dots" id="e2e-dots"></div><div><button class="btn stroke" id="e2e-reset">Ulangi</button><button class="btn" id="e2e-next">Mulai</button></div></div></div>
+<div class="dd" id="menu" hidden></div>
+<div class="overlay" id="overlay" hidden><div class="dialog" role="dialog" aria-modal="true"><div class="dh"><h3 id="dlg-title"></h3><p class="meta" id="dlg-desc"></p></div><div class="db" id="dlg-body"></div><div class="df"><button class="btn stroke" id="dlg-cancel">Batal</button><button class="btn" id="dlg-ok">Simpan</button></div></div></div>
+
+<script>
+(function () {
+  'use strict';
+  /* ------------------------------ data ----------------------------------- */
+  // Two sources, deliberately separate:
+  //  1. STORAGES — what GET /storages?hubID&withStock=true answers today: flat rows in tree order,
+  //     LOCATION → SECTION → BIN, each with its ltree path. Plus the proposed capacity_cbm column on bins.
+  //  2. LAYOUTS  — the proposed wh_storage_layouts: ONE row per placed storage with x, y, rotation, shape.
+  // The map is derived from (1) and only ever writes (2). Names, bin counts, stock and capacity never change here.
+  const SKUS = [
+    { sku: 'VITC-1000', name: 'Vitamin C 1000 mg isi 30', client: 'SwipeRX', uom: 'box', cbm: 0.0012, kg: 0.12 },
+    { sku: 'MSK-3PLY',  name: 'Masker 3 Ply isi 50',      client: 'SwipeRX', uom: 'box', cbm: 0.0030, kg: 0.25 },
+    { sku: 'HSN-60',    name: 'Hand Sanitizer 60 ml',     client: 'SwipeRX', uom: 'pcs', cbm: 0.0008, kg: 0.07 },
+    { sku: 'CAT-5L',    name: 'Cat Tembok 5 L',           client: 'Atlas',   uom: 'kaleng', cbm: 0.0068, kg: 6.5 },
+    { sku: 'TNR-1L',    name: 'Thinner 1 L',              client: 'Atlas',   uom: 'botol', cbm: 0.0014, kg: 0.9 },
+    { sku: 'STRAPS-01', name: 'Straps 01',                client: 'Atlas',   uom: 'pcs', cbm: 0.0004, kg: 0.05 },
+  ];
+  const HUB = { id: 906, name: 'Dash Hub Kemang', short: 'Kemang', w: 3200, h: 2000 };
+  const BIN_W = 120, BIN_D = 100, BIN_H = 150; // rack bin size (cm): 1.8 m³ nominal, 1.5 effective
+  const LEVEL_H = BIN_H, PALLET_H = 150;
+
+  const STORAGES = [];
+  const row = (r) => { STORAGES.push(r); return r; };
+  const loc = (id, name, type) => row({ id, name, category: 'LOCATION', type, path: id, parentID: null, status: 'ACTIVE' });
+  const sec = (L, id, name) => row({ id, name, category: 'SECTION', type: null, path: `${L.path}.${id}`, parentID: L.id, status: 'ACTIVE' });
+  const bin = (S, id, name, capacityCbm) => row({ id, name, category: 'BIN', type: null, path: `${S.path}.${id}`, parentID: S.id, status: 'ACTIVE', capacityCbm });
+  // Bin names as ops created them in the Storage menu (rack: column-major, level inner; floor: running number).
+  const rackBins = (S, letter, cols, levels, cap = 1.5) => { for (let c = 0; c < cols; c++) for (let l = 0; l < levels; l++) bin(S, `${S.id}-${c + 1}-${l + 1}`, `${letter}${c + 1}-L${l + 1}`, cap); };
+  const floorBins = (S, prefix, n, cap) => { for (let i = 0; i < n; i++) bin(S, `${S.id}-${i + 1}`, `${prefix} ${i + 1}`, cap); };
+  (function seedStorages() {
+    const L1 = loc('L1', 'Gudang Utama', 'STORAGE');
+    rackBins(sec(L1, 'S1', 'Rak A'), 'A', 8, 3);
+    rackBins(sec(L1, 'S2', 'Rak B'), 'B', 8, 3);
+    rackBins(sec(L1, 'S3', 'Rak C'), 'C', 8, 3);
+    rackBins(sec(L1, 'S4', 'Rak D'), 'D', 6, 3);
+    rackBins(sec(L1, 'S5', 'Rak E'), 'E', 6, 3);
+    floorBins(sec(L1, 'S6', 'Lantai F (palet)'), 'F', 8, 1.2);
+    rackBins(sec(L1, 'S9', 'Rak G'), 'G', 4, 3); // created in the Storage menu last week — no layout row yet
+    const L2 = loc('L2', 'Area Karantina', 'QUARANTINE');
+    floorBins(sec(L2, 'S7', 'Karantina 1'), 'Q', 6, 0.8);
+    const L3 = loc('L3', 'Staging / Dock', 'STAGING');
+    floorBins(sec(L3, 'S8', 'Staging out'), 'ST', 9, 0.8);
+  })();
+
+  // wh_storage_layouts: storage_id → position. Locations carry their rectangle; sections their origin, rotation and shape.
+  const LAYOUTS = new Map([
+    ['L1', { x: 100, y: 100, w: 2200, h: 1800 }],
+    ['L2', { x: 2400, y: 100, w: 700, h: 700 }],
+    ['L3', { x: 2400, y: 900, w: 700, h: 1000 }],
+    // sections: cm relative to their location's origin
+    ['S1', { x: 120, y: 160, rot: 0, shape: 'RACK', levels: 3 }],
+    ['S2', { x: 120, y: 660, rot: 0, shape: 'RACK', levels: 3 }],
+    ['S3', { x: 120, y: 1160, rot: 0, shape: 'RACK', levels: 3 }],
+    ['S4', { x: 1220, y: 160, rot: 0, shape: 'RACK', levels: 3 }],
+    ['S5', { x: 1220, y: 660, rot: 0, shape: 'RACK', levels: 3 }],
+    ['S6', { x: 1220, y: 1160, rot: 0, shape: 'FLOOR', rows: 2, cell: 200 }],
+    ['S7', { x: 60, y: 120, rot: 0, shape: 'FLOOR', rows: 2, cell: 160 }],
+    ['S8', { x: 60, y: 100, rot: 0, shape: 'FLOOR', rows: 3, cell: 160 }],
+  ]);
+  const DEFAULT_LOC = { STORAGE: [2200, 1800], QUARANTINE: [700, 700], STAGING: [700, 1000] };
+  // wh_stocks grouped per bin (storage_id → lots). Lives outside the view model so rebuilding the map never touches it.
+  const STOCK = new Map();
+  const lotsOf = (id) => { if (!STOCK.has(id)) STOCK.set(id, []); return STOCK.get(id); };
+
+  // View model: layout.locations[].sections[].bins[] — rebuilt from STORAGES + LAYOUTS by build().
+  let layout = { hub: HUB.name, w: HUB.w, h: HUB.h, locations: [] };
+  let allSections = []; // placed or not — the Storage table and KPIs read this
+  const childrenOf = (id) => STORAGES.filter(r => r.parentID === id);
+  // Arrange a section's EXISTING bins (from STORAGES) according to its layout row. Writes nothing but geometry.
+  function relayout(S) {
+    const rot = S.rot === 90; const n = S.rows_.length;
+    const bins = [];
+    if (S.kind === 'RACK') {
+      const cols = Math.max(1, Math.ceil(n / S.levels));
+      S.rows_.forEach((r, i) => {
+        const c = Math.floor(i / S.levels), l = i % S.levels;
+        bins.push({ id: r.id, name: r.name, row: r, col: c, level: l,
+          x: S.x + (rot ? 0 : c * BIN_W), y: S.y + (rot ? c * BIN_W : 0), w: rot ? BIN_D : BIN_W, d: rot ? BIN_W : BIN_D, z: l * LEVEL_H, h: LEVEL_H,
+          capCbm: r.capacityCbm, lots: lotsOf(r.id) });
+      });
+      S.cols = cols; S.w = rot ? BIN_D : cols * BIN_W; S.h = rot ? cols * BIN_W : BIN_D;
+    } else {
+      const rows = Math.max(1, S.rows), cols0 = Math.max(1, Math.ceil(n / rows));
+      const cols = rot ? rows : cols0, rws = rot ? cols0 : rows;
+      S.rows_.forEach((r, i) => {
+        const rr = Math.floor(i / cols), c = i % cols;
+        bins.push({ id: r.id, name: r.name, row: r, x: S.x + c * S.cw, y: S.y + rr * S.ch, w: S.cw, d: S.ch, z: 0, h: PALLET_H, capCbm: r.capacityCbm, lots: lotsOf(r.id) });
+      });
+      S.cols = cols0; S.w = cols * S.cw; S.h = rws * S.ch;
+    }
+    S.bins = bins;
+    if (S.lay) Object.assign(S.lay, { x: S.x - S.L.x, y: S.y - S.L.y, rot: S.rot, shape: S.kind }, S.kind === 'RACK' ? { levels: S.levels } : { rows: S.rows, cell: S.cw });
+    return S;
+  }
+  let allLocations = [];
+  function build() {
+    layout = { hub: HUB.name, w: HUB.w, h: HUB.h, locations: [] }; allSections = []; allLocations = [];
+    STORAGES.filter(r => r.category === 'LOCATION').forEach(Lr => {
+      const lay = LAYOUTS.get(Lr.id); const [dw, dh] = DEFAULT_LOC[Lr.type] || [600, 600];
+      const L = { id: Lr.id, name: Lr.name, type: Lr.type, row: Lr, lay: lay || null, placed: !!lay, x: lay?.x ?? 0, y: lay?.y ?? 0, w: lay?.w ?? dw, h: lay?.h ?? dh, sections: [], all: [] };
+      childrenOf(Lr.id).forEach(Sr => {
+        const sl = LAYOUTS.get(Sr.id);
+        const dflt = Lr.type === 'STORAGE' ? 'RACK' : 'FLOOR';
+        const S = { id: Sr.id, name: Sr.name, row: Sr, L, lay: sl || null, placed: !!sl && L.placed, kind: sl?.shape || dflt,
+          x: L.x + (sl?.x ?? 0), y: L.y + (sl?.y ?? 0), rot: sl?.rot ?? 0, levels: sl?.levels ?? 3, rows: sl?.rows ?? 2, cw: sl?.cell ?? 200, ch: sl?.cell ?? 200,
+          rows_: childrenOf(Sr.id), bins: [] };
+        relayout(S); allSections.push(S); L.all.push(S); if (S.placed) L.sections.push(S);
+      });
+      allLocations.push(L); if (L.placed) layout.locations.push(L);
+    });
+  }
+  const allBins = () => allSections.flatMap(S => S.bins.map(b => ({ b, S, L: S.L })));
+  const unplaced = () => allSections.filter(S => !S.placed);
+  const unplacedLocs = () => allLocations.filter(L => !L.placed);
+  const locationOf = (id) => allLocations.find(L => L.id === id) || null;
+
+  // Seed stock into STOCK / capacity onto the bin rows: pseudo-random but stable.
+  let seed = 7;
+  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  function seedStock() {
+    STOCK.clear();
+    STORAGES.filter(r => r.category === 'BIN').forEach(r => {
+      const Sr = STORAGES.find(x => x.id === r.parentID), Lr = STORAGES.find(x => x.id === Sr.parentID);
+      const lots = lotsOf(r.id);
+      r.capacityCbm = r.id.startsWith('S6') ? 1.2 : r.id.startsWith('S7') || r.id.startsWith('S8') ? 0.8 : 1.5;
+      if (Lr.type === 'STAGING') return;
+      const x = rnd();
+      if (x < 0.14) r.capacityCbm = null; // capacity never set on this bin
+      if (x < 0.25) return; // empty
+      const n = x > 0.85 ? 3 : x > 0.6 ? 2 : 1;
+      for (let i = 0; i < n; i++) {
+        const sku = SKUS[Math.floor(rnd() * SKUS.length)];
+        const cap = r.capacityCbm ?? 1.5;
+        const target = (x > 0.93 ? 1.15 : rnd() * 0.95) * cap / n;
+        const qty = Math.max(1, Math.round(target / sku.cbm));
+        lots.push({ sku, qty, batch: `${2027 - Math.floor(rnd() * 2)}0${1 + Math.floor(rnd() * 9)}30-1009${20 + Math.floor(rnd() * 6)}-${['UrhJ', 'Zx9K', 'On69', 'aYdC'][Math.floor(rnd() * 4)]}` });
+      }
+    });
+  }
+  seedStock(); build();
+
+  /* ------------------------------ occupancy ------------------------------ */
+  const state = { mode: 'cbm', floor: 'all', client: 'all', dims: false, selected: null, log: [], edit: false, section: null };
+  /** Unsaved wh_storage_layouts edits per section id: 'placed' | 'moved' | 'resized' | 'unplaced'. */
+  const dirty = new Map();
+  function markDirty(S, kind) {
+    const cur = dirty.get(S.id);
+    if (cur && cur.kind === 'placed' && kind === 'unplaced') { dirty.delete(S.id); renderDirty(); return; }
+    if (cur && cur.kind === 'placed') return;
+    dirty.set(S.id, { kind, name: S.name });
+    renderDirty();
+  }
+  const KIND_LABEL = { placed: 'ditempatkan', moved: 'dipindah', resized: 'bentuk diubah', unplaced: 'dilepas dari peta' };
+  function renderDirty() {
+    const n = dirty.size;
+    const b = document.getElementById('dirty'); b.hidden = n === 0; document.getElementById('dirty-n').textContent = n;
+    document.getElementById('changes').innerHTML = n ? `Layout belum disimpan: ${[...dirty.values()].map(d => `<b>${d.name}</b> ${KIND_LABEL[d.kind]}`).join(' · ')}` : '';
+    document.getElementById('save').disabled = n === 0;
+    const tray = document.getElementById('tray');
+    const TYPE_LABEL = { STORAGE: 'Storage', QUARANTINE: 'Quarantine', STAGING: 'Staging' }, TYPE_ORDER = ['STORAGE', 'QUARANTINE', 'STAGING'];
+    const groups = allLocations.filter(L => !L.placed || L.all.some(S => !S.placed)).sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type));
+    const total = unplaced().length + unplacedLocs().length;
+    tray.innerHTML = groups.length ? `<div class="tray-h">Belum ditempatkan · ${total} <span>— ada di Storage, belum punya baris layout. Dikelompokkan per location.</span></div>` + groups.map(L => {
+      const us = L.all.filter(S => !S.placed);
+      return `<div class="tray-g"><div class="tray-gh"><span class="tag">${TYPE_LABEL[L.type]}</span>${L.name}<span class="meta">· ${L.all.length} section</span><span class="spacer"></span>${L.placed ? (us.length > 1 ? `<button class="link" data-place-all="${L.id}">Tempatkan semua (${us.length})</button>` : '') : ''}</div>
+        <div class="chips">${L.placed ? '' : `<button class="zone-btn" data-place="${L.id}" title="Tempatkan zona location di denah hub">Tempatkan zona ${L.name}</button>`}${us.map(S => `<button data-place="${S.id}" ${L.placed ? '' : 'disabled title="Tempatkan zona-nya dulu"'}>${S.name} · ${S.bins.length} bin</button>`).join('')}</div></div>`;
+    }).join('') : '';
+    tray.querySelectorAll('[data-place]').forEach(btn => { btn.onclick = () => place(btn.getAttribute('data-place')); });
+    tray.querySelectorAll('[data-place-all]').forEach(btn => { btn.onclick = () => { const L = locationOf(btn.getAttribute('data-place-all')); let last = null; L.all.filter(S => !S.placed).forEach(S => { autoPlace(S); last = S; }); refresh(); if (last) selectSection(last.id); toast(`${L.name}: semua section ditempatkan — rapikan posisinya`); }; });
+  }
+  const usedCbm = b => b.lots.reduce((a, l) => a + l.qty * l.sku.cbm, 0);
+  const usedQty = b => b.lots.reduce((a, l) => a + l.qty, 0);
+  const usedKg = b => b.lots.reduce((a, l) => a + l.qty * l.sku.kg, 0);
+  const visibleLots = b => state.client === 'all' ? b.lots : b.lots.filter(l => l.sku.client === state.client);
+  function pct(b) {
+    if (state.mode === 'bin') return b.lots.length ? 100 : 0;
+    if (state.mode === 'qty') { if (!b.capQty) return null; return usedQty(b) / b.capQty * 100; }
+    if (b.capCbm == null) return null;
+    return usedCbm(b) / b.capCbm * 100;
+  }
+  function statusOf(b) {
+    const p = pct(b);
+    if (p === null) return b.lots.length ? 'unset' : 'empty';
+    if (p <= 0) return 'empty';
+    if (p > 100) return 'full';
+    if (p > 80) return 'high';
+    if (p > 50) return 'mid';
+    return 'ok';
+  }
+  const STATUS_LABEL = { empty: 'Kosong', ok: 'Terisi', mid: 'Hampir penuh', high: 'Penuh', full: 'Over kapasitas', unset: 'Kapasitas belum diset' };
+  // One hue: the fuller the bin, the deeper the accent. Over capacity reads red; no capacity reads grey.
+  const fillOf = (b) => {
+    const st = statusOf(b), p = pct(b);
+    if (st === 'empty') return { fill: 'var(--sheet)', stroke: 'var(--line)', mix: 0 };
+    if (st === 'unset') return { fill: 'var(--unset)', stroke: 'var(--faint)', mix: 0 };
+    if (st === 'full') return { fill: 'var(--full-soft)', stroke: 'var(--full)', mix: 1 };
+    const mix = Math.max(0.18, Math.min(1, (p ?? 100) / 100));
+    return { fill: `color-mix(in srgb, var(--accent) ${Math.round(8 + mix * 62)}%, var(--panel))`, stroke: `color-mix(in srgb, var(--accent) ${Math.round(35 + mix * 65)}%, var(--panel))`, mix };
+  };
+
+  function kpis() {
+    const bins = allBins().filter(({ L, b }) => L.type === 'STORAGE' && b.row.status === 'ACTIVE');
+    const used = bins.filter(({ b }) => b.lots.length).length;
+    const capCbm = bins.reduce((a, { b }) => a + (b.capCbm ?? 0), 0);
+    const useCbm = bins.reduce((a, { b }) => a + usedCbm(b), 0);
+    const hot = bins.filter(({ b }) => ['high', 'full'].includes(statusOf(b))).length;
+    const unset = bins.filter(({ b }) => b.capCbm == null).length;
+    const t = (id, v) => { document.getElementById(id).textContent = v; };
+    t('k-bins', bins.length); t('k-used', used); t('k-used-s', `${(used / bins.length * 100).toFixed(1)}% dari bin aktif`);
+    t('k-cbm', `${(useCbm / capCbm * 100).toFixed(1)}%`); t('k-cbm-s', `${useCbm.toFixed(1)} / ${capCbm.toFixed(1)} m³`);
+    t('k-hot', hot); t('k-unset', unset);
+    renderTable();
+  }
+
+  /* ------------------------------ drawing ------------------------------- */
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('svg');
+  const sheet = document.getElementById('sheet');
+  const tip = document.getElementById('tip');
+  const view = { x: 0, y: 0, k: 1 }; // world→screen: screen = (world - x) * k
+  const RULER = 0;
+  const el = (n, attrs, text) => { const e = document.createElementNS(NS, n); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; };
+
+  // Isometric projection (cm → sheet units): x runs right-down, y left-down, z up.
+  const C = Math.cos(Math.PI / 6), S = Math.sin(Math.PI / 6);
+  const P = (x, y, z = 0) => [(x - y) * C, (x + y) * S - z];
+  const poly = (pts) => pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const bounds = () => {
+    const pts = [P(0, 0, 0), P(layout.w, 0, 0), P(0, layout.h, 0), P(layout.w, layout.h, 0), P(0, 0, 3 * LEVEL_H), P(layout.w, 0, 3 * LEVEL_H)];
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    return { x0: Math.min(...xs), y0: Math.min(...ys) - 80, x1: Math.max(...xs), y1: Math.max(...ys) };
+  };
+  function fit() {
+    const bb = bounds(), W = sheet.clientWidth, H = sheet.clientHeight;
+    const k = Math.min(W / (bb.x1 - bb.x0 + 80), H / (bb.y1 - bb.y0 + 80));
+    view.k = k; view.x = bb.x0 - (W / k - (bb.x1 - bb.x0)) / 2; view.y = bb.y0 - (H / k - (bb.y1 - bb.y0)) / 2;
+    draw();
+  }
+  // A box with its three visible faces: top, right (x = x+w) and front (y = y+d).
+  function box(parent, b, fillTop, stroke, attrs, opacity) {
+    const { x, y, z, w, d, h } = b;
+    const top = [P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)];
+    const right = [P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)];
+    const front = [P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)];
+    const g = el('g', Object.assign({ opacity: opacity ?? 1 }, attrs));
+    g.appendChild(el('polygon', { points: poly(front), fill: fillTop, stroke, 'stroke-width': 1 / view.k, 'stroke-linejoin': 'round' }));
+    g.appendChild(el('polygon', { points: poly(front), fill: 'var(--ink)', opacity: .12, 'pointer-events': 'none' }));
+    g.appendChild(el('polygon', { points: poly(right), fill: fillTop, stroke, 'stroke-width': 1 / view.k, 'stroke-linejoin': 'round' }));
+    g.appendChild(el('polygon', { points: poly(right), fill: 'var(--ink)', opacity: .24, 'pointer-events': 'none' }));
+    g.appendChild(el('polygon', { points: poly(top), fill: fillTop, stroke, 'stroke-width': 1 / view.k, 'stroke-linejoin': 'round' }));
+    parent.appendChild(g);
+    return top;
+  }
+  function draw() {
+    svg.innerHTML = '';
+    const world = el('g', { transform: `scale(${view.k}) translate(${-view.x},${-view.y})` });
+    // floor
+    world.appendChild(el('polygon', { points: poly([P(0, 0), P(layout.w, 0), P(layout.w, layout.h), P(0, layout.h)]), fill: 'var(--panel)', stroke: 'var(--line)', 'stroke-width': 1.5 / view.k, 'stroke-linejoin': 'round' }));
+    const dock = P(2850, layout.h - 40);
+    world.appendChild(el('text', { x: dock[0], y: dock[1], 'text-anchor': 'middle', 'font-family': 'var(--mono)', 'font-size': 13 / view.k, fill: 'var(--faint)', 'letter-spacing': 2 }, 'DOCK'));
+    const locs = layout.locations.filter(L => state.floor === 'all' || state.floor === L.id);
+    // zones on the floor
+    locs.forEach(L => {
+      const col = L.type === 'QUARANTINE' ? 'var(--quarantine)' : L.type === 'STAGING' ? 'var(--staging)' : 'var(--muted)';
+      const zone = el('g', { class: 'zone', 'data-id': L.id });
+      zone.appendChild(el('polygon', { points: poly([P(L.x, L.y), P(L.x + L.w, L.y), P(L.x + L.w, L.y + L.h), P(L.x, L.y + L.h)]), fill: 'var(--sheet)', stroke: 'var(--line)', 'stroke-width': 1 / view.k, 'stroke-linejoin': 'round' }));
+      // Zone name sits just outside the zone's left corner, on the floor, clear of the racks.
+      const t = P(L.x, L.y + L.h, 0);
+      zone.appendChild(el('text', { x: t[0] + 12 / view.k, y: t[1] + 14 / view.k, 'text-anchor': 'start', 'font-family': 'var(--font)', 'font-size': 12 / view.k, fill: col, 'pointer-events': 'none' }, L.name));
+      world.appendChild(zone);
+      if (state.edit && state.section === L.id) {
+        zone.querySelector('polygon').setAttribute('stroke', 'var(--accent)'); zone.querySelector('polygon').setAttribute('stroke-width', 2.5 / view.k);
+        const c = P(L.x + L.w, L.y + L.h), r = 7 / view.k;
+        world.appendChild(el('polygon', { class: 'handle', 'data-id': L.id, points: poly([[c[0], c[1] - r], [c[0] + r, c[1]], [c[0], c[1] + r], [c[0] - r, c[1]]]), fill: '#fff', stroke: 'var(--accent)', 'stroke-width': 2 / view.k, style: 'cursor:nwse-resize' }));
+      }
+    });
+    // sections + bins, painter's order: far (small x+y) first, low z first
+    const items = [];
+    locs.forEach(L => L.sections.forEach(S => {
+      items.push({ key: S.x + S.y - 1, draw: () => {
+        const sec = el('g', { class: 'section', 'data-id': S.id });
+        const selS = state.edit && state.section === S.id;
+        sec.appendChild(el('polygon', { points: poly([P(S.x - 8, S.y - 8, 0), P(S.x + S.w + 8, S.y - 8, 0), P(S.x + S.w + 8, S.y + S.h + 8, 0), P(S.x - 8, S.y + S.h + 8, 0)]), fill: selS ? 'var(--accent-medium)' : 'var(--grid)', stroke: state.edit ? 'var(--accent)' : 'none', 'stroke-width': (selS ? 2.5 : 1) / view.k, 'stroke-dasharray': selS ? '' : `${6 / view.k} ${4 / view.k}` }));
+        world.appendChild(sec);
+      } });
+      S.bins.forEach(b => items.push({ key: b.x + b.y + b.z * 0.001, draw: () => {
+        const st = statusOf(b);
+        const faded = state.client !== 'all' && b.lots.length && !visibleLots(b).length;
+        const p = pct(b);
+        // Floor pallets rise with what they hold; rack bins are fixed cells.
+        const geo = S.kind === 'FLOOR'
+          ? { x: b.x + 12, y: b.y + 12, z: 0, w: b.w - 24, d: b.d - 24, h: 14 + (p !== null ? Math.min(1.1, p / 100) : b.lots.length ? 0.5 : 0) * PALLET_H }
+          : { x: b.x + 4, y: b.y + 4, z: b.z + 4, w: b.w - 8, d: b.d - 8, h: b.h - 8 };
+        const sel = state.selected === b.id;
+        const f = fillOf(b);
+        const top = box(world, geo, f.fill, sel ? 'var(--ink)' : f.stroke, { class: 'bin', 'data-id': b.id }, faded ? 0.25 : 1);
+        if (sel) world.appendChild(el('polygon', { points: poly(top), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5 / view.k, 'pointer-events': 'none' }));
+      } }));
+      // rack label above the back-left post
+      items.push({ key: S.x + S.y + 1e6, draw: () => {
+        const t = P(S.x, S.y, (S.kind === 'RACK' ? S.levels * LEVEL_H : PALLET_H) + 40);
+        world.appendChild(el('text', { x: t[0], y: t[1], 'font-family': 'var(--font)', 'font-size': 11 / view.k, fill: 'var(--faint)', 'pointer-events': 'none' }, S.name));
+      } });
+    }));
+    items.sort((a, c) => a.key - c.key).forEach(i => i.draw());
+    svg.appendChild(world);
+  }
+  /* ------------------------------ interaction --------------------------- */
+  let drag = null;
+  // Screen delta → floor delta (inverse of the isometric projection, z = 0).
+  const unproject = (sx, sy) => [(sx / C + sy / S) / 2, (sy / S - sx / C) / 2];
+  const sectionOf = (id) => { for (const S of allSections) if (S.id === id || S.bins.some(b => b.id === id)) return { S, L: S.L }; return null; };
+  const snap = (v) => Math.round(v / 50) * 50;
+  sheet.addEventListener('pointerdown', e => {
+    const hnd = state.edit && e.target.closest && e.target.closest('.handle');
+    const t = e.target.closest && (e.target.closest('.bin') || e.target.closest('.section'));
+    const z = state.edit && !t && e.target.closest && e.target.closest('.zone');
+    const hit = state.edit && t ? sectionOf(t.getAttribute('data-id')) : null;
+    const Lh = hnd ? locationOf(hnd.getAttribute('data-id')) : z ? locationOf(z.getAttribute('data-id')) : null;
+    drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false, sec: hit ? { S: hit.S, L: hit.L, ox: hit.S.x, oy: hit.S.y } : null,
+      loc: Lh ? { L: Lh, ox: Lh.x, oy: Lh.y, ow: Lh.w, oh: Lh.h, resize: !!hnd } : null };
+    if (!hit && !Lh) sheet.classList.add('dragging');
+    sheet.setPointerCapture(e.pointerId);
+  });
+  sheet.addEventListener('pointermove', e => {
+    if (drag && drag.sec) {
+      const [wx, wy] = unproject((e.clientX - drag.x) / view.k, (e.clientY - drag.y) / view.k);
+      if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) drag.moved = true;
+      const { S, L } = drag.sec;
+      S.x = Math.min(L.x + L.w - S.w - 20, Math.max(L.x + 20, snap(drag.sec.ox + wx)));
+      S.y = Math.min(L.y + L.h - S.h - 20, Math.max(L.y + 20, snap(drag.sec.oy + wy)));
+      relayout(S); draw(); return;
+    }
+    if (drag && drag.loc) {
+      const [wx, wy] = unproject((e.clientX - drag.x) / view.k, (e.clientY - drag.y) / view.k);
+      if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) drag.moved = true;
+      const { L } = drag.loc;
+      if (drag.loc.resize) {
+        const [mw, mh] = minLocSize(L);
+        L.w = Math.max(mw, Math.min(HUB.w - L.x - 50, snap(drag.loc.ow + wx))); L.h = Math.max(mh, Math.min(HUB.h - L.y - 50, snap(drag.loc.oh + wy)));
+      } else {
+        L.x = Math.min(HUB.w - L.w - 50, Math.max(50, snap(drag.loc.ox + wx))); L.y = Math.min(HUB.h - L.h - 50, Math.max(50, snap(drag.loc.oy + wy)));
+        L.sections.forEach(S => { S.x = L.x + S.lay.x; S.y = L.y + S.lay.y; relayout(S); });
+      }
+      Object.assign(L.lay, { x: L.x, y: L.y, w: L.w, h: L.h }); draw(); return;
+    }
+    if (drag) {
+      const dx = (e.clientX - drag.x) / view.k, dy = (e.clientY - drag.y) / view.k;
+      if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) drag.moved = true;
+      view.x = drag.vx - dx; view.y = drag.vy - dy; draw(); return;
+    }
+    const t = e.target.closest && e.target.closest('.bin');
+    if (!t) { tip.style.display = 'none'; return; }
+    const { b, S, L } = findBin(t.getAttribute('data-id'));
+    const p = pct(b);
+    tip.innerHTML = `<b>${b.name}</b> · ${S.name}<br>${p !== null ? `${p.toFixed(0)}% · ` : ''}${STATUS_LABEL[statusOf(b)]}${b.lots.length ? `<br>${b.lots.map(l => `${l.sku.sku} ${l.qty}`).join(' · ')}` : ''}`;
+    const rect = sheet.getBoundingClientRect();
+    tip.style.display = 'block';
+    tip.style.left = Math.min(rect.width - 250, e.clientX - rect.left + 12) + 'px';
+    tip.style.top = (e.clientY - rect.top + 12) + 'px';
+  });
+  sheet.addEventListener('pointerup', e => {
+    sheet.classList.remove('dragging');
+    if (drag && drag.sec) {
+      if (drag.moved) { markDirty(drag.sec.S, 'moved'); renderTable(); toast(`${drag.sec.S.name} dipindah ke x ${drag.sec.S.x} · y ${drag.sec.S.y} cm`); }
+      selectSection(drag.sec.S.id);
+    } else if (drag && drag.loc) {
+      if (drag.moved) { markDirty(drag.loc.L, drag.loc.resize ? 'resized' : 'moved'); renderTable(); toast(drag.loc.resize ? `${drag.loc.L.name} diubah jadi ${drag.loc.L.w} × ${drag.loc.L.h} cm` : `${drag.loc.L.name} dipindah ke x ${drag.loc.L.x} · y ${drag.loc.L.y} cm (section ikut)`); }
+      selectLocation(drag.loc.L.id);
+    } else if (drag && !drag.moved) {
+      const t = e.target.closest && (e.target.closest('.bin') || e.target.closest('.section') || e.target.closest('.zone'));
+      if (t) select(t.getAttribute('data-id'));
+    }
+    drag = null;
+  });
+  let toastTimer = null;
+  function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.display = 'none'; }, 1800); }
+
+  /* ------------------------------ layout editor ------------------------- */
+  // Everything here edits LAYOUTS (wh_storage_layouts) only. Storage rows are read, never written.
+  const editBtn = document.getElementById('edit'), editbar = document.getElementById('editbar');
+  editBtn.onclick = () => {
+    state.edit = !state.edit; state.section = null;
+    editBtn.classList.toggle('on', state.edit); editBtn.textContent = state.edit ? 'Selesai' : 'Atur layout';
+    editbar.hidden = !state.edit; sheet.classList.toggle('edit', state.edit);
+    document.getElementById('rotate').disabled = document.getElementById('unplace').disabled = true;
+    renderDirty(); draw();
+  };
+  function selectSection(id) {
+    const hit = sectionOf(id); if (!hit || !hit.S.placed) return;
+    state.section = id;
+    document.getElementById('rotate').disabled = document.getElementById('unplace').disabled = false;
+    const { S, L } = hit;
+    const insp = document.getElementById('insp'), title = document.getElementById('insp-title');
+    title.textContent = `Layout · ${S.name}`;
+    const used = S.bins.filter(b => b.lots.length).length;
+    insp.innerHTML = `<div class="kvs"><div class="kv"><span>Location</span><span>${L.name}</span></div><div class="kv"><span>Path</span><span class="mono">${S.row.path}</span></div><div class="kv"><span>Bin</span><span>${S.bins.length} dari data Storage · ${used} berisi stok</span></div><div class="kv"><span>Ukuran</span><span class="mono">${S.w} × ${S.h} cm</span></div></div>
+      <div class="field"><div><label for="f-x">X (cm)</label><input id="f-x" type="number" step="50" value="${S.x}"></div><div><label for="f-y">Y (cm)</label><input id="f-y" type="number" step="50" value="${S.y}"></div>
+      <div><label for="f-shape">Bentuk</label><select id="f-shape"><option value="RACK" ${S.kind === 'RACK' ? 'selected' : ''}>Rak bertingkat</option><option value="FLOOR" ${S.kind === 'FLOOR' ? 'selected' : ''}>Slot lantai</option></select></div>
+      ${S.kind === 'RACK' ? `<div><label for="f-levels">Level (kolom = ${S.bins.length} bin ÷ level = ${S.cols})</label><input id="f-levels" type="number" min="1" max="6" value="${S.levels}"></div>` : `<div><label for="f-rows">Baris slot (kolom = ${S.cols})</label><input id="f-rows" type="number" min="1" max="8" value="${S.rows}"></div><div><label for="f-cell">Lebar slot (cm)</label><input id="f-cell" type="number" min="80" max="400" step="10" value="${S.cw}"></div>`}
+      </div>
+      <p class="meta" style="margin-top:10px">Nama section, jumlah bin, dan kapasitas diubah di menu Storage — peta hanya menata bin yang sudah ada.</p>`;
+    const apply = () => {
+      S.x = snap(Number(insp.querySelector('#f-x').value) || S.x); S.y = snap(Number(insp.querySelector('#f-y').value) || S.y);
+      const shape = insp.querySelector('#f-shape').value; const reshaped = shape !== S.kind; S.kind = shape;
+      if (S.kind === 'RACK') S.levels = Math.max(1, Number(insp.querySelector('#f-levels')?.value) || S.levels);
+      else { S.rows = Math.max(1, Number(insp.querySelector('#f-rows')?.value) || S.rows); S.cw = S.ch = Math.max(80, Number(insp.querySelector('#f-cell')?.value) || S.cw); }
+      relayout(S); markDirty(S, reshaped || !insp.querySelector('#f-x').matches(':focus') ? 'resized' : 'moved'); refresh(); selectSection(S.id);
+    };
+    insp.querySelectorAll('input, select').forEach(i => { i.onchange = apply; });
+    draw();
+  }
+  // Smallest rectangle that still contains the location's placed sections (plus a 60 cm margin).
+  const minLocSize = (L) => [Math.max(400, ...L.sections.map(S => S.x - L.x + S.w + 60)), Math.max(400, ...L.sections.map(S => S.y - L.y + S.h + 60))];
+  function selectLocation(id) {
+    const L = locationOf(id); if (!L || !L.placed) return;
+    state.section = id; state.selected = null;
+    document.getElementById('rotate').disabled = true; document.getElementById('unplace').disabled = false;
+    const insp = document.getElementById('insp'), title = document.getElementById('insp-title');
+    title.textContent = `Layout · ${L.name}`;
+    const [mw, mh] = minLocSize(L);
+    insp.innerHTML = `<div class="kvs"><div class="kv"><span>Tipe</span><span>${L.type}</span></div><div class="kv"><span>Path</span><span class="mono">${L.row.path}</span></div><div class="kv"><span>Section</span><span>${L.all.length} dari data Storage · ${L.sections.length} di peta</span></div></div>
+      <div class="field"><div><label for="l-x">X (cm)</label><input id="l-x" type="number" step="50" value="${L.x}"></div><div><label for="l-y">Y (cm)</label><input id="l-y" type="number" step="50" value="${L.y}"></div>
+      <div><label for="l-w">Lebar (cm, min ${mw})</label><input id="l-w" type="number" step="50" min="${mw}" value="${L.w}"></div><div><label for="l-h">Panjang (cm, min ${mh})</label><input id="l-h" type="number" step="50" min="${mh}" value="${L.h}"></div></div>
+      <p class="meta" style="margin-top:10px">Geser zona: section di dalamnya ikut (posisi section relatif ke origin location). Tarik handle di sudut jauh untuk mengubah ukuran; ukuran tidak bisa lebih kecil dari rak yang ada di dalamnya.</p>`;
+    const apply = () => {
+      const nx = snap(Number(insp.querySelector('#l-x').value) || L.x), ny = snap(Number(insp.querySelector('#l-y').value) || L.y);
+      const nw = Math.max(mw, snap(Number(insp.querySelector('#l-w').value) || L.w)), nh = Math.max(mh, snap(Number(insp.querySelector('#l-h').value) || L.h));
+      const kind = nw !== L.w || nh !== L.h ? 'resized' : 'moved';
+      Object.assign(L.lay, { x: nx, y: ny, w: nw, h: nh }); markDirty(L, kind); refresh(); selectLocation(id);
+    };
+    insp.querySelectorAll('input').forEach(i => { i.onchange = apply; });
+    draw();
+  }
+  function placeLocation(id) {
+    const L = locationOf(id); if (!L || L.placed) return;
+    const [w, h] = DEFAULT_LOC[L.type] || [600, 600];
+    const taken = layout.locations.map(o => ({ x: o.x, y: o.y, w: o.w, h: o.h }));
+    let spot = null;
+    for (let y = 100; y + h <= HUB.h - 60 && !spot; y += 50)
+      for (let x = 100; x + w <= HUB.w - 60; x += 50) { const r = { x, y, w, h }; if (!taken.some(t => overlaps(r, t, 100))) { spot = r; break; } }
+    spot = spot || { x: 100, y: 100 };
+    LAYOUTS.set(id, { x: spot.x, y: spot.y, w, h }); markDirty(L, 'placed');
+    if (!state.edit) editBtn.onclick();
+    refresh(); selectLocation(id); toast(`${L.name} ditempatkan sebagai zona ${w} × ${h} cm — ${L.all.length} section-nya kini bisa ditempatkan`);
+  }
+  function place(id) {
+    if (locationOf(id)) return placeLocation(id);
+    const S = allSections.find(x => x.id === id); if (!S || S.placed || !S.L.placed) return;
+    const L = S.L;
+    // Drop below the lowest section of its location (or at the top-left), ops drags it from there.
+    const low = L.sections.reduce((a, s) => Math.max(a, s.y + s.h), L.y + 100);
+    const lay = { x: L.x + 120, y: Math.min(L.y + L.h - 200, low + 100), rot: 0, shape: L.type === 'STORAGE' ? 'RACK' : 'FLOOR', levels: 3, rows: 2, cell: 200 };
+    lay.x -= L.x; lay.y -= L.y; LAYOUTS.set(id, lay); markDirty(S, 'placed');
+    if (!state.edit) editBtn.onclick();
+    refresh(); selectSection(id); toast(`${S.name} ditempatkan (${S.bins.length} bin dari Storage) — drag ke posisinya`);
+  }
+  document.getElementById('rotate').onclick = () => { const h = sectionOf(state.section); if (!h) return; h.S.rot = h.S.rot === 90 ? 0 : 90; relayout(h.S); markDirty(h.S, 'moved'); refresh(); selectSection(h.S.id); toast(`${h.S.name} diputar`); };
+  document.getElementById('unplace').onclick = () => {
+    const Lx = locationOf(state.section);
+    if (Lx) {
+      LAYOUTS.delete(Lx.id); markDirty(Lx, 'unplaced'); Lx.sections.forEach(S => { LAYOUTS.delete(S.id); markDirty(S, 'unplaced'); });
+      state.section = null; state.selected = null; document.getElementById('rotate').disabled = document.getElementById('unplace').disabled = true;
+      document.getElementById('insp').innerHTML = `<p class="meta">${Lx.name} dan ${Lx.sections.length} section-nya dilepas dari peta. Data Storage tidak berubah.</p>`; document.getElementById('insp-title').textContent = 'Detail';
+      refresh(); toast(`${Lx.name} dilepas dari peta beserta section-nya`); return;
+    }
+    const h = sectionOf(state.section); if (!h) return;
+    LAYOUTS.delete(h.S.id); markDirty(h.S, 'unplaced'); state.section = null; state.selected = null;
+    document.getElementById('rotate').disabled = document.getElementById('unplace').disabled = true;
+    document.getElementById('insp').innerHTML = `<p class="meta">${h.S.name} dilepas dari peta. Section, bin, dan stoknya tetap ada di Storage — tempatkan lagi dari tray.</p>`; document.getElementById('insp-title').textContent = 'Detail';
+    refresh(); toast(`${h.S.name} dilepas dari peta — data Storage tidak berubah`);
+  };
+  document.getElementById('save').onclick = () => {
+    const body = [...LAYOUTS].map(([storageID, l]) => ({ storageID, category: STORAGES.find(r => r.id === storageID).category, ...l }));
+    console.info('PUT /v1/warehouses/storages/layout', { hubID: HUB.id, layouts: body });
+    const n = dirty.size; dirty.clear(); savedOnce = true; SAVED = new Map([...LAYOUTS].map(([k, v]) => [k, { ...v }])); renderDirty(); renderTable();
+    toast(`Layout tersimpan: ${n} perubahan, ${body.filter(b => b.category === 'LOCATION').length} location + ${body.filter(b => b.category === 'SECTION').length} section berposisi (PUT /storages/layout) — data Storage tidak berubah`);
+  };
+  renderDirty();
+
+  /* ------------------------------ e2e walkthrough ----------------------- */
+  // The layout as last saved (what wh_storage_layouts holds). "Mulai dari awal" empties the section rows.
+  let SAVED = new Map([...LAYOUTS].map(([k, v]) => [k, { ...v }]));
+  let savedOnce = false;
+  const sectionIds = () => STORAGES.filter(r => r.category === 'SECTION').map(r => r.id);
+  const layoutIds = () => STORAGES.filter(r => r.category !== 'BIN').map(r => r.id);
+  const overlaps = (a, b, m = 250) => !(a.x + a.w + m <= b.x || b.x + b.w + m <= a.x || a.y + a.h + m <= b.y || b.y + b.h + m <= a.y);
+  // First free spot in the section's location, scanning row by row on the 50 cm grid.
+  function autoPlace(S) {
+    const L = S.L; const shape = L.type === 'STORAGE' ? 'RACK' : 'FLOOR';
+    const n = S.rows_.length; const cell = L.type === 'STORAGE' ? 200 : 160;
+    const w = shape === 'RACK' ? Math.ceil(n / 3) * BIN_W : Math.ceil(n / 2) * cell, h = shape === 'RACK' ? BIN_D : 2 * cell;
+    const taken = L.sections.map(s => ({ x: s.x, y: s.y, w: s.w, h: s.h }));
+    let spot = null;
+    for (let y = L.y + 150; y + h <= L.y + L.h - 60 && !spot; y += 50)
+      for (let x = L.x + 120; x + w <= L.x + L.w - 60; x += 50) { const r = { x, y, w, h }; if (!taken.some(t => overlaps(r, t, L.type === 'STORAGE' ? 250 : 120))) { spot = r; break; } }
+    spot = spot || { x: L.x + 120, y: L.y + 150 };
+    LAYOUTS.set(S.id, { x: spot.x - L.x, y: spot.y - L.y, rot: 0, shape, levels: 3, rows: 2, cell });
+    markDirty(S, 'placed');
+  }
+  let autoTimer = null;
+  function stopAuto() { clearInterval(autoTimer); autoTimer = null; document.getElementById('g-auto').textContent = 'Tempatkan otomatis satu per satu'; }
+  document.getElementById('g-start').onclick = () => {
+    stopAuto(); layoutIds().forEach(id => LAYOUTS.delete(id)); dirty.clear(); savedOnce = false; state.section = null; state.selected = null;
+    if (!state.edit) editBtn.onclick();
+    document.getElementById('insp-title').textContent = 'Detail'; document.getElementById('insp').innerHTML = '<p class="meta">Belum ada baris layout: denah hub kosong. Tempatkan location (zona) dulu dari tray, baru section-sectionnya.</p>';
+    refresh(); fit(); toast(`Layout dikosongkan: ${allLocations.length} location + ${sectionIds().length} section kembali ke tray — data Storage utuh`);
+  };
+  document.getElementById('g-auto').onclick = () => {
+    if (autoTimer) { stopAuto(); renderGuide(); return; }
+    if (!state.edit) editBtn.onclick();
+    document.getElementById('g-auto').textContent = 'Jeda';
+    const step = () => {
+      const Lu = unplacedLocs()[0]; if (Lu) { placeLocation(Lu.id); return; }
+      const S = unplaced()[0]; if (!S) { stopAuto(); renderGuide(); toast('Semua location & section sudah di peta — rapikan lalu Simpan layout'); return; } autoPlace(S); refresh(); selectSection(S.id); toast(`${S.name} ditempatkan otomatis (${S.bins.length} bin)`); };
+    step(); autoTimer = setInterval(step, 800);
+  };
+  document.getElementById('g-restore').onclick = () => {
+    stopAuto(); layoutIds().forEach(id => LAYOUTS.delete(id)); SAVED.forEach((v, k) => LAYOUTS.set(k, { ...v })); dirty.clear(); state.section = null;
+    refresh(); fit(); toast('Layout tersimpan dimuat ulang (GET /storages/layout)');
+  };
+  function renderGuide() {
+    const total = sectionIds().length, placed = allSections.filter(S => S.placed).length;
+    const bins = STORAGES.filter(r => r.category === 'BIN').length, locs = STORAGES.filter(r => r.category === 'LOCATION').length;
+    const lp = allLocations.filter(L => L.placed).length, allPlaced = placed === total && lp === locs, clean = dirty.size === 0;
+    const steps = [
+      { t: 'Data Storage ada', d: `${locs} location · ${total} section · ${bins} bin dari menu Storage (GET /storages). Ini sumbernya.`, s: 'done' },
+      { t: 'Baris layout', d: lp + placed === 0 ? 'Belum ada: denah hub kosong, semua location & section di tray.' : `${lp} / ${locs} location, ${placed} / ${total} section punya baris di wh_storage_layouts.`, s: allPlaced ? 'done' : 'active' },
+      { t: 'Tempatkan', d: allPlaced ? 'Semua location & section sudah di denah.' : `Location (zona) dulu, lalu section ke dalamnya. Sisa ${locs - lp} location, ${total - placed} section.`, s: allPlaced ? 'done' : lp + placed > 0 ? 'active' : 'todo' },
+      { t: 'Rapikan', d: 'Geser/resize zona location (handle sudut), drag rak (snap 50 cm), putar, ubah level. Bin tidak bertambah/berkurang.', s: allPlaced && !clean ? 'active' : allPlaced && clean ? 'done' : 'todo' },
+      { t: 'Simpan layout', d: clean && allPlaced && savedOnce ? 'Tersimpan: PUT /storages/layout, hanya posisi.' : `${dirty.size} perubahan menunggu Simpan.`, s: clean && allPlaced && savedOnce ? 'done' : !clean ? 'active' : 'todo' },
+      { t: 'Okupansi tampil', d: `Warna bin dari stok (wh_stocks) ÷ kapasitas storage: ${document.getElementById('k-cbm').textContent} volume hub terpakai. Simulasi inbound/picking mengubah ini, bukan layout.`, s: allPlaced && clean && savedOnce ? 'done' : 'todo' },
+    ];
+    document.getElementById('steps').innerHTML = steps.map((x, i) => `<li class="${x.s}"><i>${x.s === 'done' ? '✓' : i + 1}</i><b>${x.t}</b>${x.d}</li>`).join('');
+    document.getElementById('g-auto').disabled = allPlaced && !autoTimer; document.getElementById('g-restore').disabled = false;
+  }
+  sheet.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
+  sheet.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = sheet.getBoundingClientRect();
+    const mx = e.clientX - rect.left - RULER, my = e.clientY - rect.top - RULER;
+    zoomAt(mx, my, Math.exp(-e.deltaY * 0.0015));
+  }, { passive: false });
+  function zoomAt(mx, my, f) {
+    const wx = view.x + mx / view.k, wy = view.y + my / view.k;
+    view.k = Math.max(0.05, Math.min(3, view.k * f));
+    view.x = wx - mx / view.k; view.y = wy - my / view.k;
+    draw();
+  }
+  document.getElementById('fit').onclick = fit;
+  document.querySelectorAll('#mode button').forEach(btn => btn.onclick = () => {
+    state.mode = btn.getAttribute('data-mode');
+    document.querySelectorAll('#mode button').forEach(x => x.classList.toggle('on', x === btn));
+    draw(); kpis(); if (state.selected) select(state.selected);
+  });
+  const floorSel = document.getElementById('floor');
+  layout.locations.forEach(L => floorSel.appendChild(new Option(L.name, L.id)));
+  floorSel.onchange = () => { state.floor = floorSel.value; draw(); };
+  const clientSel = document.getElementById('client');
+  [...new Set(SKUS.map(s => s.client))].forEach(c => clientSel.appendChild(new Option(c, c)));
+  clientSel.onchange = () => { state.client = clientSel.value; draw(); };
+
+  function findBin(id) { return allBins().find(x => x.b.id === id); }
+  function select(id) {
+    if (state.edit) { const h = sectionOf(id); if (h) { selectSection(h.S.id); return; } const Lx = locationOf(id); if (Lx && Lx.placed) { selectLocation(id); return; } }
+    state.selected = id;
+    const insp = document.getElementById('insp');
+    const title = document.getElementById('insp-title');
+    const hit = findBin(id);
+    const kv = (rows) => `<div class="kvs">${rows.map(([k, v]) => `<div class="kv"><span>${k}</span><span>${v ?? '<span class="dash">—</span>'}</span></div>`).join('')}</div>`;
+    if (hit) {
+      const { b, S, L } = hit; const st = statusOf(b); const p = pct(b);
+      title.textContent = `Bin ${b.name}`;
+      insp.innerHTML = kv([
+        ['Posisi', `${L.name} / ${S.name}${b.level != null ? ` / level ${b.level + 1}` : ''}`],
+        ['Ukuran', `<span class="mono">${b.w} × ${b.d} × ${b.h} cm</span>`],
+        ['Kapasitas', b.capCbm != null ? `${b.capCbm.toFixed(2)} m³` : badge('Belum diset', 'faded')],
+        ['Terpakai', `${usedCbm(b).toFixed(3)} m³ · ${usedQty(b)} unit · ${usedKg(b).toFixed(1)} kg`],
+        ['Okupansi', `${p !== null ? `<b>${p.toFixed(1)}%</b> ` : ''}${badge(STATUS_LABEL[st], TONE[st])}`],
+      ]) + (b.lots.length ? `<table class="tbl-mini"><thead><tr><th>SKU · batch</th><th>Qty</th></tr></thead><tbody>${b.lots.map(l => `<tr><td><span class="mono">${l.sku.sku}</span><div class="meta">${l.sku.client} · ${l.batch}</div></td><td class="num">${l.qty} ${l.sku.uom}</td></tr>`).join('')}</tbody></table>` : '<p class="meta" style="margin-top:10px">Tidak ada stok.</p>')
+      + `<div class="acts"><button class="btn" data-act="in">Terima ke bin ini</button><button class="btn stroke" data-act="out" ${b.lots.length ? '' : 'disabled'}>Pick dari bin ini</button><button class="btn stroke" data-act="cap">${b.capCbm != null ? 'Ubah kapasitas' : 'Set kapasitas'}</button></div>`;
+      insp.querySelector('[data-act=in]').onclick = () => inbound(b);
+      insp.querySelector('[data-act=out]').onclick = () => picking(b);
+      insp.querySelector('[data-act=cap]').onclick = () => { b.row.capacityCbm = b.capCbm != null ? Math.round((b.capCbm === 1.5 ? 2.0 : 1.5) * 10) / 10 : 1.5; refresh(); }; // PATCH /storages/:id { capacityCbm }
+    } else {
+      const sec = allSections.map(S => ({ S, L: S.L })).find(x => x.S.id === id);
+      const loc = locationOf(id);
+      const bins = sec ? sec.S.bins : loc ? loc.sections.flatMap(S => S.bins) : [];
+      const used = bins.filter(b => b.lots.length).length;
+      const cap = bins.reduce((a, b) => a + (b.capCbm ?? 0), 0), use = bins.reduce((a, b) => a + usedCbm(b), 0);
+      const counts = {}; bins.forEach(b => { const s = statusOf(b); counts[s] = (counts[s] || 0) + 1; });
+      title.textContent = sec ? `Section ${sec.S.name}` : loc ? `Location ${loc.name}` : id;
+      const unpl = sec && !sec.S.placed;
+      insp.innerHTML = kv([
+        ['Bin', `${bins.length} · terpakai ${used} (${bins.length ? Math.round(used / bins.length * 100) : 0}%)`],
+        ['Volume', `${use.toFixed(1)} / ${cap.toFixed(1)} m³ (${cap ? Math.round(use / cap * 100) : 0}%)`],
+        ['Status bin', Object.keys(STATUS_LABEL).filter(k => counts[k]).map(k => badge(`${counts[k]} ${STATUS_LABEL[k]}`, TONE[k])).join(' ') || null],
+        ['Path', `<span class="mono">${sec ? sec.S.row.path : loc ? loc.row.path : ''}</span>`],
+        ['Di peta', sec ? (unpl ? badge('Belum ditempatkan', 'warning') + ' <span class="meta">buka Atur layout → tray</span>' : `<span class="mono">x ${sec.S.x - sec.S.L.x} · y ${sec.S.y - sec.S.L.y} cm</span> dari origin ${sec.S.L.name} · ${sec.S.kind === 'RACK' ? `rak ${sec.S.levels} level` : `lantai ${sec.S.rows} baris`}`) : loc ? (loc.placed ? `<span class="mono">x ${loc.x} · y ${loc.y} · ${loc.w} × ${loc.h} cm</span>` : badge('Belum ditempatkan', 'warning')) : null],
+      ]);
+    }
+    draw();
+  }
+  const TONE = { empty: 'faded', ok: 'success', mid: 'warning', high: 'error', full: 'error', unset: 'faded' };
+  const badge = (text, tone) => `<span class="badge ${tone}"><i></i>${text}</span>`;
+  const expanded = new Set(STORAGES.filter(r => r.category === 'LOCATION').map(r => r.id));
+  document.getElementById('json-toggle').onclick = (e) => { const j = document.getElementById('json'); j.hidden = !j.hidden; e.currentTarget.textContent = j.hidden ? 'Lihat JSON' : 'Tutup JSON'; renderTable(); };
+  const TYPE = { STORAGE: 'Storage', QUARANTINE: 'Quarantine', STAGING: 'Staging' };
+  const statsOf = (bins, L) => {
+    const used = bins.filter(b => b.lots.length).length;
+    const cap = bins.reduce((a, b) => a + (b.capCbm ?? 0), 0), use = bins.reduce((a, b) => a + usedCbm(b), 0);
+    const p = cap ? use / cap * 100 : null;
+    const st = L.type !== 'STORAGE' ? (use > 0 ? 'ok' : 'empty') : p === null ? (use > 0 ? 'unset' : 'empty') : p > 100 ? 'full' : p > 80 ? 'high' : p > 50 ? 'mid' : p > 0 ? 'ok' : 'empty';
+    return { used, cap, use, p, st, n: bins.length };
+  };
+  const progress = (x) => `<div class="prog"><i style="width:${Math.min(100, x.p ?? 0)}%;background:var(--${x.st === 'full' || x.st === 'high' ? 'err' : x.st === 'mid' ? 'warn' : 'ok'})"></i></div><span class="num">${x.p !== null ? `${Math.round(x.p)}%` : '—'}</span>`;
+  const dirtyTag = (id) => dirty.has(id) ? ` <span class="badge warning"><i></i>${KIND_LABEL[dirty.get(id).kind]}</span>` : '';
+  const nodes = () => { const out = []; allLocations.forEach(L => { out.push({ kind: 'L', id: L.id, row: L.row, L, bins: L.all.flatMap(S => S.bins), lv: 0 }); L.all.forEach(S => { out.push({ kind: 'S', id: S.id, row: S.row, L, S, bins: S.bins, lv: 1 }); S.bins.forEach(b => out.push({ kind: 'B', id: b.id, row: b.row, L, S, b, bins: [b], lv: 2 })); }); }); return out; };
+  /**
+   * One tree table for both pages: a row per location, section and bin.
+   * `mode` = 'map' (occupancy + position columns) | 'storage' (status, capacity, actions).
+   * `match(node)` filters; when a filter is active every ancestor of a match is shown and the tree is fully open.
+   */
+  function renderTree(tbodyId, mode, match) {
+    const tb = document.getElementById(tbodyId); if (!tb) return 0;
+    const all = nodes(); const filtering = !!match;
+    const ok = new Set(); if (filtering) all.forEach(n => { if (match(n)) { ok.add(n.id); if (n.S) ok.add(n.S.id); ok.add(n.L.id); } });
+    const open = (id) => filtering || expanded.has(id);
+    let shown = 0;
+    const html = all.filter(n => !filtering || ok.has(n.id)).filter(n => n.lv === 0 || (n.lv === 1 ? open(n.L.id) : open(n.L.id) && open(n.S.id))).map(n => {
+      shown++;
+      const x = statsOf(n.bins, n.L); const r = n.row; const hasKids = n.kind !== 'B';
+      const name = `<span class="chev ${hasKids ? '' : 'none'}" data-exp="${n.id}">${hasKids ? (open(n.id) ? '▾' : '▸') : ''}</span>${n.kind === 'L' ? `<b>${r.name}</b>` : r.name}${n.kind !== 'B' ? ` <span class="meta mono">${r.path}</span>` : ''}`;
+      const cat = `<span class="tag">${r.category}</span>`; const type = TYPE[n.L.type];
+      const cap = n.kind === 'B' ? (r.capacityCbm != null ? `${r.capacityCbm.toFixed(2)} m³${r.capacityKg ? ` · ${r.capacityKg} kg` : ''}${r.capacityQty ? ` · ${r.capacityQty} unit` : ''}` : badge('Belum diset', 'faded')) : `${x.cap.toFixed(1)} m³`;
+      const place = n.kind === 'L' ? (n.L.placed ? `<span class="mono" title="x, y · lebar × panjang (cm)">${n.L.x},${n.L.y} · ${n.L.w}×${n.L.h}</span>` : badge('Belum ditempatkan', 'warning')) + dirtyTag(n.id)
+        : n.kind === 'S' ? (n.S.placed ? `<span class="mono" title="x, y relatif ke location (cm)">${n.S.x - n.L.x},${n.S.y - n.L.y}</span> · ${n.S.kind === 'RACK' ? `rak ${n.S.levels} lvl` : `lantai ${n.S.rows} brs`}` : badge('Belum ditempatkan', 'warning')) + dirtyTag(n.id)
+        : (n.S.placed ? `<span class="meta">${n.S.kind === 'RACK' ? `kolom ${n.b.col + 1} · level ${n.b.level + 1}` : `slot ${n.S.bins.indexOf(n.b) + 1}`}</span>` : '<span class="dash">—</span>');
+      const inactive = r.status === 'INACTIVE';
+      if (mode === 'map') return `<tr class="lv${n.lv} ${inactive ? 'inactive' : ''}" data-id="${n.id}"><td>${name}</td><td>${cat}</td><td>${type}</td><td class="num">${n.kind === 'B' ? '—' : x.n}</td><td class="num">${n.kind === 'B' ? (n.b.lots.length ? 'ya' : '—') : `${x.used} / ${x.n}`}</td><td class="num">${x.use.toFixed(n.kind === 'B' ? 2 : 1)} / ${x.cap.toFixed(n.kind === 'B' ? 2 : 1)} m³</td><td>${progress(x)}</td><td>${badge(STATUS_LABEL[x.st], TONE[x.st])}</td><td>${place}</td></tr>`;
+      const items = n.kind === 'L' ? [['edit', 'Edit location'], ['add', 'Tambah section']] : n.kind === 'S' ? [['edit', 'Edit section'], ['cap', 'Set kapasitas semua bin'], ['add', 'Tambah bin']] : [['edit', 'Edit bin']];
+      const acts = `<button class="dd-btn" data-dd="${n.id}" data-items="${items.map(i => i.join(':')).join('|')}" aria-label="Aksi ${r.name}">Aksi ▾</button>`;
+      const useCap = n.kind === 'B' ? (r.capacityCbm != null ? `${x.use.toFixed(2)} / ${r.capacityCbm.toFixed(2)} m³` : `${x.use.toFixed(2)} m³ · ${badge('Belum diset', 'faded')}`) + `<div class="meta">${usedQtyOf(n.bins)} unit${r.capacityKg ? ` · maks ${r.capacityKg} kg` : ''}${r.capacityQty ? ` · maks ${r.capacityQty} unit` : ''}</div>` : `${x.use.toFixed(1)} / ${x.cap.toFixed(1)} m³<div class="meta">${usedQtyOf(n.bins)} unit · ${n.bins.filter(b => b.capCbm == null).length ? `${n.bins.filter(b => b.capCbm == null).length} bin belum diset` : 'semua bin diset'}</div>`;
+      return `<tr class="lv${n.lv} ${inactive ? 'inactive' : ''}" data-id="${n.id}"><td>${name} ${cat}${n.kind === 'L' ? ` <span class="tag">${type}</span>` : ''}</td><td>${badge(r.status === 'ACTIVE' ? 'Active' : 'Inactive', r.status === 'ACTIVE' ? 'success' : 'faded')}</td><td class="num">${n.kind === 'B' ? '—' : x.n}</td><td class="num">${useCap}</td><td>${progress(x)}<div style="margin-top:4px">${badge(STATUS_LABEL[x.st], TONE[x.st])}</div></td><td>${place}</td><td class="sticky"><div class="rowacts">${acts}</div></td></tr>`;
+    }).join('');
+    tb.innerHTML = html;
+    tb.querySelectorAll('[data-exp]').forEach(c => c.onclick = (e) => { e.stopPropagation(); const id = c.getAttribute('data-exp'); expanded.has(id) ? expanded.delete(id) : expanded.add(id); renderTable(); renderStoragePage(); });
+    if (mode === 'map') tb.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => select(tr.getAttribute('data-id')));
+    else {
+      tb.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => openEdit(tr.getAttribute('data-id')));
+      tb.querySelectorAll('[data-dd]').forEach(btn => btn.onclick = (e) => { e.stopPropagation(); openMenu(btn); });
+    }
+    return shown;
+  }
+  const menu = document.getElementById('menu');
+  const closeMenus = () => { menu.hidden = true; };
+  document.addEventListener('click', closeMenus);
+  function openMenu(btn) {
+    const id = btn.getAttribute('data-dd'); const items = btn.getAttribute('data-items').split('|').map(i => i.split(':'));
+    if (!menu.hidden && menu.getAttribute('data-for') === id) { closeMenus(); return; }
+    menu.innerHTML = items.map(([a, l]) => `<button data-act="${a}">${l}</button>`).join(''); menu.setAttribute('data-for', id);
+    menu.querySelectorAll('[data-act]').forEach(b => b.onclick = (e) => { e.stopPropagation(); closeMenus(); const a = b.getAttribute('data-act'); if (a === 'edit') openEdit(id); else if (a === 'cap') openBulkCapacity(id); else openAdd(id); });
+    const r = btn.getBoundingClientRect(); menu.hidden = false;
+    menu.style.top = `${Math.min(window.innerHeight - menu.offsetHeight - 8, r.bottom + 4)}px`; menu.style.left = `${Math.max(8, r.right - menu.offsetWidth)}px`;
+  }
+  const usedQtyOf = (bins) => bins.reduce((a, b) => a + usedQty(b), 0);
+  // Storage table under the map.
+  function renderTable() {
+    document.getElementById('storage-count').textContent = `· ${allLocations.length} location · ${allSections.length} section · ${STORAGES.filter(r => r.category === 'BIN').length} bin · ${allSections.filter(S => S.placed).length} section di peta`;
+    renderTree('rows', 'map');
+    const json = document.getElementById('json');
+    if (!json.hidden) json.textContent = JSON.stringify({ data: STORAGES.slice(0, 5).map(r => ({ id: r.id, hubID: HUB.id, name: r.name, category: r.category, type: r.type, path: r.path, status: r.status, capacityCbm: r.capacityCbm ?? null, capacityKg: r.capacityKg ?? null, capacityQty: r.capacityQty ?? null, qtyOnHandDirect: r.category === 'BIN' ? usedQty({ lots: lotsOf(r.id) }) : undefined })), pagination: { total: STORAGES.length } }, null, 2) + `\n… ${STORAGES.length} baris; kolom capacity* & qtyOnHandDirect ada di usulan`;
+    renderGuide();
+  }
+
+  /* ------------------------------ Storage menu (CRUD) ------------------- */
+  // The same STORAGES rows, managed: name / status / capacity per row, bulk capacity per section,
+  // new section + generated bins, CSV import. Every save here is what the map and KPIs read next.
+  const sf = { q: '', cat: 'all', type: 'all', status: 'all', occ: 'all' };
+  const sfActive = () => sf.q || sf.cat !== 'all' || sf.type !== 'all' || sf.status !== 'all' || sf.occ !== 'all';
+  function renderStoragePage() {
+    const page = document.getElementById('page-storage'); if (page.hidden) return;
+    const match = sfActive() ? (n) => (!sf.q || `${n.row.name} ${n.row.path}`.toLowerCase().includes(sf.q.toLowerCase())) && (sf.cat === 'all' || n.row.category === sf.cat) && (sf.type === 'all' || n.L.type === sf.type) && (sf.status === 'all' || n.row.status === sf.status) && (sf.occ === 'all' || (sf.occ === 'unset' ? n.kind === 'B' && n.row.capacityCbm == null && n.L.type === 'STORAGE' : statsOf(n.bins, n.L).st === sf.occ)) : null;
+    const shown = renderTree('s-rows', 'storage', match);
+    const bins = allBins().filter(({ b, L }) => L.type === 'STORAGE' && b.row.status === 'ACTIVE');
+    const x = statsOf(bins.map(({ b }) => b), { type: 'STORAGE' });
+    const t = (id, v) => { document.getElementById(id).textContent = v; };
+    t('s-count', `· ${shown} baris${sfActive() ? ' (difilter)' : ''}`);
+    t('s-k-total', STORAGES.length); t('s-k-total-s', `${allLocations.length} location · ${allSections.length} section · ${STORAGES.filter(r => r.category === 'BIN').length} bin`);
+    t('s-k-bins', bins.length); t('s-k-bins-s', `${STORAGES.filter(r => r.category === 'BIN' && r.status === 'INACTIVE').length} inactive`);
+    t('s-k-unset', bins.filter(({ b }) => b.capCbm == null).length);
+    t('s-k-occ', x.p !== null ? `${x.p.toFixed(1)}%` : '—'); t('s-k-occ-s', `${x.use.toFixed(1)} / ${x.cap.toFixed(1)} m³`);
+    t('s-k-unplaced', allSections.filter(S => !S.placed).length + allLocations.filter(L => !L.placed).length);
+  }
+  ['sf-q', 'sf-cat', 'sf-type', 'sf-status', 'sf-occ'].forEach(id => { document.getElementById(id).oninput = (e) => { sf[id.slice(3)] = e.target.value; renderStoragePage(); }; });
+  document.getElementById('s-expand').onclick = () => { STORAGES.filter(r => r.category !== 'BIN').forEach(r => expanded.add(r.id)); renderTable(); renderStoragePage(); };
+  document.getElementById('s-collapse').onclick = () => { expanded.clear(); renderTable(); renderStoragePage(); };
+
+  // --- dialog (ActionDialog) ---
+  const overlay = document.getElementById('overlay');
+  let onOk = null;
+  function openDialog(title, desc, body, ok, okLabel = 'Simpan') {
+    document.getElementById('dlg-title').textContent = title; document.getElementById('dlg-desc').textContent = desc;
+    document.getElementById('dlg-body').innerHTML = body; document.getElementById('dlg-ok').textContent = okLabel; onOk = ok; overlay.hidden = false;
+    const f = overlay.querySelector('input, select, textarea'); if (f) f.focus();
+  }
+  const closeDialog = () => { overlay.hidden = true; onOk = null; };
+  document.getElementById('dlg-cancel').onclick = closeDialog;
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeDialog(); });
+  document.getElementById('dlg-ok').onclick = () => { if (onOk && onOk() !== false) closeDialog(); };
+  const v = (id) => document.getElementById(id)?.value ?? '';
+  const num = (id) => { const x = v(id); return x === '' ? null : Number(x); };
+  const rowById = (id) => STORAGES.find(r => r.id === id);
+  const descendants = (r) => STORAGES.filter(x => x.path.startsWith(r.path + '.'));
+  const capacityFields = (r = {}, legend = 'Kapasitas') => `<fieldset><legend>${legend}</legend>
+      <div><label for="c-w">Lebar (cm)</label><input id="c-w" type="number" min="1" value="${r.dims?.w ?? ''}"></div><div><label for="c-d">Dalam (cm)</label><input id="c-d" type="number" min="1" value="${r.dims?.d ?? ''}"></div><div><label for="c-h">Tinggi (cm)</label><input id="c-h" type="number" min="1" value="${r.dims?.h ?? ''}"></div>
+      <div><label for="c-cbm">Volume (m³)</label><input id="c-cbm" type="number" step="0.01" min="0" value="${r.capacityCbm ?? ''}"><div class="hint" id="c-cbm-hint">Kosong = belum diset. Terisi otomatis dari dimensi.</div></div>
+      <div><label for="c-kg">Berat maks (kg)</label><input id="c-kg" type="number" min="0" value="${r.capacityKg ?? ''}"></div><div><label for="c-qty">Qty maks (unit)</label><input id="c-qty" type="number" min="0" value="${r.capacityQty ?? ''}"><div class="hint">Opsional, untuk bin satu SKU.</div></div></fieldset>`;
+  const wireDims = () => ['c-w', 'c-d', 'c-h'].forEach(id => { const el = document.getElementById(id); if (el) el.oninput = () => { const w = num('c-w'), d = num('c-d'), h = num('c-h'); if (w && d && h) { document.getElementById('c-cbm').value = (w * d * h / 1e6).toFixed(2); document.getElementById('c-cbm-hint').textContent = `${w} × ${d} × ${h} cm = ${(w * d * h / 1e6).toFixed(2)} m³ (bisa dikoreksi, mis. 80% efektif)`; } }; });
+  const readCapacity = (r) => { const w = num('c-w'), d = num('c-d'), h = num('c-h'); r.dims = w && d && h ? { w, d, h } : null; r.capacityCbm = num('c-cbm'); r.capacityKg = num('c-kg'); r.capacityQty = num('c-qty'); };
+
+  function openEdit(id) {
+    const r = rowById(id); if (!r) return;
+    const parent = r.parentID ? rowById(r.parentID) : null;
+    const used = usedQty({ lots: lotsOf(r.id) });
+    openDialog(`Edit ${r.category.toLowerCase()} · ${r.name}`, `PATCH /storages/${r.id} — kategori dan parent tidak bisa diubah.`, `<div class="form">
+      <div><label for="e-name">Nama</label><input id="e-name" value="${r.name}" maxlength="80"></div>
+      <div><label>Parent</label><input value="${parent ? `${parent.name} (${parent.category})` : '— (root)'}" disabled></div>
+      ${r.category === 'LOCATION' ? `<div><label for="e-type">Tipe</label><select id="e-type">${['STORAGE', 'QUARANTINE', 'STAGING'].map(t => `<option ${r.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>` : `<div><label>Tipe</label><input value="${TYPE[(r.category === 'SECTION' ? parent : rowById(parent.parentID)).type]} (ikut location)" disabled></div>`}
+      <div><label for="e-status">Status</label><select id="e-status"><option value="ACTIVE" ${r.status === 'ACTIVE' ? 'selected' : ''}>Active</option><option value="INACTIVE" ${r.status === 'INACTIVE' ? 'selected' : ''}>Inactive</option></select><div class="hint">Inactive ikut ke semua di bawahnya; Active butuh parent aktif.</div></div>
+      ${r.category === 'BIN' ? capacityFields(r) + (used ? `<div class="full hint">Bin ini berisi ${used} unit; kapasitas boleh diubah, okupansi dihitung ulang.</div>` : '') : `<div class="full hint">Kapasitas diset di bin. Untuk section pakai "Kapasitas bin" di daftar (set sekaligus).</div>`}
+    </div>`, () => {
+      const name = v('e-name').trim(); if (!name) { alert('Nama wajib'); return false; }
+      if (STORAGES.some(x => x.id !== r.id && x.parentID === r.parentID && x.name.toLowerCase() === name.toLowerCase())) { alert(`Nama "${name}" sudah dipakai di level yang sama`); return false; }
+      r.name = name; if (r.category === 'LOCATION') r.type = v('e-type');
+      const st = v('e-status');
+      if (st === 'ACTIVE' && parent && parent.status === 'INACTIVE') { alert('Parent masih inactive'); return false; }
+      r.status = st; if (st === 'INACTIVE') descendants(r).forEach(x => { x.status = 'INACTIVE'; });
+      if (r.category === 'BIN') readCapacity(r);
+      refresh(); renderStoragePage(); toast(`${r.category === 'BIN' ? 'Bin' : r.category === 'SECTION' ? 'Section' : 'Location'} ${r.name} disimpan (PATCH /storages/${r.id})`);
+    });
+    wireDims();
+  }
+  function openBulkCapacity(id) {
+    const r = rowById(id); const bins = STORAGES.filter(x => x.parentID === id && x.category === 'BIN');
+    openDialog(`Kapasitas semua bin · ${r.name}`, `PUT /storages/${r.id}/bins/capacity — diterapkan ke ${bins.length} bin di section ini.`, `<div class="form">${capacityFields({}, `Berlaku untuk ${bins.length} bin`)}
+      <div class="full check"><input id="c-only-unset" type="checkbox"><label for="c-only-unset" style="margin:0">Hanya bin yang kapasitasnya belum diset (${bins.filter(b => b.capacityCbm == null).length} bin)</label></div></div>`, () => {
+      const only = document.getElementById('c-only-unset').checked; let n = 0;
+      bins.forEach(b => { if (only && b.capacityCbm != null) return; readCapacity(b); n++; });
+      refresh(); renderStoragePage(); toast(`Kapasitas diset untuk ${n} bin di ${r.name}`);
+    }, 'Terapkan');
+    wireDims();
+  }
+  let nid = 100;
+  function openAdd(parentID) {
+    const parent = parentID ? rowById(parentID) : null;
+    const cat = !parent ? 'LOCATION' : parent.category === 'LOCATION' ? 'SECTION' : 'BIN';
+    const parents = STORAGES.filter(r => r.category !== 'BIN');
+    const body = () => `<div class="form">
+      <div class="full"><label for="a-parent">Parent</label><select id="a-parent"><option value="">— tidak ada (buat Location)</option>${parents.map(r => `<option value="${r.id}" ${r.id === parentID ? 'selected' : ''}>${r.category === 'SECTION' ? '   ' : ''}${r.name} · ${r.category} · ${r.path}</option>`).join('')}</select><div class="hint">Kategori mengikuti parent: tanpa parent = Location, di bawah Location = Section, di bawah Section = Bin.</div></div>
+      <div><label for="a-name">Nama</label><input id="a-name" maxlength="80" placeholder="${cat === 'LOCATION' ? 'mis. Gudang B' : cat === 'SECTION' ? 'mis. Rak H' : 'mis. H1-L1'}"></div>
+      <div><label>Kategori</label><input id="a-cat" value="${cat}" disabled></div>
+      <div id="a-type-wrap" ${cat === 'LOCATION' ? '' : 'hidden'}><label for="a-type">Tipe</label><select id="a-type"><option>STORAGE</option><option>QUARANTINE</option><option>STAGING</option></select></div>
+      <div id="a-gen" ${cat === 'SECTION' ? '' : 'hidden'} class="full"><div class="check"><input id="a-gen-on" type="checkbox" checked><label for="a-gen-on" style="margin:0">Generate bin sekaligus</label></div>
+        <div class="form" style="margin-top:8px"><div><label for="a-prefix">Prefix nama bin</label><input id="a-prefix" placeholder="H"></div><div><label for="a-cols">Kolom</label><input id="a-cols" type="number" min="1" max="20" value="6"></div><div><label for="a-levels">Level</label><input id="a-levels" type="number" min="1" max="6" value="3"></div><div class="hint" style="align-self:end" id="a-gen-hint">Nama bin: <span class="mono">H1-L1 … H6-L3</span> (18 bin). Posisinya di peta diatur belakangan.</div></div></div>
+      ${capacityFields({}, 'Kapasitas bin (untuk bin baru / tiap bin yang di-generate)')}
+    </div>`;
+    openDialog('Tambah storage', 'POST /storages — section baru muncul di tray "Belum ditempatkan" di Peta gudang.', body(), () => {
+      const pid = v('a-parent'); const P = pid ? rowById(pid) : null; const c = !P ? 'LOCATION' : P.category === 'LOCATION' ? 'SECTION' : 'BIN';
+      const name = v('a-name').trim(); if (!name) { alert('Nama wajib'); return false; }
+      if (STORAGES.some(x => (x.parentID || null) === (pid || null) && x.name.toLowerCase() === name.toLowerCase())) { alert(`Nama "${name}" sudah dipakai di level yang sama`); return false; }
+      const id = `N${++nid}`; const r = row({ id, name, category: c, type: c === 'LOCATION' ? v('a-type') : null, path: P ? `${P.path}.${id}` : id, parentID: pid || null, status: 'ACTIVE' });
+      let made = 0;
+      if (c === 'BIN') readCapacity(r);
+      if (c === 'SECTION' && document.getElementById('a-gen-on').checked) {
+        const pre = v('a-prefix').trim() || name.replace(/^Rak\s+/i, '').slice(0, 2).toUpperCase(); const cols = Math.max(1, num('a-cols') || 1), lv = Math.max(1, num('a-levels') || 1);
+        for (let ci = 1; ci <= cols; ci++) for (let li = 1; li <= lv; li++) { const b = row({ id: `${id}-${ci}-${li}`, name: `${pre}${ci}-L${li}`, category: 'BIN', type: null, path: `${r.path}.${id}-${ci}-${li}`, parentID: id, status: 'ACTIVE' }); readCapacity(b); made++; }
+      }
+      if (pid) expanded.add(pid); expanded.add(id);
+      refresh(); renderStoragePage(); toast(`${c === 'LOCATION' ? 'Location' : c === 'SECTION' ? 'Section' : 'Bin'} ${name} dibuat${made ? ` + ${made} bin` : ''} (POST /storages)${c !== 'BIN' ? ' — tempatkan di Peta gudang' : ''}`);
+    }, 'Buat');
+    wireDims();
+    const sync = () => { const pid = v('a-parent'); const P = pid ? rowById(pid) : null; const c = !P ? 'LOCATION' : P.category === 'LOCATION' ? 'SECTION' : 'BIN'; document.getElementById('a-cat').value = c; document.getElementById('a-type-wrap').hidden = c !== 'LOCATION'; document.getElementById('a-gen').hidden = c !== 'SECTION'; const fs = overlay.querySelector('fieldset'); if (fs) fs.hidden = c === 'LOCATION'; };
+    document.getElementById('a-parent').onchange = sync; sync();
+    const genHint = () => { const pre = v('a-prefix').trim() || (v('a-name').trim().replace(/^Rak\s+/i, '').slice(0, 2).toUpperCase() || 'H'); const c = Math.max(1, num('a-cols') || 1), l = Math.max(1, num('a-levels') || 1); document.getElementById('a-gen-hint').innerHTML = `Nama bin: <span class="mono">${pre}1-L1 … ${pre}${c}-L${l}</span> (${c * l} bin). Posisinya di peta diatur belakangan.`; };
+    ['a-prefix', 'a-cols', 'a-levels', 'a-name'].forEach(id => { document.getElementById(id).oninput = genHint; });
+  }
+  document.getElementById('s-add').onclick = () => openAdd(null);
+  document.getElementById('s-import').onclick = () => {
+    const sample = `path,capacity_cbm,capacity_kg,capacity_qty\nL1.S1.S1-1-1,1.50,300,\nL1.S1.S1-1-2,1.50,300,\nL1.S9,1.20,,\nL1.S6,1.20,800,4`;
+    openDialog('Import kapasitas (CSV)', 'POST /storages/capacity/import — baris section berlaku untuk semua bin di bawahnya; kolom kosong tidak mengubah nilai.', `<div class="form"><div class="full"><label for="i-csv">CSV</label><textarea id="i-csv">${sample}</textarea><div class="hint">Kolom: <span class="mono">path</span> (atau nama storage), <span class="mono">capacity_cbm</span>, <span class="mono">capacity_kg</span>, <span class="mono">capacity_qty</span>. Export CSV memberi template dengan nilai saat ini.</div></div></div>`, () => {
+      const lines = v('i-csv').split(/\r?\n/).map(l => l.trim()).filter(Boolean); const head = lines.shift().split(',').map(x => x.trim());
+      const ix = (k) => head.indexOf(k); let n = 0, bad = [];
+      lines.forEach(l => {
+        const c = l.split(','); const key = c[ix('path')]?.trim(); const r = STORAGES.find(x => x.path === key || x.name === key); if (!r) { bad.push(key); return; }
+        const targets = r.category === 'BIN' ? [r] : descendants(r).filter(x => x.category === 'BIN');
+        targets.forEach(t => { const cbm = c[ix('capacity_cbm')]?.trim(), kg = c[ix('capacity_kg')]?.trim(), q = c[ix('capacity_qty')]?.trim(); if (cbm) t.capacityCbm = Number(cbm); if (kg) t.capacityKg = Number(kg); if (q) t.capacityQty = Number(q); n++; });
+      });
+      refresh(); renderStoragePage(); toast(`Import: ${n} bin diperbarui${bad.length ? `, ${bad.length} baris tidak ditemukan (${bad.slice(0, 3).join(', ')})` : ''}`);
+    }, 'Import');
+  };
+  document.getElementById('s-export').onclick = () => {
+    const csv = ['path,name,category,capacity_cbm,capacity_kg,capacity_qty,qty_on_hand'].concat(STORAGES.filter(r => r.category === 'BIN').map(r => [r.path, r.name, r.category, r.capacityCbm ?? '', r.capacityKg ?? '', r.capacityQty ?? '', usedQty({ lots: lotsOf(r.id) })].join(','))).join('\n');
+    openDialog('Export kapasitas (CSV)', `GET /storages/capacity/export — ${STORAGES.filter(r => r.category === 'BIN').length} bin dengan kapasitas dan on-hand saat ini; dipakai sebagai template import.`, `<div class="form"><div class="full"><textarea id="x-csv" style="min-height:260px" readonly>${csv}</textarea><div class="hint">Di aplikasi asli tombol ini mengunduh file storage-capacity-906.csv.</div></div></div>`, () => { document.getElementById('x-csv').select(); try { document.execCommand('copy'); } catch (e) {} toast('CSV disalin'); return false; }, 'Salin');
+  };
+
+  /* ------------------------------ Warehouse (hub) + kapasitas SKU --------- */
+  // eFishery: warehouse_stock_capacity (warehouse_id, product_external_id, quantity_capacity) — "one bin holds N units of this SKU".
+  // Dash equivalent: wh_hub_sku_capacities (hub_id, sku, qty_per_bin). Optional; the m³ model stays the default.
+  const HUBS = [
+    { id: 906, code: 'KMG', name: 'Dash Hub Kemang', address: 'Jl. Kemang Timur No. 12, Jakarta Selatan', status: 'ACTIVE' },
+    { id: 907, code: 'BLM', name: 'Dash Hub Blok M', address: 'Jl. Melawai Raya No. 5, Jakarta Selatan', status: 'ACTIVE' },
+  ];
+  let hubView = { hub: null, tab: 'info', draft: null };
+  function renderHubPage() {
+    if (document.getElementById('page-hub').hidden) return;
+    const list = document.getElementById('h-list'), det = document.getElementById('h-detail');
+    document.getElementById('h-back').hidden = !hubView.hub; document.getElementById('h-edit').hidden = !hubView.hub;
+    list.hidden = !!hubView.hub; det.hidden = !hubView.hub;
+    const binsCap = STORAGES.filter(r => r.category === 'BIN' && r.capacityCbm != null).length, bins = STORAGES.filter(r => r.category === 'BIN').length;
+    if (!hubView.hub) {
+      document.getElementById('h-rows').innerHTML = HUBS.map(h => `<tr data-id="${h.id}"><td class="mono">${h.code}</td><td><b>${h.name}</b></td><td>${h.address}</td><td>${badge('Active', 'success')}</td><td class="num">${h.id === HUB.id ? STORAGES.length : 0}</td><td class="num">${h.id === HUB.id ? `${binsCap} / ${bins}` : '—'}</td><td><div class="rowacts"><button class="dd-btn" data-open="${h.id}">Detail</button></div></td></tr>`).join('');
+      document.getElementById('h-rows').querySelectorAll('[data-open], tr[data-id]').forEach(el => el.onclick = (e) => { e.stopPropagation(); hubView = { hub: HUBS.find(h => h.id === Number(el.getAttribute('data-open') || el.getAttribute('data-id'))) }; renderHubPage(); });
+      return;
+    }
+    const h = hubView.hub;
+    document.getElementById('h-title').textContent = h.name; document.getElementById('h-sub').innerHTML = `<span class="mono">${h.code}</span> · ${h.address}`;
+    const kv = (rows) => `<div class="kvs">${rows.map(([k, v]) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`).join('')}</div>`;
+    document.getElementById('h-tab-info').innerHTML = kv([['Kode', `<span class="mono">${h.code}</span>`], ['Nama', h.name], ['Alamat', h.address], ['Status', badge('Active', 'success')], ['Storage', h.id === HUB.id ? `${allLocations.length} location · ${allSections.length} section · ${bins} bin · <a href="#" id="h-goto-storage">kelola di Storage</a>` : '—'], ['Kapasitas', h.id === HUB.id ? `${binsCap} / ${bins} bin punya kapasitas — diatur per bin di menu Storage` : '—']]);
+    const g = document.getElementById('h-goto-storage'); if (g) g.onclick = (e) => { e.preventDefault(); showPage('storage'); };
+  }
+  document.getElementById('h-back').onclick = () => { hubView = { hub: null }; renderHubPage(); };
+  document.getElementById('h-edit').onclick = () => { const h = hubView.hub; openDialog(`Edit hub · ${h.name}`, `PATCH /hubs/${h.id}`, `<div class="form"><div><label for="hb-code">Kode</label><input id="hb-code" value="${h.code}"></div><div><label for="hb-name">Nama</label><input id="hb-name" value="${h.name}"></div><div class="full"><label for="hb-addr">Alamat</label><input id="hb-addr" value="${h.address}"></div></div>`, () => { h.code = v('hb-code'); h.name = v('hb-name'); h.address = v('hb-addr'); if (h.id === HUB.id) HUB.name = h.name; renderHubPage(); toast('Hub disimpan'); }); };
+
+  /* ------------------------------ Okupansi storage (eFishery-style) ----- */
+  // Status vocabulary follows eFishery's storage_sku_capacity_view, applied per bin on m³:
+  // TERSEDIA (empty), TERISI (>0), HAMPIR_PENUH (>50), PENUH (>80), plus OVER (>100) and KAPASITAS_BELUM_DIATUR.
+  const OCC_STATUS = { empty: ['TERSEDIA', 'Tersedia', 'green'], ok: ['TERISI', 'Terisi', 'yellow'], mid: ['HAMPIR_PENUH', 'Hampir penuh', 'orange'], high: ['PENUH', 'Penuh', 'red'], full: ['OVER', 'Over kapasitas', 'red'], unset: ['KAPASITAS_BELUM_DIATUR', 'Kapasitas belum diatur', 'volcano'] };
+  const occTag = (st) => `<span class="tag-st ${OCC_STATUS[st][2]}">${OCC_STATUS[st][1]}</span>`;
+  // eFishery's level colours: 0 green, <51 gold, <81 orange, else red.
+  const occLevel = (p) => p === 0 ? '#038767' : p < 51 ? '#d4a017' : p < 81 ? '#f59e0b' : '#e11d48';
+  const of = { q: '', hub: '906', status: '', loc: '', sec: '', bin: '', clients: new Set() };
+  const ofCount = () => [of.loc, of.sec, of.bin].filter(Boolean).length + (of.clients.size ? 1 : 0);
+  let oPage = 1, oSize = 10, boardPage = 0;
+  const binRows = () => {
+    // One row per bin × SKU (empty bins: one row with SKU "-"), like /storage-capacities.
+    const out = [];
+    allBins().forEach(({ b, S, L }) => {
+      if (b.row.status !== 'ACTIVE') return;
+      const st = statusOf(b); const cap = b.capCbm; const use = usedCbm(b);
+      const bySku = new Map(); b.lots.forEach(l => { const k = l.sku.sku; bySku.set(k, { sku: l.sku, qty: (bySku.get(k)?.qty || 0) + l.qty }); });
+      const base = { L, S, b, st, cap, use, p: pct(b) };
+      if (!bySku.size) out.push({ ...base, client: '-', sku: null, qty: 0 });
+      else bySku.forEach(({ sku, qty }) => out.push({ ...base, client: sku.client, sku, qty }));
+    });
+    return out;
+  };
+  const occFiltered = () => binRows().filter(r =>
+    (!of.q || `${r.sku?.sku ?? ''} ${r.sku?.name ?? ''} ${r.b.name}`.toLowerCase().includes(of.q.toLowerCase())) &&
+    (!of.status || OCC_STATUS[r.st][0] === of.status) &&
+    (!of.loc || r.L.name.toLowerCase().includes(of.loc.toLowerCase())) && (!of.sec || r.S.name.toLowerCase().includes(of.sec.toLowerCase())) && (!of.bin || r.b.name.toLowerCase().includes(of.bin.toLowerCase())) &&
+    (!of.clients.size || of.clients.has(r.client)));
+  function renderOccPage() {
+    if (document.getElementById('page-occ').hidden) return;
+    // alert — bins without capacity (eFishery: "Kapasitas SKU dalam pallet untuk {warehouse} belum diatur")
+    const unset = allBins().filter(({ b, L }) => L.type === 'STORAGE' && b.capCbm == null && b.row.status === 'ACTIVE').length;
+    document.getElementById('o-alert').hidden = !unset; document.getElementById('o-alert-text').textContent = `Kapasitas bin untuk ${HUB.name} belum diatur: ${unset} bin tanpa kapasitas, okupansinya tidak bisa dihitung.`;
+    // board — one card per location of the hub (eFishery: per warehouse), 3 per page
+    const cards = allLocations.filter(L => L.row.status === 'ACTIVE').map(L => {
+      const bins = L.all.flatMap(S => S.bins.filter(b => b.row.status === 'ACTIVE' && (!of.clients.size || b.lots.some(l => of.clients.has(l.sku.client)))));
+      const used = bins.filter(b => b.lots.length).length; const p = bins.length ? Math.round(used / bins.length * 1000) / 10 : 0;
+      return { L, bins: bins.length, used, p, secs: L.all.map(S => ({ S, qty: S.bins.length, avail: S.bins.filter(b => !b.lots.length).length })) };
+    });
+    const per = 3, pages = Math.ceil(cards.length / per); boardPage = Math.min(boardPage, Math.max(0, pages - 1));
+    const board = document.getElementById('o-board');
+    board.innerHTML = cards.slice(boardPage * per, boardPage * per + per).map((c, i) => `<div class="ocard"><div class="t"><b><i>⌂</i>${c.L.name}</b><span class="pct">${c.p} %</span></div><div class="bar"><i style="width:${Math.min(100, c.p)}%;background:${occLevel(c.p)}"></i></div>
+      <div class="used ${c.p > 80 ? 'hot' : ''}"><span>${c.p > 80 ? '⚠ ' : ''}${c.used}/${c.bins} bin ${c.p > 80 ? 'sudah ' : ''}digunakan</span><button class="link" data-det="${c.L.id}">${expanded.has('det:' + c.L.id) ? 'tutup' : 'lihat detail'}</button></div>
+      ${expanded.has('det:' + c.L.id) ? `<div class="det"><b>Occupancy</b><div class="rows">${c.secs.map(x => `<div class="row"><span>${x.S.name}: ${x.qty} bin</span><span>${x.avail} tersedia</span></div>`).join('')}</div></div>` : ''}</div>`).join('')
+      + `<button class="bnav l" id="o-bl" ${boardPage > 0 ? '' : 'hidden'}>‹</button><button class="bnav r" id="o-br" ${boardPage < pages - 1 ? '' : 'hidden'}>›</button>`;
+    board.querySelectorAll('[data-det]').forEach(b => b.onclick = () => { const k = 'det:' + b.getAttribute('data-det'); expanded.has(k) ? expanded.delete(k) : expanded.add(k); renderOccPage(); });
+    const bl = document.getElementById('o-bl'), br = document.getElementById('o-br'); if (bl) bl.onclick = () => { boardPage--; renderOccPage(); }; if (br) br.onclick = () => { boardPage++; renderOccPage(); };
+    // table
+    const rows = occFiltered(); const total = rows.length, pages2 = Math.max(1, Math.ceil(total / oSize)); oPage = Math.min(oPage, pages2);
+    const slice = rows.slice((oPage - 1) * oSize, oPage * oSize);
+    document.getElementById('o-rows').innerHTML = slice.map(r => `<tr data-id="${r.b.id}"><td>${r.client}</td><td title="${HUB.name}">${HUB.short}</td><td>${r.L.name}</td><td>${r.S.name}</td><td class="mono">${r.b.name}</td><td class="mono">${r.sku ? r.sku.sku : '-'}</td><td>${r.sku ? r.sku.name : '-'}</td><td class="num">${r.sku ? `${r.qty} ${r.sku.uom}` : '-'}</td><td class="num">${r.cap == null ? (r.use ? `${r.use.toFixed(2)} m³ / -` : '-') : `${r.use.toFixed(2)}/${r.cap.toFixed(2)} m³`}${r.p !== null ? `<div class="meta">${Math.round(r.p)}%</div>` : ''}</td><td>${occTag(r.st)}</td></tr>`).join('') || '<tr><td colspan="10" class="meta" style="text-align:center;padding:24px">Tidak ada data</td></tr>';
+    document.getElementById('o-rows').querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => { showPage('map'); select(tr.getAttribute('data-id')); });
+    document.getElementById('o-total').textContent = `${total ? (oPage - 1) * oSize + 1 : 0}–${Math.min(total, oPage * oSize)} dari ${total} baris`;
+    const pg = document.getElementById('o-pg'); const around = [...new Set([1, pages2, oPage - 1, oPage, oPage + 1].filter(n => n >= 1 && n <= pages2))].sort((a, b) => a - b);
+    pg.innerHTML = `<button data-p="${oPage - 1}" ${oPage === 1 ? 'disabled' : ''}>‹</button>` + around.map((n, i) => `${i && n - around[i - 1] > 1 ? '<span>…</span>' : ''}<button data-p="${n}" class="${n === oPage ? 'on' : ''}">${n}</button>`).join('') + `<button data-p="${oPage + 1}" ${oPage === pages2 ? 'disabled' : ''}>›</button>`;
+    pg.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { oPage = Number(b.getAttribute('data-p')); renderOccPage(); });
+    const fc = document.getElementById('o-fcount'); fc.hidden = !ofCount(); fc.textContent = ofCount();
+  }
+  document.getElementById('of-q').oninput = (e) => { of.q = e.target.value; oPage = 1; renderOccPage(); };
+  document.getElementById('of-hub').onchange = (e) => { of.hub = e.target.value; renderOccPage(); };
+  document.getElementById('of-status').onchange = (e) => { of.status = e.target.value; oPage = 1; renderOccPage(); };
+  document.getElementById('o-size').onchange = (e) => { oSize = Number(e.target.value); oPage = 1; renderOccPage(); };
+  const drawer = document.getElementById('o-drawer');
+  document.getElementById('o-filter').onclick = () => { document.getElementById('od-client').innerHTML = [...new Set(SKUS.map(x => x.client))].map(c => `<label><input type="checkbox" value="${c}" ${of.clients.has(c) ? 'checked' : ''}>${c}</label>`).join(''); drawer.hidden = false; };
+  document.getElementById('od-apply').onclick = () => { of.loc = v('od-loc'); of.sec = v('od-sec'); of.bin = v('od-bin'); of.clients = new Set([...drawer.querySelectorAll('#od-client input:checked')].map(i => i.value)); drawer.hidden = true; oPage = 1; renderOccPage(); };
+  document.getElementById('od-reset').onclick = () => { ['od-loc', 'od-sec', 'od-bin'].forEach(id => { document.getElementById(id).value = ''; }); drawer.querySelectorAll('#od-client input').forEach(i => { i.checked = false; }); of.loc = of.sec = of.bin = ''; of.clients = new Set(); drawer.hidden = true; oPage = 1; renderOccPage(); };
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { drawer.hidden = true; closeDialog(); } });
+  document.getElementById('o-alert-go').onclick = () => { sf.occ = 'unset'; document.getElementById('sf-occ').value = 'unset'; showPage('storage'); };
+  document.getElementById('o-export').onclick = () => {
+    const rows = occFiltered();
+    const csv = ['client,hub,location,section,bin,sku,product_name,on_hand_qty,used_cbm,capacity_cbm,status'].concat(rows.map(r => [r.client, HUB.name, r.L.name, r.S.name, r.b.name, r.sku?.sku ?? '', r.sku?.name ?? '', r.qty, r.use.toFixed(3), r.cap ?? '', OCC_STATUS[r.st][0]].map(x => `"${String(x).replace(/"/g, '""')}"`).join(','))).join('\n');
+    openDialog('Export CSV', `GET /storage-occupancy/csv dengan filter aktif — ${rows.length} baris.`, `<div class="form"><div class="full"><textarea style="min-height:260px" id="x-csv" readonly>${csv}</textarea><div class="hint">Di aplikasi asli tombol ini mengunduh storage-occupancy-${new Date().toISOString().slice(0, 10)}.csv.</div></div></div>`, () => { document.getElementById('x-csv').select(); try { document.execCommand('copy'); } catch (e) {} toast('CSV disalin'); return false; }, 'Salin');
+  };
+
+  /* ------------------------------ e2e simulation (Dash model) ----------- */
+  // Each step performs the real action on the shared data, on the page where ops would do it.
+  const E2E = [
+    { t: 'Mulai', h: 'Dari rak baru sampai okupansi', x: 'Rak fisik baru datang di Gudang Utama. Kita ikuti datanya: dibuat di Storage, ditempatkan di denah, terisi stok, dipantau di Okupansi, kapasitas dilengkapi, lalu stok keluar. Semua halaman membaca data storage yang sama.' , run: () => { showPage('storage'); } },
+    { t: 'Storage · buat section + bin', h: 'Rak H dibuat dengan 10 bin dan kapasitas', x: 'Di menu Storage: + Tambah storage → parent Gudang Utama → "Rak H", generate 5 kolom × 2 level, dimensi 120×100×150 cm → 1,80 m³ per bin. Satu aksi, 11 baris storage.', run: () => {
+      showPage('storage'); const L1 = rowById('L1'); let r = rowById('E2E-S');
+      if (!r) { r = row({ id: 'E2E-S', name: 'Rak H', category: 'SECTION', type: null, path: 'L1.E2E-S', parentID: 'L1', status: 'ACTIVE' }); for (let c = 1; c <= 5; c++) for (let l = 1; l <= 2; l++) row({ id: `E2E-S-${c}-${l}`, name: `H${c}-L${l}`, category: 'BIN', type: null, path: `L1.E2E-S.E2E-S-${c}-${l}`, parentID: 'E2E-S', status: 'ACTIVE', capacityCbm: 1.8, dims: { w: 120, d: 100, h: 150 } }); }
+      expanded.add('L1'); expanded.add('E2E-S'); sf.q = 'Rak H'; document.getElementById('sf-q').value = 'Rak H'; refresh(); renderStoragePage(); toast('POST /storages: section Rak H + 10 bin, capacity_cbm 1.80');
+      return `POST /storages { name: "Rak H", parentID: L1, bins: 5×2, capacityCbm: 1.8 }\n→ 201: 1 section + 10 bin (L1.E2E-S)`; } },
+    { t: 'Peta gudang · tempatkan', h: 'Rak H muncul di tray, lalu ditempatkan', x: 'Di Peta gudang → Atur layout: Rak H ada di tray "Belum ditempatkan" (ada di Storage, belum punya baris layout). Klik → ditaruh di lorong kosong, Simpan layout mengirim posisi saja.', run: () => {
+      sf.q = ''; document.getElementById('sf-q').value = ''; showPage('map'); const S = allSections.find(x => x.id === 'E2E-S'); if (S && !S.placed) { autoPlace(S); refresh(); } if (!state.edit) editBtn.onclick(); selectSection('E2E-S'); document.getElementById('save').onclick(); fit(); if (state.edit) editBtn.onclick();
+      const l = LAYOUTS.get('E2E-S'); return `PUT /storages/layout [{ storageID: E2E-S, x: ${l.x}, y: ${l.y}, shape: RACK, levels: 3 }]\n→ 200: layout tersimpan, data storage tidak berubah`; } },
+    { t: 'Inbound · stok masuk', h: 'Goods receipt menaruh 3 lot ke Rak H', x: 'GR di-post dengan bin tujuan H1-L1, H1-L2, H2-L1. wh_stocks bertambah; peta mewarnai bin dari m³ terpakai ÷ 1,80 m³. Tidak ada yang perlu diset lagi.', run: () => {
+      showPage('map'); const ids = ['E2E-S-1-1', 'E2E-S-1-2', 'E2E-S-2-1']; const put = [[0, 900], [1, 420], [3, 150]];
+      ids.forEach((id, i) => { const lots = lotsOf(id); lots.length = 0; const sku = SKUS[put[i][0]]; lots.push({ sku, qty: put[i][1], batch: `20271130-101301-E2E${i + 1}` }); });
+      refresh(); select('E2E-S-1-1'); const b = findBin('E2E-S-1-1').b; toast(`GR di-post: 3 bin Rak H terisi`);
+      return ids.map(id => { const x = findBin(id).b; return `${x.name}: ${x.lots[0].qty} ${x.lots[0].sku.uom} ${x.lots[0].sku.sku} = ${usedCbm(x).toFixed(2)} / 1.80 m³ (${Math.round(pct(x))}%) → ${STATUS_LABEL[statusOf(x)]}`; }).join('\n'); } },
+    { t: 'Okupansi · pantau', h: 'Dashboard okupansi membaca hasilnya', x: 'Halaman Okupansi storage, filter section "Rak H": 3 baris terisi dengan persen dan status, 7 bin Tersedia. Board Gudang Utama ikut naik. Alert di atas menyebut bin lama yang belum punya kapasitas.', run: () => {
+      of.sec = 'Rak H'; of.q = ''; document.getElementById('of-q').value = ''; oPage = 1; showPage('occ'); const n = allBins().filter(({ b, L }) => L.type === 'STORAGE' && b.capCbm == null && b.row.status === 'ACTIVE').length;
+      return `GET /storage-occupancy?section_like=Rak H → ${occFiltered().length} baris\nAlert: ${n} bin tanpa kapasitas (rak lama) → "Atur sekarang"`; } },
+    { t: 'Storage · lengkapi kapasitas', h: 'Bin lama yang belum diset dilengkapi', x: '"Atur sekarang" membuka Storage dengan filter "Kapasitas belum diset". Lewat Aksi → Set kapasitas semua bin per section dengan opsi "hanya yang belum diset", semua bin lama dapat 1,50 m³. Alert di Okupansi hilang.', run: () => {
+      of.sec = ''; let n = 0; STORAGES.filter(r => r.category === 'BIN' && r.capacityCbm == null).forEach(r => { r.capacityCbm = 1.5; n++; });
+      sf.occ = 'all'; document.getElementById('sf-occ').value = 'all'; sf.q = ''; document.getElementById('sf-q').value = ''; showPage('storage'); refresh(); toast(`Kapasitas diset untuk ${n} bin (hanya yang belum diset)`);
+      return `PUT /storages/{section}/bins/capacity { capacityCbm: 1.5, onlyUnset: true } × ${allSections.filter(S => S.bins.some(b => b.row.capacityCbm === 1.5)).length} section\n→ ${n} bin diperbarui; status "Kapasitas belum diset" = 0`; } },
+    { t: 'Outbound · stok keluar', h: 'Picking mengambil dari H1-L1, okupansi turun', x: 'Goods issue mengambil 600 box dari H1-L1 (FEFO). wh_stocks berkurang, bin turun dari Penuh ke Terisi. Tidak ada tabel kapasitas yang disentuh di sepanjang alur: kapasitas tetap properti bin.', run: () => {
+      showPage('map'); const hit = findBin('E2E-S-1-1'); const lot = hit.b.lots[0]; const before = Math.round(pct(hit.b)); if (lot) lot.qty = Math.max(1, lot.qty - 600); refresh(); select('E2E-S-1-1'); toast('GI di-post: 600 box keluar dari H1-L1');
+      return `POST /goods-issues (H1-L1, 600 box VITC-1000)\n${hit.b.name}: ${before}% → ${Math.round(pct(findBin('E2E-S-1-1').b))}% (${STATUS_LABEL[statusOf(findBin('E2E-S-1-1').b)]})`; } },
+    { t: 'Selesai', h: 'Ringkasan', x: 'Satu sumber data (wh_storages + capacity_cbm, wh_stocks, wh_storage_layouts). Storage = CRUD dan kapasitas; Peta = posisi; Okupansi = pembacaan. Tidak ada kapasitas di level warehouse/hub.', run: () => { showPage('occ'); of.sec = 'Rak H'; renderOccPage(); return `Storage: ${STORAGES.length} baris · bin berkapasitas ${STORAGES.filter(r => r.category === 'BIN' && r.capacityCbm != null).length}/${STORAGES.filter(r => r.category === 'BIN').length}\nLayout: ${LAYOUTS.size} baris · Okupansi hub ${document.getElementById('k-cbm').textContent}`; } },
+  ];
+  let e2eStep = -1;
+  function renderE2E() {
+    const box = document.getElementById('e2e'); const i = e2eStep; const st = E2E[Math.max(0, i)];
+    document.getElementById('e2e-step').textContent = i < 0 ? 'Siap' : `Langkah ${i} / ${E2E.length - 1} · ${st.t}`;
+    document.getElementById('e2e-title').textContent = i < 0 ? E2E[0].h : st.h; document.getElementById('e2e-text').textContent = i < 0 ? E2E[0].x : st.x;
+    document.getElementById('e2e-dots').innerHTML = E2E.map((_, k) => `<i class="${k < i ? 'done' : k === i ? 'on' : ''}"></i>`).join('');
+    document.getElementById('e2e-next').textContent = i < 0 ? 'Mulai' : i >= E2E.length - 1 ? 'Tutup' : 'Lanjut →';
+  }
+  document.getElementById('e2e-open').onclick = () => { document.getElementById('e2e').hidden = false; document.getElementById('e2e-open').hidden = true; renderE2E(); };
+  document.getElementById('e2e-close').onclick = () => { document.getElementById('e2e').hidden = true; document.getElementById('e2e-open').hidden = false; };
+  document.getElementById('e2e-reset').onclick = () => {
+    // undo the simulation: drop Rak H rows, its layout and stock; restore the unset capacities of the seed
+    for (let k = STORAGES.length - 1; k >= 0; k--) if (STORAGES[k].id.startsWith('E2E-S')) STORAGES.splice(k, 1);
+    LAYOUTS.delete('E2E-S'); [...STOCK.keys()].filter(k => k.startsWith('E2E-S')).forEach(k => STOCK.delete(k)); dirty.delete('E2E-S');
+    seed = 7; seedStock(); of.sec = ''; e2eStep = -1; refresh(); showPage('storage'); renderE2E(); document.getElementById('e2e-log').hidden = true; toast('Simulasi di-reset ke data awal');
+  };
+  document.getElementById('e2e-next').onclick = () => {
+    if (e2eStep >= E2E.length - 1) { document.getElementById('e2e-close').onclick(); return; }
+    e2eStep++; const out = E2E[e2eStep].run(); renderE2E(); const log = document.getElementById('e2e-log'); log.hidden = !out; log.textContent = out || '';
+  };
+
+  // --- navigation between the pages ---
+  function showPage(which) {
+    ['map', 'storage', 'occ', 'hub'].forEach(k => { document.getElementById(`page-${k}`).hidden = which !== k; document.getElementById(`nav-${k}`).classList.toggle('active', which === k); });
+    window.scrollTo(0, 0);
+    if (which === 'storage') renderStoragePage(); else if (which === 'occ') renderOccPage(); else if (which === 'hub') renderHubPage(); else { renderTable(); fit(); }
+  }
+  document.getElementById('nav-occ').onclick = (e) => { e.preventDefault(); showPage('occ'); };
+  document.getElementById('nav-hub').onclick = (e) => { e.preventDefault(); showPage('hub'); };
+  document.getElementById('nav-map').onclick = (e) => { e.preventDefault(); showPage('map'); };
+  document.getElementById('nav-storage').onclick = (e) => { e.preventDefault(); showPage('storage'); };
+  document.getElementById('go-storage').onclick = (e) => { e.preventDefault(); showPage('storage'); };
+
+  /* ------------------------------ simulation ---------------------------- */
+  function logLine() {}
+  function refresh() { build(); draw(); kpis(); renderDirty(); renderStoragePage(); renderOccPage(); if (state.selected) select(state.selected); }
+  // Put-away suggestion: the Storage-type bin with the most free volume (ties: nearest the dock).
+  function suggestBin() {
+    const cands = allBins().filter(({ b, L }) => L.type === 'STORAGE' && b.capCbm != null).map(x => ({ ...x, free: x.b.capCbm - usedCbm(x.b), dist: Math.hypot(x.b.x - 2850, x.b.y - layout.h) }));
+    cands.sort((a, c) => c.free - a.free || a.dist - c.dist);
+    return cands[0];
+  }
+  function inbound(target) {
+    const sku = SKUS[Math.floor(Math.random() * SKUS.length)];
+    const hit = target ? findBin(target.id) : suggestBin();
+    if (!hit) return;
+    const b = hit.b; const free = (b.capCbm ?? 1.5) - usedCbm(b);
+    const qty = Math.max(1, Math.round(Math.min(free, 0.4) / sku.cbm));
+    b.lots.push({ sku, qty, batch: `20271231-101226-${Math.random().toString(36).slice(2, 6)}` });
+    refresh();
+  }
+  function picking(target) {
+    const cands = allBins().filter(({ b, L }) => L.type === 'STORAGE' && b.lots.length);
+    const hit = target ? findBin(target.id) : cands[Math.floor(Math.random() * cands.length)];
+    if (!hit || !hit.b.lots.length) return;
+    const b = hit.b;
+    // FEFO: the earliest batch first.
+    b.lots.sort((a, c) => a.batch.localeCompare(c.batch));
+    const lot = b.lots[0];
+    const take = Math.max(1, Math.round(lot.qty * (0.3 + Math.random() * 0.5)));
+    lot.qty -= take;
+    if (lot.qty <= 0) b.lots.shift();
+    refresh();
+  }
+  document.getElementById('sim-reset').onclick = () => { seed = 7; seedStock(); build(); state.selected = null; document.getElementById('insp-title').textContent = 'Detail'; document.getElementById('insp').innerHTML = '<p class="meta">Klik bin, rak, atau baris tabel.</p>'; refresh(); };
+  let timer = null;
+  document.getElementById('sim-auto').onclick = e => {
+    if (timer) { clearInterval(timer); timer = null; e.currentTarget.textContent = 'Jalankan simulasi'; e.currentTarget.classList.remove('on'); return; }
+    e.currentTarget.textContent = 'Jeda simulasi'; e.currentTarget.classList.add('on');
+    timer = setInterval(() => (Math.random() < 0.55 ? inbound(null) : picking(null)), 900);
+  };
+
+  window.addEventListener('resize', fit);
+  kpis(); fit();
+})();
+</script>
+</body>
+</html>
