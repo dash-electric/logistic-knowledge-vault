@@ -190,37 +190,93 @@ ditandai PROPOSED selama status draft).
 
 ## Performance, reliability & scalability (requirement, not afterthought)
 
-Target: satu hub besar = 20.000 bin, 100.000 baris stok, 50 ops bersamaan; peta tetap 60 fps saat diputar/di-zoom,
-okupansi hub terbuka < 300 ms p95, memori tab browser < 150 MB.
+Target per hub: 20.000 bin, 100.000 baris stok, 50 ops bersamaan. Peta ≥ 50 fps saat pan/putar/zoom, okupansi hub
+(`GET /storages/map`) < 300 ms p95 di server dan < 1 s sampai tergambar, memori tab < 150 MB, tanpa dependensi 3D.
 
-**Backend**
-- Okupansi dihitung di SQL dalam satu query agregat per permintaan: `wh_stocks ⨝ wh_skus` di-group per `storage_id`
-  (used_cbm/kg/qty), lalu roll-up section/location lewat `path <@` dengan index GiST yang sudah ada. Tidak ada N+1, tidak ada
-  perhitungan di Node per baris. Query dibatasi per hub dan mengembalikan hanya kolom yang dipakai.
-- Endpoint peta memakai **payload kolumnar ringkas**: `GET /storages/map?hubID` → `{ storages: [[id, parentIdx, category, name, status]…],
-  layouts: [[idx, x, y, w, h, rot, shape, levels, rows, cell]…], occupancy: [[idx, usedCbm, capCbm, usedQty, capQty, status]…] }`.
-  20.000 bin ≈ 1 MB gzip, satu round-trip; detail bin (lot per SKU) diambil terpisah saat diklik (`GET /stocks?storageID`).
-- Materialized view `wh_storage_occupancy_mv` di-refresh **inkremental** dari ledger (trigger pada `wh_stock_movements` menandai
-  storage kotor; worker merefresh per hub tiap ≤ 5 detik) kalau query langsung > 300 ms. Mulai dari query langsung; ukur dulu.
-- Cache HTTP: `ETag` + `Cache-Control: private, max-age=5` pada peta dan okupansi; `If-None-Match` membuat polling murah.
-- Layout disimpan per hub dalam satu `PUT` idempotent dengan `updatedAt` (409 bila stale); tidak ada long-running request.
-- Import CSV kapasitas diproses streaming (baris demi baris, batas 5.000 baris), transaksi per file.
-- Observabilitas: durasi query okupansi dan ukuran payload dilog per hub; alert p95 > 500 ms.
+### Alur baca (peta & dashboard okupansi)
 
-**Frontend**
-- Peta dirender di **Canvas 2D**, bukan SVG/DOM: satu elemen, tanpa node per bin, gambar ulang digabung per `requestAnimationFrame`.
-  Hit-test lewat polygon-in-point pada daftar poligon frame terakhir (urutan painter), bukan event DOM. Ini yang dipakai mockup
-  (`wms-storage-occupancy-mockup-v1.html`), terukur ≈ 8 ms/frame untuk 143 bin × 3 sisi di laptop biasa, dan skalanya linear.
-- **Level of detail**: < 3 px per bin hanya atap tanpa garis; < 6 px tanpa sisi dan tanpa plakat section; plakat location selalu.
-  Di luar viewport tidak digambar (culling per section memakai bounding box layar).
-- Proyeksi isometrik dengan turntable (0–360°) dihitung dari dua rotasi murah; tidak ada WebGL agar jalan di laptop ops dan tanpa
-  dependensi baru (bisa dipindah ke WebGL/OffscreenCanvas bila > 50.000 bin).
-- Data peta disimpan sebagai typed array/struktur datar di memori (bukan objek per bin dengan closure), diturunkan sekali dari
-  payload; ubah layout hanya memutakhirkan section yang berubah.
-- Halaman okupansi dan tabel storage memakai pagination server (20–100 baris) dan virtualisasi baris; tidak pernah memuat seluruh
-  daftar bin ke DOM.
-- Polling okupansi 10 detik dengan `ETag`; berhenti saat tab tidak terlihat (`visibilitychange`).
-- Tanpa library peta/3D tambahan: bundle tidak bertambah selain modul canvas ±15 KB.
+1. FE memanggil `GET /storages/map?hubID` dengan `If-None-Match`. BE menjawab 304 bila `etag` hub belum berubah.
+   `etag = hash(max(wh_stock_movements.created_at), max(wh_storages.updated_at), max(wh_storage_layouts.updated_at))`
+   per hub — tiga `MAX` berindeks, < 2 ms — jadi polling 10 detik hampir gratis.
+2. Bila berubah, **satu query** membangun payload:
+   ```sql
+   WITH used AS (                                   -- m³/kg/qty terpakai per storage, langsung dari stok
+     SELECT s.storage_id,
+            SUM(s.qty_on_hand)                                  AS used_qty,
+            SUM(s.qty_on_hand * COALESCE(k.cbm_per_unit, 0))    AS used_cbm,
+            SUM(s.qty_on_hand * COALESCE(k.weight_kg, 0))       AS used_kg,
+            BOOL_OR(k.cbm_per_unit IS NULL)                     AS has_no_dim
+     FROM wh_stocks s
+     LEFT JOIN wh_skus k ON k.client_id = s.client_id AND k.sku = s.sku
+     WHERE s.hub_id = $1 AND s.qty_on_hand > 0
+     GROUP BY s.storage_id)
+   SELECT st.id, st.path, st.category, st.name, st.status, st.capacity_cbm, st.capacity_kg, st.capacity_qty,
+          l.x, l.y, l.w, l.h, l.rotation, l.shape, l.levels, l.rows, l.cell_cm,
+          u.used_qty, u.used_cbm, u.used_kg, u.has_no_dim
+   FROM wh_storages st
+   LEFT JOIN wh_storage_layouts l ON l.storage_id = st.id
+   LEFT JOIN used u ON u.storage_id = st.id
+   WHERE st.hub_id = $1
+   ORDER BY st.path;
+   ```
+   Roll-up section/location **tidak** memakai join `path <@` (O(n²) untuk pohon besar): BE berjalan sekali di atas hasil
+   yang sudah terurut `path` dan menjumlahkan ke induk (O(n)). Status okupansi dihitung di BE dari konstanta ambang.
+3. Payload **kolumnar** (array per kolom, indeks induk sebagai integer, nama sebagai array string), bukan objek per bin:
+   20.000 bin ≈ 1,1 MB JSON ≈ 220 KB gzip, satu round-trip. Lot per SKU tidak ikut; diambil saat bin diklik
+   (`GET /stocks?storageID`, paged).
+4. Dashboard okupansi dan board memakai CTE `used` yang sama dengan filter dan **keyset pagination** (`path, id`), bukan OFFSET;
+   hitungan tab lewat satu query `GROUP BY status` terpisah yang ringan.
+
+Index yang dibutuhkan: `wh_stocks (hub_id, storage_id) WHERE qty_on_hand > 0` (partial), `wh_skus (client_id, sku)` (sudah ada),
+`wh_storages (hub_id, path)` + GiST (sudah ada), `wh_storage_layouts (hub_id)`, `wh_stock_movements (hub_id, created_at DESC)`.
+
+### Kalau query langsung terbukti lambat (> 300 ms p95 setelah diukur)
+
+Bukan `REFRESH MATERIALIZED VIEW` (penuh, mahal, dan sempat basi), melainkan tabel agregat
+`wh_storage_occupancy (storage_id PK, used_qty, used_cbm, used_kg, updated_at)` yang diperbarui **per delta dalam transaksi
+yang sama** dengan perubahan stok: setiap `adjustStock`/`upsertStockIncrement` menambah `Δqty`, `Δqty × cbm_per_unit`,
+`Δqty × weight_kg` ke baris storage-nya (satu `INSERT … ON CONFLICT DO UPDATE`). Konsisten dengan ledger tanpa worker.
+Perubahan dimensi SKU memicu hitung ulang hanya untuk storage yang memegang SKU itu. Job malam membandingkan tabel dengan
+hitung ulang penuh dan memperbaiki selisih (self-healing), hasilnya dilog.
+
+### Alur tulis
+
+- `PUT /storages/layout` = replace seluruh layout hub dalam satu transaksi: validasi (storage milik hub, bounds, minimum lantai
+  ≥ location, level 1–6), cek `version` (409 `LAYOUT_STALE` bila berbeda), upsert baris + hapus yang tidak dikirim, `version + 1`.
+  Idempotent; tidak ada request panjang.
+- Kapasitas massal per section = satu `UPDATE … WHERE path <@ $section AND category = 'BIN' [AND capacity_cbm IS NULL]`.
+- Import CSV kapasitas: parse streaming, validasi semua baris dulu, lalu satu `UPDATE … FROM (VALUES …)`; atomik per file;
+  batas 5.000 baris / 5 MB.
+- `statement_timeout` 5 detik pada endpoint baca peta/okupansi; tidak ada transaksi yang menunggu I/O eksternal.
+
+### Frontend
+
+- **Data**: payload kolumnar dipetakan ke typed array (`Float32Array` posisi/ukuran, `Uint8Array` status, `Int32Array` induk) dan
+  array string nama; ±1 MB untuk 20.000 bin, tanpa objek per bin. Disimpan di `useRef`, bukan React state — React hanya
+  merender panel dan tabel, bukan peta. Geometri bin diturunkan dari section (bentuk + urutan) sekali; mengubah satu section
+  hanya menghitung ulang bin section itu. Di atas 5.000 bin, penurunan geometri dijalankan di Web Worker.
+- **Render Canvas 2D** (pola yang dipakai mockup): satu frame = culling section di luar viewport → bin digambar urut painter
+  per sudut pandang → plakat nama. Frame digabung per `requestAnimationFrame`. Sisi dan bayangan hanya digambar bila bin
+  ≥ 6 px; di bawah 3 px bin digambar sebagai satu persegi **dibatch per warna** (satu `fill()` per warna, bukan per bin), sehingga
+  20.000 bin terlihat sekaligus tetap ± 10 ms. Pan memakai bitmap frame terakhir (blit), gambar ulang hanya saat zoom,
+  putar, atau data berubah.
+- **Hit-test**: grid spasial di ruang layar (sel 32 px) dibangun saat render; hover/klik hanya menguji poligon di sel itu, O(1),
+  bukan memindai semua bin.
+- **Batas yang diukur**: mockup 143 bin × 3 sisi ≈ 8 ms/frame di headless Chromium (termasuk overhead pengukur); dengan LOD,
+  batching, dan culling anggaran 16 ms cukup sampai ± 30.000 bin. Di atas itu pindah ke WebGL (`regl`, ± 30 KB), kontrak
+  data tidak berubah.
+- **Daftar**: tabel storage/okupansi memakai pagination server (20–100 baris) dan tidak pernah memuat semua bin ke DOM.
+- **Polling**: 10 detik dengan ETag, berhenti saat tab tidak terlihat; setelah mutasi sendiri refetch langsung.
+- **Keandalan**: `LoadError` + retry; konflik `LAYOUT_STALE` → muat ulang lalu tawarkan terapkan ulang perubahan lokal;
+  tombol Simpan nonaktif saat offline; perubahan layout yang belum disimpan ditahan `useLeaveGuard`.
+- **Bundle**: route peta di-lazy-load; tidak ada dependensi baru.
+
+### Pengujian & observabilitas
+
+- Benchmark BE pada dataset sintetis 20.000 bin / 100.000 stok (skrip seed) dengan ambang p95 di CI integrasi.
+- Property test: Σ `used_qty` per storage == Σ `qty_on_hand`; roll-up induk == Σ anak.
+- Metrik: durasi query per endpoint, ukuran payload, rasio 304; alert p95 > 500 ms atau rasio 304 < 50 %.
+- FE: pengukur frame (`performance.now()` di render) dilaporkan ke console di mode dev dan ke metrik di prod (sampling).
 
 ## Cross-module impacts
 
@@ -281,4 +337,4 @@ okupansi hub terbuka < 300 ms p95, memori tab browser < 150 MB.
 ## Changelog
 
 - 2026-10-12 — created (draft, ditunda setelah transfer storage & stock opname); assessment eFishery, mockup v1 empat halaman + simulasi e2e.
-- 2026-10-13 — mockup: turntable 0–360°, plakat nama, renderer Canvas 2D + LOD; bagian Performance, reliability & scalability ditambahkan (target angka, payload kolumnar, MV inkremental, canvas/LOD/virtualisasi).
+- 2026-10-13 — mockup: turntable 0–360° (kontrol di dalam kanvas), plakat nama, renderer Canvas 2D + LOD, lantai hub bisa diubah ukurannya; bagian Performance, reliability & scalability ditulis ulang setelah assessment: satu query + roll-up O(n), payload kolumnar, ETag, tabel agregat per-delta (bukan MV), batching per warna + grid spasial + blit di FE, batas Canvas ±30.000 bin.
