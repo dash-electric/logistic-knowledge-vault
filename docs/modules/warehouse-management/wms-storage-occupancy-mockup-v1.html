@@ -16,6 +16,7 @@ Storage (CRUD + kapasitas per bin), Peta gudang (denah isometrik + editor layout
 Okupansi storage (board + daftar per bin × SKU, pola dashboard Storage Capacity
 eFishery), Warehouse (info hub). Tombol "Simulasi e2e" kanan bawah menjalankan alur
 rak baru → tempatkan → stok masuk → pantau → lengkapi kapasitas → stok keluar.
+Peta dirender di Canvas 2D (hit-test polygon, LOD, satu frame per rAF) dan bisa diputar 0–360°.
 Data contoh di dalam file; tidak memanggil API. Kapasitas adalah properti bin
 (capacity_cbm/kg/qty), bukan properti hub/warehouse — lihat Key decisions di PRD/TRD.
 -->
@@ -23,8 +24,7 @@ Data contoh di dalam file; tidak memanggil API. Kapasitas adalah properti bin
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Peta Gudang WMS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Peta Gudang WMS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
@@ -236,15 +236,19 @@ table.list tr.lv0 td.sticky { background: var(--tint); } table.list tbody tr:hov
 .tray .chips button.zone-btn { border-style: solid; background: var(--accent-soft); }
 .field select { width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; background: #fff; }
 .sheet.edit { cursor: default; outline: 2px dashed var(--accent); outline-offset: -2px; }
-.sheet.edit .section, .sheet.edit .bin { cursor: move; }
+
 .toast { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: var(--ink); color: #fff; font-size: 12.5px; padding: 8px 14px; border-radius: 8px; display: none; z-index: 6; }
 .field { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .field label { font-size: 11px; color: var(--neutral); display: block; margin-bottom: 3px; }
 .field input { width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; }
-.sheet { position: relative; height: 520px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; cursor: grab; touch-action: none; }
+.orbit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--rule); }
+.orbit .btn { padding: 5px 10px; font-size: 12px; }
+.orbit input[type=range] { width: 160px; accent-color: var(--accent); }
+.orbit #rot-v { min-width: 36px; text-align: right; }
+.sheet { position: relative; height: 560px; background: #fcfcfc; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; cursor: grab; touch-action: none; }
 .sheet.dragging { cursor: grabbing; }
 @media (max-width: 600px) { .sheet { height: 400px; } }
-.sheet svg { width: 100%; height: 100%; display: block; }
+.sheet canvas { display: block; }
 .scale { position: absolute; right: 12px; bottom: 10px; display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10.5px; color: var(--neutral); background: var(--panel); border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px; }
 .scale i { width: 90px; height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--panel), var(--accent)); border: 1px solid var(--rule); }
 .scale b { color: var(--err); font-weight: 600; }
@@ -345,7 +349,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
       <div class="grid">
         <div class="card">
           <div class="hd">
-            <div><h3>Denah hub</h3><p class="meta">Klik bin atau rak untuk detail · scroll zoom · drag geser</p></div>
+            <div><h3>Denah hub</h3><p class="meta">Klik bin atau rak untuk detail · scroll zoom · drag geser · klik kanan + drag memutar</p></div>
             <div class="actions">
               <div class="seg" id="mode"><button data-mode="cbm" class="on">Volume</button><button data-mode="qty">Jumlah</button><button data-mode="bin">Bin terpakai</button></div>
               <select id="floor" aria-label="Lokasi"><option value="all">Semua lokasi</option></select>
@@ -363,13 +367,21 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
             <div class="tray" id="tray"></div>
           </div>
           <div class="bd">
+            <div class="orbit" aria-label="Putar tampilan">
+              <button class="btn stroke" id="rot-l" title="Putar 45° ke kiri">⟲ 45°</button>
+              <input id="rot" type="range" min="0" max="360" step="1" value="0" aria-label="Sudut pandang">
+              <span class="meta mono" id="rot-v">0°</span>
+              <button class="btn stroke" id="rot-r" title="Putar 45° ke kanan">⟳ 45°</button>
+              <button class="btn stroke" id="rot-spin" title="Putar otomatis 360°">Putar 360°</button>
+              <span class="meta">Klik kanan + drag (atau Shift + drag) untuk memutar bebas.</span>
+            </div>
             <div class="sheet" id="sheet">
-              <svg id="svg" xmlns="http://www.w3.org/2000/svg" role="application" aria-label="Denah gudang"></svg>
+              <canvas id="cv" role="application" aria-label="Denah gudang"></canvas>
               <div class="tip" id="tip"></div>
               <div class="scale"><span>0%</span><i></i><span>100%</span><b>over</b></div>
               <div class="toast" id="toast"></div>
             </div>
-            <div class="legend"><span><i style="background:var(--panel)"></i>Kosong</span><span><i style="background:color-mix(in srgb, var(--accent) 45%, #fff)"></i>Terisi (makin pekat makin penuh)</span><span><i style="background:var(--full-soft);border-color:var(--full)"></i>Over kapasitas</span><span><i style="background:var(--unset)"></i>Kapasitas belum diset</span></div>
+            <div class="legend"><span><i style="background:#fff"></i>Kosong</span><span><i style="background:color-mix(in srgb, var(--accent) 45%, #fff)"></i>Terisi (makin pekat makin penuh)</span><span><i style="background:var(--full-soft);border-color:var(--full)"></i>Over kapasitas</span><span><i style="background:var(--unset)"></i>Kapasitas belum diset</span></div>
           </div>
         </div>
         <div class="card">
@@ -731,13 +743,17 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
   }
   const STATUS_LABEL = { empty: 'Kosong', ok: 'Terisi', mid: 'Hampir penuh', high: 'Penuh', full: 'Over kapasitas', unset: 'Kapasitas belum diset' };
   // One hue: the fuller the bin, the deeper the accent. Over capacity reads red; no capacity reads grey.
+  const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const COL = { accent: [94, 42, 172], ink: '#171717', unset: cssVar('--unset') || '#e9e9e9', full: cssVar('--full') || '#d93025', fullSoft: cssVar('--full-soft') || '#fde5e3', quarantine: cssVar('--quarantine') || '#6d28d9', staging: cssVar('--staging') || '#0e7490' };
+  /** Accent mixed into white by `f` (0 = white, 1 = full accent). */
+  const accentMix = (f) => { const [r, g, b] = COL.accent; const m = (c) => Math.round(255 + (c - 255) * f); return `rgb(${m(r)},${m(g)},${m(b)})`; };
   const fillOf = (b) => {
     const st = statusOf(b), p = pct(b);
-    if (st === 'empty') return { fill: 'var(--sheet)', stroke: 'var(--line)', mix: 0 };
-    if (st === 'unset') return { fill: 'var(--unset)', stroke: 'var(--faint)', mix: 0 };
-    if (st === 'full') return { fill: 'var(--full-soft)', stroke: 'var(--full)', mix: 1 };
+    if (st === 'empty') return { fill: '#ffffff', stroke: 'rgba(23,23,23,.14)', mix: 0 };
+    if (st === 'unset') return { fill: COL.unset, stroke: 'rgba(23,23,23,.18)', mix: 0 };
+    if (st === 'full') return { fill: COL.fullSoft, stroke: COL.full, mix: 1 };
     const mix = Math.max(0.18, Math.min(1, (p ?? 100) / 100));
-    return { fill: `color-mix(in srgb, var(--accent) ${Math.round(8 + mix * 62)}%, var(--panel))`, stroke: `color-mix(in srgb, var(--accent) ${Math.round(35 + mix * 65)}%, var(--panel))`, mix };
+    return { fill: accentMix(0.08 + mix * 0.62), stroke: accentMix(0.35 + mix * 0.65), mix };
   };
 
   function kpis() {
@@ -755,18 +771,36 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
   }
 
   /* ------------------------------ drawing ------------------------------- */
-  const NS = 'http://www.w3.org/2000/svg';
-  const svg = document.getElementById('svg');
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d', { alpha: false });
   const sheet = document.getElementById('sheet');
   const tip = document.getElementById('tip');
   const view = { x: 0, y: 0, k: 1 }; // world→screen: screen = (world - x) * k
   const RULER = 0;
-  const el = (n, attrs, text) => { const e = document.createElementNS(NS, n); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; };
-
-  // Isometric projection (cm → sheet units): x runs right-down, y left-down, z up.
+  /** Hit-test items of the last frame, in draw order (later = on top). */
+  let scene = [];
+  const pip = (poly, [px, py]) => { let inside = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) inside = !inside; } return inside; };
+  function hitAt(e) {
+    const r = sheet.getBoundingClientRect(); const pt = [e.clientX - r.left, e.clientY - r.top];
+    for (let i = scene.length - 1; i >= 0; i--) if (pip(scene[i].poly, pt)) return scene[i];
+    return null;
+  }
+  function sizeCanvas() {
+    const dpr = window.devicePixelRatio || 1, W = sheet.clientWidth, H = sheet.clientHeight;
+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px'; }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
   const C = Math.cos(Math.PI / 6), S = Math.sin(Math.PI / 6);
-  const P = (x, y, z = 0) => [(x - y) * C, (x + y) * S - z];
-  const poly = (pts) => pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  /** Turntable: the hub floor is rotated `rot.a` degrees around its centre before the
+   *  isometric projection, so the map can be viewed from any side (0–360°). */
+  const rot = { a: 0 };
+  const R = (x, y) => {
+    const t = rot.a * Math.PI / 180, cx = layout.w / 2, cy = layout.h / 2, dx = x - cx, dy = y - cy;
+    return [cx + dx * Math.cos(t) - dy * Math.sin(t), cy + dx * Math.sin(t) + dy * Math.cos(t)];
+  };
+  const P = (x, y, z = 0) => { const [rx, ry] = R(x, y); return [(rx - ry) * C, (rx + ry) * S - z]; };
+  /** Painter's depth: larger = nearer the viewer. */
+  const depth = (x, y) => { const [rx, ry] = R(x, y); return rx + ry; };
   const bounds = () => {
     const pts = [P(0, 0, 0), P(layout.w, 0, 0), P(0, layout.h, 0), P(layout.w, layout.h, 0), P(0, 0, 3 * LEVEL_H), P(layout.w, 0, 3 * LEVEL_H)];
     const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
@@ -778,93 +812,130 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     view.k = k; view.x = bb.x0 - (W / k - (bb.x1 - bb.x0)) / 2; view.y = bb.y0 - (H / k - (bb.y1 - bb.y0)) / 2;
     draw();
   }
-  // A box with its three visible faces: top, right (x = x+w) and front (y = y+d).
-  function box(parent, b, fillTop, stroke, attrs, opacity) {
+  /* Canvas renderer. One frame = clear + floor + zones + depth-sorted boxes + plates.
+     Frames are coalesced with requestAnimationFrame; nothing is retained between frames
+     except `scene` (screen polygons for hit-testing). Level of detail: below ~3 px per bin
+     only top faces are painted (no strokes/sides), below ~5 px no section plates. */
+  const sp = (x, y, z = 0) => { const [px, py] = P(x, y, z); return [(px - view.x) * view.k, (py - view.y) * view.k]; };
+  const pathOf = (pts) => { ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath(); };
+  const textW = new Map();
+  const measure = (text, font) => { const key = font + '|' + text; let w = textW.get(key); if (w === undefined) { ctx.font = font; w = ctx.measureText(text).width; textW.set(key, w); } return w; };
+  // A box: its top plus the side faces that face the viewer at the current angle.
+  // Side normals rotate with the turntable; a side is visible when its normal points toward the
+  // viewer (+x+y in projected space). Shade follows the normal so lighting is stable while turning.
+  function box(b, fill, stroke, hit, lod) {
     const { x, y, z, w, d, h } = b;
-    const top = [P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)];
-    const right = [P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)];
-    const front = [P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)];
-    const g = el('g', Object.assign({ opacity: opacity ?? 1 }, attrs));
-    g.appendChild(el('polygon', { points: poly(front), fill: fillTop, stroke, 'stroke-width': 1 / view.k, 'stroke-linejoin': 'round' }));
-    g.appendChild(el('polygon', { points: poly(front), fill: 'var(--ink)', opacity: .12, 'pointer-events': 'none' }));
-    g.appendChild(el('polygon', { points: poly(right), fill: fillTop, stroke, 'stroke-width': 1 / view.k, 'stroke-linejoin': 'round' }));
-    g.appendChild(el('polygon', { points: poly(right), fill: 'var(--ink)', opacity: .24, 'pointer-events': 'none' }));
-    g.appendChild(el('polygon', { points: poly(top), fill: fillTop, stroke, 'stroke-width': 1 / view.k, 'stroke-linejoin': 'round' }));
-    parent.appendChild(g);
+    const t = rot.a * Math.PI / 180;
+    if (lod >= 2) {
+      const sides = [[[1, 0], [[x + w, y], [x + w, y + d]]], [[0, 1], [[x + w, y + d], [x, y + d]]], [[-1, 0], [[x, y + d], [x, y]]], [[0, -1], [[x, y], [x + w, y]]]];
+      for (const [n, pts] of sides) {
+        const nx = n[0] * Math.cos(t) - n[1] * Math.sin(t), ny = n[0] * Math.sin(t) + n[1] * Math.cos(t);
+        if ((nx + ny) / Math.SQRT2 <= 0.02) continue;
+        const [[ax, ay], [bx, by]] = pts;
+        const face = [sp(ax, ay, z), sp(bx, by, z), sp(bx, by, z + h), sp(ax, ay, z + h)];
+        const phi = Math.atan2(ny, nx), dark = 0.18 + 0.07 * Math.cos(phi) - 0.07 * Math.sin(phi);
+        pathOf(face); ctx.fillStyle = fill; ctx.fill();
+        ctx.fillStyle = `rgba(23,23,23,${dark.toFixed(3)})`; ctx.fill();
+        if (lod >= 3) { ctx.strokeStyle = stroke; ctx.lineWidth = 0.8; ctx.stroke(); }
+        if (hit) scene.push({ kind: hit.kind, id: hit.id, poly: face });
+      }
+    }
+    const top = [sp(x, y, z + h), sp(x + w, y, z + h), sp(x + w, y + d, z + h), sp(x, y + d, z + h)];
+    pathOf(top); ctx.fillStyle = fill; ctx.fill();
+    if (lod >= 3) { ctx.strokeStyle = stroke; ctx.lineWidth = 0.8; ctx.stroke(); }
+    if (hit) scene.push({ kind: hit.kind, id: hit.id, poly: top });
     return top;
   }
-  function draw() {
-    svg.innerHTML = '';
-    const world = el('g', { transform: `scale(${view.k}) translate(${-view.x},${-view.y})` });
+  /** A readable name plate: white chip with a hairline, always upright, centred on `pt` (screen px). */
+  function plate(pt, text, { size = 11, weight = 600, fill = COL.ink, dot = null } = {}) {
+    const font = `${weight} ${size}px ${cssVar('--font') || 'Plus Jakarta Sans, system-ui, sans-serif'}`;
+    const tw = measure(text, font), padX = 7, hgt = size + 9, wdt = tw + (dot ? size + 4 : 0) + padX * 2;
+    const x = pt[0] - wdt / 2, y = pt[1] - hgt / 2;
+    ctx.beginPath(); ctx.roundRect(x, y, wdt, hgt, 4); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = 'rgba(23,23,23,.18)'; ctx.lineWidth = 1; ctx.stroke();
+    let tx = x + padX;
+    if (dot) { ctx.beginPath(); ctx.arc(tx + size * 0.35, pt[1], size * 0.3, 0, Math.PI * 2); ctx.fillStyle = dot; ctx.fill(); tx += size + 4; }
+    ctx.font = font; ctx.fillStyle = fill; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillText(text, tx, pt[1] + 0.5);
+  }
+  let raf = 0;
+  function draw() { if (!raf) raf = requestAnimationFrame(render); }
+  function render() {
+    raf = 0; sizeCanvas(); scene = [];
+    const W = sheet.clientWidth, H = sheet.clientHeight, k = view.k;
+    ctx.fillStyle = '#fcfcfc'; ctx.fillRect(0, 0, W, H);
+    const binPx = BIN_W * k * C; const lod = binPx < 3 ? 1 : binPx < 6 ? 2 : 3;
     // floor
-    world.appendChild(el('polygon', { points: poly([P(0, 0), P(layout.w, 0), P(layout.w, layout.h), P(0, layout.h)]), fill: 'var(--panel)', stroke: 'var(--line)', 'stroke-width': 1.5 / view.k, 'stroke-linejoin': 'round' }));
-    const dock = P(2850, layout.h - 40);
-    world.appendChild(el('text', { x: dock[0], y: dock[1], 'text-anchor': 'middle', 'font-family': 'var(--mono)', 'font-size': 13 / view.k, fill: 'var(--faint)', 'letter-spacing': 2 }, 'DOCK'));
+    pathOf([sp(0, 0), sp(layout.w, 0), sp(layout.w, layout.h), sp(0, layout.h)]); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = 'rgba(23,23,23,.22)'; ctx.lineWidth = 1; ctx.stroke();
     const locs = layout.locations.filter(L => state.floor === 'all' || state.floor === L.id);
-    // zones on the floor
+    const zonePlates = [], handles = [];
     locs.forEach(L => {
-      const col = L.type === 'QUARANTINE' ? 'var(--quarantine)' : L.type === 'STAGING' ? 'var(--staging)' : 'var(--muted)';
-      const zone = el('g', { class: 'zone', 'data-id': L.id });
-      zone.appendChild(el('polygon', { points: poly([P(L.x, L.y), P(L.x + L.w, L.y), P(L.x + L.w, L.y + L.h), P(L.x, L.y + L.h)]), fill: 'var(--sheet)', stroke: 'var(--line)', 'stroke-width': 1 / view.k, 'stroke-linejoin': 'round' }));
-      // Zone name sits just outside the zone's left corner, on the floor, clear of the racks.
-      const t = P(L.x, L.y + L.h, 0);
-      zone.appendChild(el('text', { x: t[0] + 12 / view.k, y: t[1] + 14 / view.k, 'text-anchor': 'start', 'font-family': 'var(--font)', 'font-size': 12 / view.k, fill: col, 'pointer-events': 'none' }, L.name));
-      world.appendChild(zone);
-      if (state.edit && state.section === L.id) {
-        zone.querySelector('polygon').setAttribute('stroke', 'var(--accent)'); zone.querySelector('polygon').setAttribute('stroke-width', 2.5 / view.k);
-        const c = P(L.x + L.w, L.y + L.h), r = 7 / view.k;
-        world.appendChild(el('polygon', { class: 'handle', 'data-id': L.id, points: poly([[c[0], c[1] - r], [c[0] + r, c[1]], [c[0], c[1] + r], [c[0] - r, c[1]]]), fill: '#fff', stroke: 'var(--accent)', 'stroke-width': 2 / view.k, style: 'cursor:nwse-resize' }));
-      }
+      const col = L.type === 'QUARANTINE' ? COL.quarantine : L.type === 'STAGING' ? COL.staging : `rgb(${COL.accent.join(',')})`;
+      const corners = [[L.x, L.y], [L.x + L.w, L.y], [L.x + L.w, L.y + L.h], [L.x, L.y + L.h]];
+      const sel = state.edit && state.section === L.id;
+      const poly = corners.map(c => sp(c[0], c[1]));
+      pathOf(poly); ctx.fillStyle = L.type === 'STORAGE' ? 'rgba(23,23,23,.025)' : 'rgba(23,23,23,.045)'; ctx.fill();
+      ctx.strokeStyle = sel ? `rgb(${COL.accent.join(',')})` : 'rgba(23,23,23,.12)'; ctx.lineWidth = sel ? 2.5 : 1; ctx.stroke();
+      scene.push({ kind: 'zone', id: L.id, poly });
+      const near = corners.reduce((a, c) => depth(c[0], c[1]) > depth(a[0], a[1]) ? c : a);
+      const pt = sp(near[0], near[1]); zonePlates.push({ pt: [pt[0], pt[1] + 16], name: L.name, col });
+      if (sel) handles.push({ id: L.id, c: sp(L.x + L.w, L.y + L.h) });
     });
-    // sections + bins, painter's order: far (small x+y) first, low z first
     const items = [];
     locs.forEach(L => L.sections.forEach(S => {
-      items.push({ key: S.x + S.y - 1, draw: () => {
-        const sec = el('g', { class: 'section', 'data-id': S.id });
-        const selS = state.edit && state.section === S.id;
-        sec.appendChild(el('polygon', { points: poly([P(S.x - 8, S.y - 8, 0), P(S.x + S.w + 8, S.y - 8, 0), P(S.x + S.w + 8, S.y + S.h + 8, 0), P(S.x - 8, S.y + S.h + 8, 0)]), fill: selS ? 'var(--accent-medium)' : 'var(--grid)', stroke: state.edit ? 'var(--accent)' : 'none', 'stroke-width': (selS ? 2.5 : 1) / view.k, 'stroke-dasharray': selS ? '' : `${6 / view.k} ${4 / view.k}` }));
-        world.appendChild(sec);
+      const cx = S.x + S.w / 2, cy = S.y + S.h / 2;
+      if (state.edit) items.push({ key: depth(cx, cy) - 1e5, draw: () => {
+        const selS = state.section === S.id;
+        const poly = [sp(S.x - 8, S.y - 8), sp(S.x + S.w + 8, S.y - 8), sp(S.x + S.w + 8, S.y + S.h + 8), sp(S.x - 8, S.y + S.h + 8)];
+        pathOf(poly); ctx.fillStyle = selS ? 'rgba(94,42,172,.16)' : 'rgba(94,42,172,.05)'; ctx.fill();
+        ctx.setLineDash(selS ? [] : [5, 4]); ctx.strokeStyle = `rgb(${COL.accent.join(',')})`; ctx.lineWidth = selS ? 2 : 1; ctx.stroke(); ctx.setLineDash([]);
+        scene.push({ kind: 'section', id: S.id, poly });
       } });
-      S.bins.forEach(b => items.push({ key: b.x + b.y + b.z * 0.001, draw: () => {
+      S.bins.forEach(b => items.push({ key: depth(b.x + b.w / 2, b.y + b.d / 2) + b.z * 0.001, draw: () => {
         const st = statusOf(b);
         const faded = state.client !== 'all' && b.lots.length && !visibleLots(b).length;
         const p = pct(b);
-        // Floor pallets rise with what they hold; rack bins are fixed cells.
         const geo = S.kind === 'FLOOR'
           ? { x: b.x + 12, y: b.y + 12, z: 0, w: b.w - 24, d: b.d - 24, h: 14 + (p !== null ? Math.min(1.1, p / 100) : b.lots.length ? 0.5 : 0) * PALLET_H }
           : { x: b.x + 4, y: b.y + 4, z: b.z + 4, w: b.w - 8, d: b.d - 8, h: b.h - 8 };
         const sel = state.selected === b.id;
         const f = fillOf(b);
-        const top = box(world, geo, f.fill, sel ? 'var(--ink)' : f.stroke, { class: 'bin', 'data-id': b.id }, faded ? 0.25 : 1);
-        if (sel) world.appendChild(el('polygon', { points: poly(top), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5 / view.k, 'pointer-events': 'none' }));
+        ctx.globalAlpha = faded ? 0.2 : 1;
+        const top = box(geo, f.fill, sel ? COL.ink : (st === 'full' ? f.stroke : 'rgba(23,23,23,.14)'), { kind: 'bin', id: b.id }, lod);
+        ctx.globalAlpha = 1;
+        if (sel) { pathOf(top); ctx.strokeStyle = COL.ink; ctx.lineWidth = 2.5; ctx.stroke(); }
       } }));
-      // rack label above the back-left post
-      items.push({ key: S.x + S.y + 1e6, draw: () => {
-        const t = P(S.x, S.y, (S.kind === 'RACK' ? S.levels * LEVEL_H : PALLET_H) + 40);
-        world.appendChild(el('text', { x: t[0], y: t[1], 'font-family': 'var(--font)', 'font-size': 11 / view.k, fill: 'var(--faint)', 'pointer-events': 'none' }, S.name));
+      if (lod >= 2) items.push({ key: depth(cx, cy) + 1e6, draw: () => {
+        plate(sp(cx, cy, (S.kind === 'RACK' ? S.levels * LEVEL_H : PALLET_H) + 46), S.name, { size: 11 });
       } });
     }));
     items.sort((a, c) => a.key - c.key).forEach(i => i.draw());
-    svg.appendChild(world);
+    zonePlates.forEach(z => plate(z.pt, z.name, { size: 11.5, weight: 700, dot: z.col }));
+    handles.forEach(hd => { const r = 7, c = hd.c; const poly = [[c[0], c[1] - r], [c[0] + r, c[1]], [c[0], c[1] + r], [c[0] - r, c[1]]]; pathOf(poly); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = `rgb(${COL.accent.join(',')})`; ctx.lineWidth = 2; ctx.stroke(); scene.push({ kind: 'handle', id: hd.id, poly }); });
+    const dock = sp(2850, layout.h - 40); ctx.font = `500 11px ${cssVar('--mono') || 'JetBrains Mono, monospace'}`; ctx.fillStyle = 'rgba(23,23,23,.35)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('DOCK', dock[0], dock[1]);
+    const rs = document.getElementById('rot'); const a = ((rot.a % 360) + 360) % 360; if (rs && Number(rs.value) !== Math.round(a)) rs.value = Math.round(a);
+    const rl = document.getElementById('rot-v'); if (rl) rl.textContent = `${Math.round(a)}°`;
   }
+  window.__map = { scene: () => scene, hitAt, view, rot, drag: () => drag, state };
   /* ------------------------------ interaction --------------------------- */
   let drag = null;
   // Screen delta → floor delta (inverse of the isometric projection, z = 0).
-  const unproject = (sx, sy) => [(sx / C + sy / S) / 2, (sy / S - sx / C) / 2];
+  const unproject = (sx, sy) => { const ux = (sx / C + sy / S) / 2, uy = (sy / S - sx / C) / 2, t = -rot.a * Math.PI / 180; return [ux * Math.cos(t) - uy * Math.sin(t), ux * Math.sin(t) + uy * Math.cos(t)]; };
   const sectionOf = (id) => { for (const S of allSections) if (S.id === id || S.bins.some(b => b.id === id)) return { S, L: S.L }; return null; };
   const snap = (v) => Math.round(v / 50) * 50;
   sheet.addEventListener('pointerdown', e => {
-    const hnd = state.edit && e.target.closest && e.target.closest('.handle');
-    const t = e.target.closest && (e.target.closest('.bin') || e.target.closest('.section'));
-    const z = state.edit && !t && e.target.closest && e.target.closest('.zone');
-    const hit = state.edit && t ? sectionOf(t.getAttribute('data-id')) : null;
-    const Lh = hnd ? locationOf(hnd.getAttribute('data-id')) : z ? locationOf(z.getAttribute('data-id')) : null;
+    const h = hitAt(e);
+    const hnd = state.edit && h && h.kind === 'handle' ? h : null;
+    const t = h && (h.kind === 'bin' || h.kind === 'section') ? h : null;
+    const z = state.edit && !t && h && h.kind === 'zone' ? h : null;
+    const hit = state.edit && t ? sectionOf(t.id) : null;
+    const Lh = hnd ? locationOf(hnd.id) : z ? locationOf(z.id) : null;
+    if (e.button === 2 || e.shiftKey) { drag = { x: e.clientX, y: e.clientY, moved: false, orbit: rot.a }; sheet.classList.add('dragging'); sheet.setPointerCapture(e.pointerId); return; }
     drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false, sec: hit ? { S: hit.S, L: hit.L, ox: hit.S.x, oy: hit.S.y } : null,
       loc: Lh ? { L: Lh, ox: Lh.x, oy: Lh.y, ow: Lh.w, oh: Lh.h, resize: !!hnd } : null };
     if (!hit && !Lh) sheet.classList.add('dragging');
     sheet.setPointerCapture(e.pointerId);
   });
   sheet.addEventListener('pointermove', e => {
+    if (drag && drag.orbit !== undefined) { rot.a = drag.orbit + (e.clientX - drag.x) * 0.45; if (Math.abs(e.clientX - drag.x) > 3) drag.moved = true; draw(); return; }
     if (drag && drag.sec) {
       const [wx, wy] = unproject((e.clientX - drag.x) / view.k, (e.clientY - drag.y) / view.k);
       if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) drag.moved = true;
@@ -891,9 +962,10 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
       if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) drag.moved = true;
       view.x = drag.vx - dx; view.y = drag.vy - dy; draw(); return;
     }
-    const t = e.target.closest && e.target.closest('.bin');
-    if (!t) { tip.style.display = 'none'; return; }
-    const { b, S, L } = findBin(t.getAttribute('data-id'));
+    const h = hitAt(e);
+    sheet.style.cursor = h ? (h.kind === 'handle' ? 'nwse-resize' : state.edit ? 'move' : 'pointer') : (state.edit ? 'default' : 'grab');
+    if (!h || h.kind !== 'bin') { tip.style.display = 'none'; return; }
+    const { b, S, L } = findBin(h.id);
     const p = pct(b);
     tip.innerHTML = `<b>${b.name}</b> · ${S.name}<br>${p !== null ? `${p.toFixed(0)}% · ` : ''}${STATUS_LABEL[statusOf(b)]}${b.lots.length ? `<br>${b.lots.map(l => `${l.sku.sku} ${l.qty}`).join(' · ')}` : ''}`;
     const rect = sheet.getBoundingClientRect();
@@ -902,6 +974,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     tip.style.top = (e.clientY - rect.top + 12) + 'px';
   });
   sheet.addEventListener('pointerup', e => {
+    if (drag && drag.orbit !== undefined) { drag = null; sheet.classList.remove('dragging'); return; }
     sheet.classList.remove('dragging');
     if (drag && drag.sec) {
       if (drag.moved) { markDirty(drag.sec.S, 'moved'); renderTable(); toast(`${drag.sec.S.name} dipindah ke x ${drag.sec.S.x} · y ${drag.sec.S.y} cm`); }
@@ -910,8 +983,8 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
       if (drag.moved) { markDirty(drag.loc.L, drag.loc.resize ? 'resized' : 'moved'); renderTable(); toast(drag.loc.resize ? `${drag.loc.L.name} diubah jadi ${drag.loc.L.w} × ${drag.loc.L.h} cm` : `${drag.loc.L.name} dipindah ke x ${drag.loc.L.x} · y ${drag.loc.L.y} cm (section ikut)`); }
       selectLocation(drag.loc.L.id);
     } else if (drag && !drag.moved) {
-      const t = e.target.closest && (e.target.closest('.bin') || e.target.closest('.section') || e.target.closest('.zone'));
-      if (t) select(t.getAttribute('data-id'));
+      const h = hitAt(e);
+      if (h && (h.kind === 'bin' || h.kind === 'section' || h.kind === 'zone')) select(h.id);
     }
     drag = null;
   });
@@ -1077,6 +1150,13 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     document.getElementById('g-auto').disabled = allPlaced && !autoTimer; document.getElementById('g-restore').disabled = false;
   }
   sheet.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
+  sheet.addEventListener('contextmenu', e => e.preventDefault());
+  const turn = (d) => { rot.a = (rot.a + d) % 360; draw(); };
+  document.getElementById('rot-l').onclick = () => turn(-45);
+  document.getElementById('rot-r').onclick = () => turn(45);
+  document.getElementById('rot').oninput = (e) => { rot.a = Number(e.target.value); draw(); };
+  let spin = null;
+  document.getElementById('rot-spin').onclick = (e) => { if (spin) { clearInterval(spin); spin = null; e.currentTarget.classList.remove('on'); return; } e.currentTarget.classList.add('on'); spin = setInterval(() => turn(1.2), 40); };
   sheet.addEventListener('wheel', e => {
     e.preventDefault();
     const rect = sheet.getBoundingClientRect();
@@ -1549,7 +1629,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     timer = setInterval(() => (Math.random() < 0.55 ? inbound(null) : picking(null)), 900);
   };
 
-  window.addEventListener('resize', fit);
+  window.addEventListener('resize', () => { sizeCanvas(); fit(); });
   kpis(); fit();
 })();
 </script>

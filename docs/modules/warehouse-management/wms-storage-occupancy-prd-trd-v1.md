@@ -188,6 +188,40 @@ View:
 ERD: `docs/modules/erd/erd.mermaid` diperbarui (kolom kapasitas di `WH_STORAGES`, entitas `WH_STORAGE_LAYOUTS`,
 ditandai PROPOSED selama status draft).
 
+## Performance, reliability & scalability (requirement, not afterthought)
+
+Target: satu hub besar = 20.000 bin, 100.000 baris stok, 50 ops bersamaan; peta tetap 60 fps saat diputar/di-zoom,
+okupansi hub terbuka < 300 ms p95, memori tab browser < 150 MB.
+
+**Backend**
+- Okupansi dihitung di SQL dalam satu query agregat per permintaan: `wh_stocks ⨝ wh_skus` di-group per `storage_id`
+  (used_cbm/kg/qty), lalu roll-up section/location lewat `path <@` dengan index GiST yang sudah ada. Tidak ada N+1, tidak ada
+  perhitungan di Node per baris. Query dibatasi per hub dan mengembalikan hanya kolom yang dipakai.
+- Endpoint peta memakai **payload kolumnar ringkas**: `GET /storages/map?hubID` → `{ storages: [[id, parentIdx, category, name, status]…],
+  layouts: [[idx, x, y, w, h, rot, shape, levels, rows, cell]…], occupancy: [[idx, usedCbm, capCbm, usedQty, capQty, status]…] }`.
+  20.000 bin ≈ 1 MB gzip, satu round-trip; detail bin (lot per SKU) diambil terpisah saat diklik (`GET /stocks?storageID`).
+- Materialized view `wh_storage_occupancy_mv` di-refresh **inkremental** dari ledger (trigger pada `wh_stock_movements` menandai
+  storage kotor; worker merefresh per hub tiap ≤ 5 detik) kalau query langsung > 300 ms. Mulai dari query langsung; ukur dulu.
+- Cache HTTP: `ETag` + `Cache-Control: private, max-age=5` pada peta dan okupansi; `If-None-Match` membuat polling murah.
+- Layout disimpan per hub dalam satu `PUT` idempotent dengan `updatedAt` (409 bila stale); tidak ada long-running request.
+- Import CSV kapasitas diproses streaming (baris demi baris, batas 5.000 baris), transaksi per file.
+- Observabilitas: durasi query okupansi dan ukuran payload dilog per hub; alert p95 > 500 ms.
+
+**Frontend**
+- Peta dirender di **Canvas 2D**, bukan SVG/DOM: satu elemen, tanpa node per bin, gambar ulang digabung per `requestAnimationFrame`.
+  Hit-test lewat polygon-in-point pada daftar poligon frame terakhir (urutan painter), bukan event DOM. Ini yang dipakai mockup
+  (`wms-storage-occupancy-mockup-v1.html`), terukur ≈ 8 ms/frame untuk 143 bin × 3 sisi di laptop biasa, dan skalanya linear.
+- **Level of detail**: < 3 px per bin hanya atap tanpa garis; < 6 px tanpa sisi dan tanpa plakat section; plakat location selalu.
+  Di luar viewport tidak digambar (culling per section memakai bounding box layar).
+- Proyeksi isometrik dengan turntable (0–360°) dihitung dari dua rotasi murah; tidak ada WebGL agar jalan di laptop ops dan tanpa
+  dependensi baru (bisa dipindah ke WebGL/OffscreenCanvas bila > 50.000 bin).
+- Data peta disimpan sebagai typed array/struktur datar di memori (bukan objek per bin dengan closure), diturunkan sekali dari
+  payload; ubah layout hanya memutakhirkan section yang berubah.
+- Halaman okupansi dan tabel storage memakai pagination server (20–100 baris) dan virtualisasi baris; tidak pernah memuat seluruh
+  daftar bin ke DOM.
+- Polling okupansi 10 detik dengan `ETag`; berhenti saat tab tidak terlihat (`visibilitychange`).
+- Tanpa library peta/3D tambahan: bundle tidak bertambah selain modul canvas ±15 KB.
+
 ## Cross-module impacts
 
 - Tidak ada. Semua di module warehouse. Dashboard Stock (FE warehouse) menambah KPI dari `occupancy.summary`.
@@ -247,3 +281,4 @@ ditandai PROPOSED selama status draft).
 ## Changelog
 
 - 2026-10-12 — created (draft, ditunda setelah transfer storage & stock opname); assessment eFishery, mockup v1 empat halaman + simulasi e2e.
+- 2026-10-13 — mockup: turntable 0–360°, plakat nama, renderer Canvas 2D + LOD; bagian Performance, reliability & scalability ditambahkan (target angka, payload kolumnar, MV inkremental, canvas/LOD/virtualisasi).
