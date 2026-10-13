@@ -11,7 +11,7 @@ links:
   context: ./wms-context-v1.md
   related: ./wms-prd-trd-v2.md
 
-Scope: simulasi klikabel empat halaman yang membaca satu data storage yang sama —
+Scope: halaman produk "Peta gudang" (default, tanpa helper) + "Peta gudang · simulasi" (helper lengkap); simulasi klikabel empat halaman yang membaca satu data storage yang sama —
 Storage (CRUD + kapasitas per bin), Peta gudang (denah isometrik + editor layout),
 Okupansi storage (board + daftar per bin × SKU, pola dashboard Storage Capacity
 eFishery), Warehouse (info hub). Tombol "Simulasi e2e" kanan bawah menjalankan alur
@@ -121,6 +121,7 @@ tr.sub td { background: var(--tint); padding: 8px 12px 10px 36px; }
 .chip.unset { border-style: dashed; }
 pre.json { margin: 0; padding: 12px 16px; font-family: var(--mono); font-size: 11.5px; line-height: 1.45; color: var(--neutral); background: var(--tint); border-top: 1px solid var(--rule); max-height: 260px; overflow: auto; white-space: pre; }
 #dirty[hidden] { display: none; }
+body.product .sim-only { display: none !important; }
 /* e2e guide */
 .e2e { position: fixed; right: 20px; bottom: 20px; width: 360px; background: #fff; border: 1px solid var(--rule); border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,.18); z-index: 30; font-size: 13px; }
 .e2e .eh { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--rule); } .e2e .eh b { flex: 1; font-size: 13.5px; }
@@ -306,7 +307,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     <div class="brand"><div class="logo">D</div><div><b>Dash Electric</b><small>Mithril</small></div></div>
     <nav class="nav"><div class="grp">Analytics</div><a href="#"><i>▦</i>Docking Dashboard</a></nav>
     <nav class="nav"><div class="grp">Hub ops</div><a href="#"><i>◆</i>Shipments</a><a href="#"><i>▣</i>UJP</a><a href="#"><i>▤</i>Packages</a><a href="#"><i>▥</i>Inbound</a><a href="#"><i>➤</i>Dispatches</a><a href="#"><i>◷</i>Jadwal Dispatch</a><a href="#"><i>▭</i>Delivery</a><a href="#"><i>⊜</i>COD Reconciliation</a><a href="#"><i>▯</i>Invoices</a></nav>
-    <nav class="nav"><div class="grp">Warehouse ops</div><a href="#"><i>⌂</i>Warehouse</a><a class="sub" href="#"><i>◔</i>Dashboard</a><a class="sub2" href="#">Stock</a><a class="sub2" href="#" id="nav-occ">Okupansi storage</a><a class="sub2 active" href="#" id="nav-map" aria-current="page">Peta gudang</a><a class="sub" href="#"><i>▦</i>Warehouse management</a><a class="sub2" href="#" id="nav-hub">Warehouse</a><a class="sub2" href="#" id="nav-storage">Storage</a><a class="sub2" href="#">SKU</a><a class="sub" href="#"><i>↥</i>Outbound management</a><a class="sub" href="#"><i>▤</i>Supply management</a><a class="sub" href="#"><i>↧</i>Inbound management</a></nav>
+    <nav class="nav"><div class="grp">Warehouse ops</div><a href="#"><i>⌂</i>Warehouse</a><a class="sub" href="#"><i>◔</i>Dashboard</a><a class="sub2" href="#">Stock</a><a class="sub2" href="#" id="nav-occ">Okupansi storage</a><a class="sub2 active" href="#" id="nav-map" aria-current="page">Peta gudang</a><a class="sub2" href="#" id="nav-sim">Peta gudang · simulasi</a><a class="sub" href="#"><i>▦</i>Warehouse management</a><a class="sub2" href="#" id="nav-hub">Warehouse</a><a class="sub2" href="#" id="nav-storage">Storage</a><a class="sub2" href="#">SKU</a><a class="sub" href="#"><i>↥</i>Outbound management</a><a class="sub" href="#"><i>▤</i>Supply management</a><a class="sub" href="#"><i>↧</i>Inbound management</a></nav>
     <div class="user"><div class="av">OG</div><div><b>Ops Gudang</b><small>ops.gudang@dashelectric.co</small></div></div>
   </aside>
 
@@ -317,25 +318,25 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
         <div>
           <p class="eyebrow"><b>06</b>Warehouse · Dashboard</p>
           <h1>Peta gudang</h1>
-          <p class="desc">Okupansi storage per bin di satu hub. Data contoh — simulasi menggerakkan stok masuk/keluar.</p>
+          <p class="desc" data-sim="Okupansi storage per bin di satu hub. Data contoh — simulasi menggerakkan stok masuk/keluar." data-prod="Lihat posisi rak dan seberapa penuh setiap bin di hub ini. Klik rak atau bin untuk detailnya.">Okupansi storage per bin di satu hub. Data contoh — simulasi menggerakkan stok masuk/keluar.</p>
         </div>
         <div class="actions">
           <select id="hub" aria-label="Hub"><option>Dash Hub Kemang</option><option>Dash Hub Blok M</option></select>
           <button class="btn stroke" id="fit">Refresh</button>
-          <button class="btn stroke" id="sim-reset">Reset data</button>
-          <button class="btn" id="sim-auto">Jalankan simulasi</button>
+          <button class="btn stroke sim-only" id="sim-reset">Reset data</button>
+          <button class="btn sim-only" id="sim-auto">Jalankan simulasi</button>
         </div>
       </header>
 
       <div class="tiles">
-        <div class="tile"><div class="l">Bin aktif</div><div class="v" id="k-bins">—</div><div class="s">tipe Storage</div></div>
+        <div class="tile"><div class="l">Bin aktif</div><div class="v" id="k-bins">—</div><div class="s" data-sim="tipe Storage" data-prod="bin penyimpanan yang bisa dipakai">tipe Storage</div></div>
         <div class="tile"><div class="l">Bin terpakai</div><div class="v" id="k-used">—</div><div class="s" id="k-used-s">—</div></div>
         <div class="tile"><div class="l">Okupansi volume</div><div class="v" id="k-cbm">—</div><div class="s" id="k-cbm-s">—</div></div>
         <div class="tile"><div class="l">Bin penuh</div><div class="v" id="k-hot">—</div><div class="s">okupansi &gt; 80%</div></div>
-        <div class="tile"><div class="l">Belum diset</div><div class="v" id="k-unset">—</div><div class="s">bin tanpa kapasitas</div></div>
+        <div class="tile"><div class="l" data-sim="Belum diset" data-prod="Perlu diatur">Belum diset</div><div class="v" id="k-unset">—</div><div class="s" data-sim="bin tanpa kapasitas" data-prod="bin yang kapasitasnya belum diisi">bin tanpa kapasitas</div></div>
       </div>
 
-      <div class="card">
+      <div class="card sim-only">
         <div class="hd">
           <div><h3>Simulasi layout: dari data Storage ke denah</h3><p class="meta">Data storage sudah ada dari menu Storage. Layout dibuat belakangan: tempatkan section ke denah, rapikan, simpan. Stok dan okupansi ikut dari data, bukan dari layout.</p></div>
           <div class="actions">
@@ -359,7 +360,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
             </div>
           </div>
           <div class="editbar" id="editbar" hidden>
-            <span class="meta">Peta hanya mengatur <b>posisi dan bentuk</b> section. Nama, jumlah bin, dan kapasitas tetap dari menu Storage.</span>
+            <span class="meta" data-sim="Peta hanya mengatur <b>posisi dan bentuk</b> section. Nama, jumlah bin, dan kapasitas tetap dari menu Storage." data-prod="Geser rak ke posisinya, putar, atau ubah jumlah level. Nama rak, jumlah bin, dan kapasitas diatur di menu Storage.">Peta hanya mengatur <b>posisi dan bentuk</b> section. Nama, jumlah bin, dan kapasitas tetap dari menu Storage.</span>
             <span class="spacer"></span>
             <span class="badge warning" id="dirty" hidden><i></i><span id="dirty-n">0</span> perubahan belum disimpan</span>
             <button class="btn stroke" id="rotate" disabled>Putar 90°</button>
@@ -391,7 +392,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
       </div>
 
       <div class="card">
-        <div class="hd"><div><h3>Data Storage <span class="meta" id="storage-count"></span></h3><p class="meta">Isi <span class="mono">GET /storages?hubID=906&withStock=true</span>: satu baris per location, section, dan bin (▸ untuk buka). Dikelola di menu <a href="#" id="go-storage">Storage</a>; peta cuma menyimpan posisi (kolom "Di peta").</p></div><div class="actions"><span id="changes" class="meta"></span><button class="btn stroke" id="json-toggle">Lihat JSON</button></div></div>
+        <div class="hd"><div><h3 data-sim="Data Storage" data-prod="Storage di hub ini"><span class="h3t">Data Storage</span> <span class="meta" id="storage-count"></span></h3><p class="meta" data-sim='Isi <span class="mono">GET /storages?hubID=906&withStock=true</span>: satu baris per location, section, dan bin (▸ untuk buka). Dikelola di menu <a href="#" id="go-storage">Storage</a>; peta cuma menyimpan posisi (kolom "Di peta").' data-prod='Semua storage di hub ini beserta isinya. Klik ▸ untuk melihat bin, klik baris untuk menyorotnya di peta. Tambah atau ubah storage lewat menu <a href="#" id="go-storage">Storage</a>.'>Isi <span class="mono">GET /storages?hubID=906&withStock=true</span>: satu baris per location, section, dan bin (▸ untuk buka). Dikelola di menu <a href="#" id="go-storage">Storage</a>; peta cuma menyimpan posisi (kolom "Di peta").</p></div><div class="actions"><span id="changes" class="meta"></span><button class="btn stroke sim-only" id="json-toggle">Lihat JSON</button></div></div>
         <pre class="json" id="json" hidden></pre>
         <div class="tbl"><table class="list">
           <thead><tr><th>Storage</th><th>Kategori</th><th>Tipe</th><th class="num">Bin</th><th class="num">Terpakai</th><th class="num">Volume</th><th>Okupansi</th><th>Status</th><th>Di peta</th></tr></thead>
@@ -399,7 +400,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
         </table></div>
       </div>
 
-      <details class="doc-wrap">
+      <details class="doc-wrap sim-only">
         <summary>Assessment model okupansi eFishery → Dash</summary>
         <section class="doc" id="assessment">
     <h3 class="doc-h">Assessment: model okupansi eFishery → Dash</h3>
@@ -547,8 +548,8 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     </div>
   </div>
 </div>
-<button class="btn" id="e2e-open">▶ Simulasi e2e</button>
-<div class="e2e" id="e2e" hidden><div class="eh"><b>Simulasi end-to-end okupansi (versi Dash)</b><button class="x" id="e2e-close" aria-label="Tutup">×</button></div><div class="eb"><div class="step" id="e2e-step"></div><h4 id="e2e-title"></h4><p id="e2e-text"></p><div class="log" id="e2e-log" hidden></div></div><div class="ef"><div class="dots" id="e2e-dots"></div><div><button class="btn stroke" id="e2e-reset">Ulangi</button><button class="btn" id="e2e-next">Mulai</button></div></div></div>
+<button class="btn sim-only" id="e2e-open">▶ Simulasi e2e</button>
+<div class="e2e sim-only" id="e2e" hidden><div class="eh"><b>Simulasi end-to-end okupansi (versi Dash)</b><button class="x" id="e2e-close" aria-label="Tutup">×</button></div><div class="eb"><div class="step" id="e2e-step"></div><h4 id="e2e-title"></h4><p id="e2e-text"></p><div class="log" id="e2e-log" hidden></div></div><div class="ef"><div class="dots" id="e2e-dots"></div><div><button class="btn stroke" id="e2e-reset">Ulangi</button><button class="btn" id="e2e-next">Mulai</button></div></div></div>
 <div class="dd" id="menu" hidden></div>
 <div class="overlay" id="overlay" hidden><div class="dialog" role="dialog" aria-modal="true"><div class="dh"><h3 id="dlg-title"></h3><p class="meta" id="dlg-desc"></p></div><div class="db" id="dlg-body"></div><div class="df"><button class="btn stroke" id="dlg-cancel">Batal</button><button class="btn" id="dlg-ok">Simpan</button></div></div></div>
 
@@ -699,6 +700,8 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
 
   /* ------------------------------ occupancy ------------------------------ */
   const state = { mode: 'cbm', floor: 'all', client: 'all', dims: false, selected: null, log: [], edit: false, section: null };
+  /** Product view (default): simulation helpers hidden, plain copy, no API notes in toasts. */
+  let PRODUCT = true;
   /** Unsaved wh_storage_layouts edits per section id: 'placed' | 'moved' | 'resized' | 'unplaced'. */
   const dirty = new Map();
   function markDirty(S, kind) {
@@ -718,7 +721,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     const TYPE_LABEL = { STORAGE: 'Storage', QUARANTINE: 'Quarantine', STAGING: 'Staging' }, TYPE_ORDER = ['STORAGE', 'QUARANTINE', 'STAGING'];
     const groups = allLocations.filter(L => !L.placed || L.all.some(S => !S.placed)).sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type));
     const total = unplaced().length + unplacedLocs().length;
-    tray.innerHTML = groups.length ? `<div class="tray-h">Belum ditempatkan · ${total} <span>— ada di Storage, belum punya baris layout. Dikelompokkan per location.</span></div>` + groups.map(L => {
+    tray.innerHTML = groups.length ? `<div class="tray-h">Belum ditempatkan · ${total} <span>${PRODUCT ? '— sudah ada di Storage, belum punya posisi di peta.' : '— ada di Storage, belum punya baris layout. Dikelompokkan per location.'}</span></div>` + groups.map(L => {
       const us = L.all.filter(S => !S.placed);
       return `<div class="tray-g"><div class="tray-gh"><span class="tag">${TYPE_LABEL[L.type]}</span>${L.name}<span class="meta">· ${L.all.length} section</span><span class="spacer"></span>${L.placed ? (us.length > 1 ? `<button class="link" data-place-all="${L.id}">Tempatkan semua (${us.length})</button>` : '') : ''}</div>
         <div class="chips">${L.placed ? '' : `<button class="zone-btn" data-place="${L.id}" title="Tempatkan zona location di denah hub">Tempatkan zona ${L.name}</button>`}${us.map(S => `<button data-place="${S.id}" ${L.placed ? '' : 'disabled title="Tempatkan zona-nya dulu"'}>${S.name} · ${S.bins.length} bin</button>`).join('')}</div></div>`;
@@ -1013,7 +1016,9 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     drag = null;
   });
   let toastTimer = null;
-  function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.display = 'none'; }, 1800); }
+  /** Product view strips the API notes a simulation toast carries: "(PUT /storages/layout)", "— data Storage tidak berubah". */
+  const plain = (m) => PRODUCT ? m.replace(/\s*\((?:PUT|POST|GET|PATCH|DELETE)[^)]*\)/g, '').replace(/\s*—\s*data Storage (?:tidak berubah|utuh)\.?/g, '').replace(/:\s*\d+ perubahan,/, ':') : m;
+  function toast(msg) { msg = plain(msg); const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.display = 'none'; }, 1800); }
 
   /* ------------------------------ layout editor ------------------------- */
   // Everything here edits LAYOUTS (wh_storage_layouts) only. Storage rows are read, never written.
@@ -1625,14 +1630,23 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
   };
 
   // --- navigation between the pages ---
-  function showPage(which) {
-    ['map', 'storage', 'occ', 'hub'].forEach(k => { document.getElementById(`page-${k}`).hidden = which !== k; document.getElementById(`nav-${k}`).classList.toggle('active', which === k); });
+  function applyCopy() {
+    document.querySelectorAll('[data-sim][data-prod]').forEach(el => { const v = el.getAttribute(PRODUCT ? 'data-prod' : 'data-sim'); const t = el.querySelector('.h3t'); if (t) t.textContent = v; else el.innerHTML = v; });
+    const g = document.getElementById('go-storage'); if (g) g.onclick = (e) => { e.preventDefault(); showPage('storage'); };
+    document.body.classList.toggle('product', PRODUCT);
+  }
+  function showPage(which, mode) {
+    if (which === 'map' || which === 'sim') { PRODUCT = which === 'map'; applyCopy(); renderDirty(); which = 'map'; }
+    ['map', 'storage', 'occ', 'hub'].forEach(k => { document.getElementById(`page-${k}`).hidden = which !== k; });
+    ['map', 'sim', 'storage', 'occ', 'hub'].forEach(k => { const n = document.getElementById(`nav-${k}`); if (n) n.classList.toggle('active', k === (which === 'map' ? (PRODUCT ? 'map' : 'sim') : which)); });
     window.scrollTo(0, 0);
     if (which === 'storage') renderStoragePage(); else if (which === 'occ') renderOccPage(); else if (which === 'hub') renderHubPage(); else { renderTable(); fit(); }
   }
   document.getElementById('nav-occ').onclick = (e) => { e.preventDefault(); showPage('occ'); };
   document.getElementById('nav-hub').onclick = (e) => { e.preventDefault(); showPage('hub'); };
   document.getElementById('nav-map').onclick = (e) => { e.preventDefault(); showPage('map'); };
+  document.getElementById('nav-sim').onclick = (e) => { e.preventDefault(); showPage('sim'); };
+  applyCopy();
   document.getElementById('nav-storage').onclick = (e) => { e.preventDefault(); showPage('storage'); };
   document.getElementById('go-storage').onclick = (e) => { e.preventDefault(); showPage('storage'); };
 
