@@ -399,6 +399,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
           <thead><tr><th>Storage</th><th>Kategori</th><th>Tipe</th><th class="num">Bin</th><th class="num">Terpakai</th><th class="num">Volume</th><th>Okupansi</th><th>Status</th><th>Di peta</th></tr></thead>
           <tbody id="rows"></tbody>
         </table></div>
+        <div class="pager" id="rows-pager"></div>
       </div>
 
       <details class="doc-wrap sim-only">
@@ -545,6 +546,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
           <thead><tr><th>Storage</th><th>Status</th><th class="num">Bin</th><th class="num">Terpakai / kapasitas</th><th>Okupansi</th><th>Di peta</th><th class="sticky">Aksi</th></tr></thead>
           <tbody id="s-rows"></tbody>
         </table></div>
+        <div class="pager" id="s-rows-pager"></div>
       </div>
     </div>
   </div>
@@ -1295,13 +1297,25 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
    * `mode` = 'map' (occupancy + position columns) | 'storage' (status, capacity, actions).
    * `match(node)` filters; when a filter is active every ancestor of a match is shown and the tree is fully open.
    */
+  /** Page state per table, like the real list pages (server-paged in the app). */
+  const PAGER = { rows: { page: 1, size: 10 }, 's-rows': { page: 1, size: 20 } };
+  function renderPager(tbodyId, total) {
+    const el = document.getElementById(tbodyId + '-pager'); if (!el) return;
+    const pg = PAGER[tbodyId]; const pages = Math.max(1, Math.ceil(total / pg.size)); pg.page = Math.min(pg.page, pages);
+    const around = [...new Set([1, pages, pg.page - 1, pg.page, pg.page + 1].filter(n => n >= 1 && n <= pages))].sort((a, b) => a - b);
+    el.innerHTML = `<span>${total ? (pg.page - 1) * pg.size + 1 : 0}–${Math.min(total, pg.page * pg.size)} dari ${total} baris</span><div class="pg"><button data-p="${pg.page - 1}" ${pg.page === 1 ? 'disabled' : ''}>‹</button>${around.map((n, i) => `${i && n - around[i - 1] > 1 ? '<span>…</span>' : ''}<button data-p="${n}" class="${n === pg.page ? 'on' : ''}">${n}</button>`).join('')}<button data-p="${pg.page + 1}" ${pg.page === pages ? 'disabled' : ''}>›</button></div><select aria-label="Baris per halaman">${[10, 20, 50].map(n => `<option ${n === pg.size ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
+    el.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { pg.page = Number(b.getAttribute('data-p')); tbodyId === 'rows' ? renderTable() : renderStoragePage(); });
+    el.querySelector('select').onchange = (e) => { pg.size = Number(e.target.value); pg.page = 1; tbodyId === 'rows' ? renderTable() : renderStoragePage(); };
+  }
   function renderTree(tbodyId, mode, match) {
     const tb = document.getElementById(tbodyId); if (!tb) return 0;
     const all = nodes(); const filtering = !!match;
     const ok = new Set(); if (filtering) all.forEach(n => { if (match(n)) { ok.add(n.id); if (n.S) ok.add(n.S.id); ok.add(n.L.id); } });
     const open = (id) => filtering || expanded.has(id);
     let shown = 0;
-    const html = all.filter(n => !filtering || ok.has(n.id)).filter(n => n.lv === 0 || (n.lv === 1 ? open(n.L.id) : open(n.L.id) && open(n.S.id))).map(n => {
+    const visible = all.filter(n => !filtering || ok.has(n.id)).filter(n => n.lv === 0 || (n.lv === 1 ? open(n.L.id) : open(n.L.id) && open(n.S.id)));
+    const pg = PAGER[tbodyId] || { page: 1, size: 1e9 }; const total = visible.length; const pages = Math.max(1, Math.ceil(total / pg.size)); pg.page = Math.min(pg.page, pages);
+    const html = visible.slice((pg.page - 1) * pg.size, pg.page * pg.size).map(n => {
       shown++;
       const x = statsOf(n.bins, n.L); const r = n.row; const hasKids = n.kind !== 'B';
       const name = `<span class="chev ${hasKids ? '' : 'none'}" data-exp="${n.id}">${hasKids ? (open(n.id) ? '▾' : '▸') : ''}</span>${n.kind === 'L' ? `<b>${r.name}</b>` : r.name}${n.kind !== 'B' ? ` <span class="meta mono">${r.path}</span>` : ''}`;
@@ -1317,14 +1331,15 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
       const useCap = n.kind === 'B' ? (r.capacityCbm != null ? `${x.use.toFixed(2)} / ${r.capacityCbm.toFixed(2)} m³` : `${x.use.toFixed(2)} m³ · ${badge('Belum diset', 'faded')}`) + `<div class="meta">${usedQtyOf(n.bins)} unit${r.capacityKg ? ` · maks ${r.capacityKg} kg` : ''}${r.capacityQty ? ` · maks ${r.capacityQty} unit` : ''}</div>` : `${x.use.toFixed(1)} / ${x.cap.toFixed(1)} m³<div class="meta">${usedQtyOf(n.bins)} unit · ${n.bins.filter(b => b.capCbm == null).length ? `${n.bins.filter(b => b.capCbm == null).length} bin belum diset` : 'semua bin diset'}</div>`;
       return `<tr class="lv${n.lv} ${inactive ? 'inactive' : ''}" data-id="${n.id}"><td>${name} ${cat}${n.kind === 'L' ? ` <span class="tag">${type}</span>` : ''}</td><td>${badge(r.status === 'ACTIVE' ? 'Active' : 'Inactive', r.status === 'ACTIVE' ? 'success' : 'faded')}</td><td class="num">${n.kind === 'B' ? '—' : x.n}</td><td class="num">${useCap}</td><td>${progress(x)}<div style="margin-top:4px">${badge(STATUS_LABEL[x.st], TONE[x.st])}</div></td><td>${place}</td><td class="sticky"><div class="rowacts">${acts}</div></td></tr>`;
     }).join('');
-    tb.innerHTML = html;
+    tb.innerHTML = html || '<tr><td colspan="11" class="meta" style="text-align:center;padding:24px">Tidak ada storage yang cocok</td></tr>';
+    renderPager(tbodyId, total);
     tb.querySelectorAll('[data-exp]').forEach(c => c.onclick = (e) => { e.stopPropagation(); const id = c.getAttribute('data-exp'); expanded.has(id) ? expanded.delete(id) : expanded.add(id); renderTable(); renderStoragePage(); });
     if (mode === 'map') tb.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => select(tr.getAttribute('data-id')));
     else {
       tb.querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => openEdit(tr.getAttribute('data-id')));
       tb.querySelectorAll('[data-dd]').forEach(btn => btn.onclick = (e) => { e.stopPropagation(); openMenu(btn); });
     }
-    return shown;
+    return total;
   }
   const menu = document.getElementById('menu');
   const closeMenus = () => { menu.hidden = true; };
@@ -1366,7 +1381,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     t('s-k-occ', x.p !== null ? `${x.p.toFixed(1)}%` : '—'); t('s-k-occ-s', `${x.use.toFixed(1)} / ${x.cap.toFixed(1)} m³`);
     t('s-k-unplaced', allSections.filter(S => !S.placed).length + allLocations.filter(L => !L.placed).length);
   }
-  ['sf-q', 'sf-cat', 'sf-type', 'sf-status', 'sf-occ'].forEach(id => { document.getElementById(id).oninput = (e) => { sf[id.slice(3)] = e.target.value; renderStoragePage(); }; });
+  ['sf-q', 'sf-cat', 'sf-type', 'sf-status', 'sf-occ'].forEach(id => { document.getElementById(id).oninput = (e) => { sf[id.slice(3)] = e.target.value; PAGER['s-rows'].page = 1; renderStoragePage(); }; });
   document.getElementById('s-expand').onclick = () => { STORAGES.filter(r => r.category !== 'BIN').forEach(r => expanded.add(r.id)); renderTable(); renderStoragePage(); };
   document.getElementById('s-collapse').onclick = () => { expanded.clear(); renderTable(); renderStoragePage(); };
 
