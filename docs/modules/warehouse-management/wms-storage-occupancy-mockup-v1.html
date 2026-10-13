@@ -241,10 +241,11 @@ table.list tr.lv0 td.sticky { background: var(--tint); } table.list tbody tr:hov
 .field { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .field label { font-size: 11px; color: var(--neutral); display: block; margin-bottom: 3px; }
 .field input { width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; }
-.orbit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--rule); }
-.orbit .btn { padding: 5px 10px; font-size: 12px; }
-.orbit input[type=range] { width: 160px; accent-color: var(--accent); }
-.orbit #rot-v { min-width: 36px; text-align: right; }
+.orbit { position: absolute; top: 10px; right: 10px; z-index: 4; display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: rgba(255,255,255,.94); border: 1px solid var(--rule); border-radius: 999px; font-size: 11px; color: var(--neutral); backdrop-filter: blur(4px); }
+.orbit button { width: 26px; height: 26px; border-radius: 50%; border: 1px solid transparent; background: transparent; color: var(--ink); font-size: 15px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.orbit button:hover { background: var(--tint); } .orbit button.on { background: var(--ink); color: #fff; }
+.orbit input[type=range] { width: 96px; height: 18px; accent-color: var(--accent); margin: 0 2px; }
+.orbit #rot-v { min-width: 30px; text-align: right; font-size: 11px; }
 .sheet { position: relative; height: 560px; background: #fcfcfc; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; cursor: grab; touch-action: none; }
 .sheet.dragging { cursor: grabbing; }
 @media (max-width: 600px) { .sheet { height: 400px; } }
@@ -349,7 +350,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
       <div class="grid">
         <div class="card">
           <div class="hd">
-            <div><h3>Denah hub</h3><p class="meta">Klik bin atau rak untuk detail · scroll zoom · drag geser · klik kanan + drag memutar</p></div>
+            <div><h3>Denah hub</h3><p class="meta">Klik bin atau rak untuk detail · scroll zoom · drag geser · klik kanan + drag memutar (atau pakai kontrol di pojok peta)</p></div>
             <div class="actions">
               <div class="seg" id="mode"><button data-mode="cbm" class="on">Volume</button><button data-mode="qty">Jumlah</button><button data-mode="bin">Bin terpakai</button></div>
               <select id="floor" aria-label="Lokasi"><option value="all">Semua lokasi</option></select>
@@ -367,15 +368,14 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
             <div class="tray" id="tray"></div>
           </div>
           <div class="bd">
-            <div class="orbit" aria-label="Putar tampilan">
-              <button class="btn stroke" id="rot-l" title="Putar 45° ke kiri">⟲ 45°</button>
-              <input id="rot" type="range" min="0" max="360" step="1" value="0" aria-label="Sudut pandang">
-              <span class="meta mono" id="rot-v">0°</span>
-              <button class="btn stroke" id="rot-r" title="Putar 45° ke kanan">⟳ 45°</button>
-              <button class="btn stroke" id="rot-spin" title="Putar otomatis 360°">Putar 360°</button>
-              <span class="meta">Klik kanan + drag (atau Shift + drag) untuk memutar bebas.</span>
-            </div>
             <div class="sheet" id="sheet">
+              <div class="orbit" aria-label="Putar tampilan" title="Klik kanan + drag (atau Shift + drag) untuk memutar bebas">
+                <button id="rot-l" title="Putar 90° ke kiri" aria-label="Putar 90° ke kiri">⟲</button>
+                <input id="rot" type="range" min="0" max="360" step="1" value="0" aria-label="Sudut pandang">
+                <span class="mono" id="rot-v">0°</span>
+                <button id="rot-r" title="Putar 90° ke kanan" aria-label="Putar 90° ke kanan">⟳</button>
+                <button id="rot-spin" title="Putar otomatis 360°" aria-label="Putar otomatis 360°">↻</button>
+              </div>
               <canvas id="cv" role="application" aria-label="Denah gudang"></canvas>
               <div class="tip" id="tip"></div>
               <div class="scale"><span>0%</span><i></i><span>100%</span><b>over</b></div>
@@ -612,6 +612,9 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     ['S8', { x: 60, y: 100, rot: 0, shape: 'FLOOR', rows: 3, cell: 160 }],
   ]);
   const DEFAULT_LOC = { STORAGE: [2200, 1800], QUARANTINE: [700, 700], STAGING: [700, 1000] };
+  // The hub floor itself (wh_storage_layouts row with storage_id = null): width × depth in cm.
+  LAYOUTS.set('HUB', { w: HUB.w, h: HUB.h });
+  const HUB_MIN = 800;
   // wh_stocks grouped per bin (storage_id → lots). Lives outside the view model so rebuilding the map never touches it.
   const STOCK = new Map();
   const lotsOf = (id) => { if (!STOCK.has(id)) STOCK.set(id, []); return STOCK.get(id); };
@@ -648,6 +651,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
   }
   let allLocations = [];
   function build() {
+    const hl = LAYOUTS.get('HUB') || { w: HUB.w, h: HUB.h }; HUB.w = hl.w; HUB.h = hl.h;
     layout = { hub: HUB.name, w: HUB.w, h: HUB.h, locations: [] }; allSections = []; allLocations = [];
     STORAGES.filter(r => r.category === 'LOCATION').forEach(Lr => {
       const lay = LAYOUTS.get(Lr.id); const [dw, dh] = DEFAULT_LOC[Lr.type] || [600, 600];
@@ -704,7 +708,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     dirty.set(S.id, { kind, name: S.name });
     renderDirty();
   }
-  const KIND_LABEL = { placed: 'ditempatkan', moved: 'dipindah', resized: 'bentuk diubah', unplaced: 'dilepas dari peta' };
+  const KIND_LABEL = { placed: 'ditempatkan', moved: 'dipindah', resized: 'ukuran/bentuk diubah', unplaced: 'dilepas dari peta' };
   function renderDirty() {
     const n = dirty.size;
     const b = document.getElementById('dirty'); b.hidden = n === 0; document.getElementById('dirty-n').textContent = n;
@@ -864,9 +868,13 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     ctx.fillStyle = '#fcfcfc'; ctx.fillRect(0, 0, W, H);
     const binPx = BIN_W * k * C; const lod = binPx < 3 ? 1 : binPx < 6 ? 2 : 3;
     // floor
-    pathOf([sp(0, 0), sp(layout.w, 0), sp(layout.w, layout.h), sp(0, layout.h)]); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = 'rgba(23,23,23,.22)'; ctx.lineWidth = 1; ctx.stroke();
+    const floorPoly = [sp(0, 0), sp(layout.w, 0), sp(layout.w, layout.h), sp(0, layout.h)];
+    const hubSel = state.edit && state.section === 'HUB';
+    pathOf(floorPoly); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = hubSel ? `rgb(${COL.accent.join(',')})` : 'rgba(23,23,23,.22)'; ctx.lineWidth = hubSel ? 2.5 : 1; ctx.stroke();
+    scene.push({ kind: 'floor', id: 'HUB', poly: floorPoly });
     const locs = layout.locations.filter(L => state.floor === 'all' || state.floor === L.id);
     const zonePlates = [], handles = [];
+    if (state.edit) handles.push({ id: 'HUB', kind: 'hub-handle', c: sp(layout.w, layout.h) });
     locs.forEach(L => {
       const col = L.type === 'QUARANTINE' ? COL.quarantine : L.type === 'STAGING' ? COL.staging : `rgb(${COL.accent.join(',')})`;
       const corners = [[L.x, L.y], [L.x + L.w, L.y], [L.x + L.w, L.y + L.h], [L.x, L.y + L.h]];
@@ -909,7 +917,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     }));
     items.sort((a, c) => a.key - c.key).forEach(i => i.draw());
     zonePlates.forEach(z => plate(z.pt, z.name, { size: 11.5, weight: 700, dot: z.col }));
-    handles.forEach(hd => { const r = 7, c = hd.c; const poly = [[c[0], c[1] - r], [c[0] + r, c[1]], [c[0], c[1] + r], [c[0] - r, c[1]]]; pathOf(poly); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = `rgb(${COL.accent.join(',')})`; ctx.lineWidth = 2; ctx.stroke(); scene.push({ kind: 'handle', id: hd.id, poly }); });
+    handles.forEach(hd => { const r = hd.kind === 'hub-handle' ? 8 : 7, c = hd.c; const poly = [[c[0], c[1] - r], [c[0] + r, c[1]], [c[0], c[1] + r], [c[0] - r, c[1]]]; pathOf(poly); ctx.fillStyle = hd.kind === 'hub-handle' ? COL.ink : '#fff'; ctx.fill(); ctx.strokeStyle = hd.kind === 'hub-handle' ? COL.ink : `rgb(${COL.accent.join(',')})`; ctx.lineWidth = 2; ctx.stroke(); scene.push({ kind: hd.kind || 'handle', id: hd.id, poly }); });
     const dock = sp(2850, layout.h - 40); ctx.font = `500 11px ${cssVar('--mono') || 'JetBrains Mono, monospace'}`; ctx.fillStyle = 'rgba(23,23,23,.35)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('DOCK', dock[0], dock[1]);
     const rs = document.getElementById('rot'); const a = ((rot.a % 360) + 360) % 360; if (rs && Number(rs.value) !== Math.round(a)) rs.value = Math.round(a);
     const rl = document.getElementById('rot-v'); if (rl) rl.textContent = `${Math.round(a)}°`;
@@ -921,8 +929,11 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
   const unproject = (sx, sy) => { const ux = (sx / C + sy / S) / 2, uy = (sy / S - sx / C) / 2, t = -rot.a * Math.PI / 180; return [ux * Math.cos(t) - uy * Math.sin(t), ux * Math.sin(t) + uy * Math.cos(t)]; };
   const sectionOf = (id) => { for (const S of allSections) if (S.id === id || S.bins.some(b => b.id === id)) return { S, L: S.L }; return null; };
   const snap = (v) => Math.round(v / 50) * 50;
+  const onOrbit = (e) => !!(e.target.closest && e.target.closest('.orbit'));
   sheet.addEventListener('pointerdown', e => {
+    if (onOrbit(e)) return;
     const h = hitAt(e);
+    if (state.edit && h && h.kind === 'hub-handle') { drag = { x: e.clientX, y: e.clientY, moved: false, hub: { ow: HUB.w, oh: HUB.h } }; sheet.setPointerCapture(e.pointerId); return; }
     const hnd = state.edit && h && h.kind === 'handle' ? h : null;
     const t = h && (h.kind === 'bin' || h.kind === 'section') ? h : null;
     const z = state.edit && !t && h && h.kind === 'zone' ? h : null;
@@ -935,7 +946,14 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     sheet.setPointerCapture(e.pointerId);
   });
   sheet.addEventListener('pointermove', e => {
+    if (!drag && onOrbit(e)) { tip.style.display = 'none'; sheet.style.cursor = 'default'; return; }
     if (drag && drag.orbit !== undefined) { rot.a = drag.orbit + (e.clientX - drag.x) * 0.45; if (Math.abs(e.clientX - drag.x) > 3) drag.moved = true; draw(); return; }
+    if (drag && drag.hub) {
+      const [wx, wy] = unproject((e.clientX - drag.x) / view.k, (e.clientY - drag.y) / view.k);
+      if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) drag.moved = true;
+      const [mw, mh] = minHubSize();
+      HUB.w = Math.max(mw, snap(drag.hub.ow + wx)); HUB.h = Math.max(mh, snap(drag.hub.oh + wy)); layout.w = HUB.w; layout.h = HUB.h; draw(); return;
+    }
     if (drag && drag.sec) {
       const [wx, wy] = unproject((e.clientX - drag.x) / view.k, (e.clientY - drag.y) / view.k);
       if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) drag.moved = true;
@@ -963,7 +981,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
       view.x = drag.vx - dx; view.y = drag.vy - dy; draw(); return;
     }
     const h = hitAt(e);
-    sheet.style.cursor = h ? (h.kind === 'handle' ? 'nwse-resize' : state.edit ? 'move' : 'pointer') : (state.edit ? 'default' : 'grab');
+    sheet.style.cursor = h ? ((h.kind === 'handle' || h.kind === 'hub-handle') ? 'nwse-resize' : h.kind === 'floor' ? (state.edit ? 'default' : 'grab') : state.edit ? 'move' : 'pointer') : (state.edit ? 'default' : 'grab');
     if (!h || h.kind !== 'bin') { tip.style.display = 'none'; return; }
     const { b, S, L } = findBin(h.id);
     const p = pct(b);
@@ -974,8 +992,13 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     tip.style.top = (e.clientY - rect.top + 12) + 'px';
   });
   sheet.addEventListener('pointerup', e => {
+    if (!drag && onOrbit(e)) return;
     if (drag && drag.orbit !== undefined) { drag = null; sheet.classList.remove('dragging'); return; }
     sheet.classList.remove('dragging');
+    if (drag && drag.hub) {
+      if (drag.moved) { LAYOUTS.set('HUB', { w: HUB.w, h: HUB.h }); markDirty({ id: 'HUB', name: 'Denah hub' }, 'resized'); renderTable(); toast(`Lantai hub diubah jadi ${HUB.w} × ${HUB.h} cm`); }
+      selectHub(); drag = null; return;
+    }
     if (drag && drag.sec) {
       if (drag.moved) { markDirty(drag.sec.S, 'moved'); renderTable(); toast(`${drag.sec.S.name} dipindah ke x ${drag.sec.S.x} · y ${drag.sec.S.y} cm`); }
       selectSection(drag.sec.S.id);
@@ -985,6 +1008,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     } else if (drag && !drag.moved) {
       const h = hitAt(e);
       if (h && (h.kind === 'bin' || h.kind === 'section' || h.kind === 'zone')) select(h.id);
+      else if (h && h.kind === 'floor' && state.edit) selectHub();
     }
     drag = null;
   });
@@ -1023,6 +1047,25 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
       relayout(S); markDirty(S, reshaped || !insp.querySelector('#f-x').matches(':focus') ? 'resized' : 'moved'); refresh(); selectSection(S.id);
     };
     insp.querySelectorAll('input, select').forEach(i => { i.onchange = apply; });
+    draw();
+  }
+  // Smallest floor that still contains every placed location (plus a 100 cm margin).
+  const minHubSize = () => [Math.max(HUB_MIN, ...layout.locations.map(L => L.x + L.w + 100)), Math.max(HUB_MIN, ...layout.locations.map(L => L.y + L.h + 100))];
+  function selectHub() {
+    state.section = 'HUB'; state.selected = null;
+    document.getElementById('rotate').disabled = true; document.getElementById('unplace').disabled = true;
+    const insp = document.getElementById('insp'), title = document.getElementById('insp-title');
+    title.textContent = `Layout · Denah ${HUB.name}`;
+    const [mw, mh] = minHubSize();
+    insp.innerHTML = `<div class="kvs"><div class="kv"><span>Hub</span><span>${HUB.name}</span></div><div class="kv"><span>Location di peta</span><span>${layout.locations.length} dari ${allLocations.length}</span></div><div class="kv"><span>Luas lantai</span><span class="mono">${(HUB.w * HUB.h / 1e4).toFixed(0)} m²</span></div></div>
+      <div class="field"><div><label for="h-w">Lebar (cm, min ${mw})</label><input id="h-w" type="number" step="50" min="${mw}" value="${HUB.w}"></div><div><label for="h-h">Panjang (cm, min ${mh})</label><input id="h-h" type="number" step="50" min="${mh}" value="${HUB.h}"></div></div>
+      <p class="meta" style="margin-top:10px">Ukuran lantai hub dalam cm. Tarik handle hitam di sudut jauh lantai, atau isi di sini. Lantai tidak bisa lebih kecil dari location yang sudah ditempatkan; tersimpan bersama layout.</p>`;
+    const apply = () => {
+      const nw = Math.max(mw, snap(Number(insp.querySelector('#h-w').value) || HUB.w)), nh = Math.max(mh, snap(Number(insp.querySelector('#h-h').value) || HUB.h));
+      if (nw === HUB.w && nh === HUB.h) return;
+      LAYOUTS.set('HUB', { w: nw, h: nh }); markDirty({ id: 'HUB', name: 'Denah hub' }, 'resized'); refresh(); fit(); selectHub();
+    };
+    insp.querySelectorAll('input').forEach(i => { i.onchange = apply; });
     draw();
   }
   // Smallest rectangle that still contains the location's placed sections (plus a 60 cm margin).
@@ -1086,8 +1129,8 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     refresh(); toast(`${h.S.name} dilepas dari peta — data Storage tidak berubah`);
   };
   document.getElementById('save').onclick = () => {
-    const body = [...LAYOUTS].map(([storageID, l]) => ({ storageID, category: STORAGES.find(r => r.id === storageID).category, ...l }));
-    console.info('PUT /v1/warehouses/storages/layout', { hubID: HUB.id, layouts: body });
+    const body = [...LAYOUTS].filter(([id]) => id !== 'HUB').map(([storageID, l]) => ({ storageID, category: STORAGES.find(r => r.id === storageID).category, ...l }));
+    console.info('PUT /v1/warehouses/storages/layout', { hubID: HUB.id, floor: LAYOUTS.get('HUB'), layouts: body });
     const n = dirty.size; dirty.clear(); savedOnce = true; SAVED = new Map([...LAYOUTS].map(([k, v]) => [k, { ...v }])); renderDirty(); renderTable();
     toast(`Layout tersimpan: ${n} perubahan, ${body.filter(b => b.category === 'LOCATION').length} location + ${body.filter(b => b.category === 'SECTION').length} section berposisi (PUT /storages/layout) — data Storage tidak berubah`);
   };
@@ -1152,12 +1195,15 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
   sheet.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
   sheet.addEventListener('contextmenu', e => e.preventDefault());
   const turn = (d) => { rot.a = (rot.a + d) % 360; draw(); };
-  document.getElementById('rot-l').onclick = () => turn(-45);
-  document.getElementById('rot-r').onclick = () => turn(45);
+  // Buttons land on the four corner views (always a clean isometric); the slider and drag are free.
+  const toCorner = (dir) => { const a = ((rot.a % 360) + 360) % 360; const next = dir > 0 ? Math.floor(a / 90 + 1e-6) * 90 + 90 : Math.ceil(a / 90 - 1e-6) * 90 - 90; rot.a = ((next % 360) + 360) % 360; draw(); };
+  document.getElementById('rot-l').onclick = () => toCorner(-1);
+  document.getElementById('rot-r').onclick = () => toCorner(1);
   document.getElementById('rot').oninput = (e) => { rot.a = Number(e.target.value); draw(); };
   let spin = null;
   document.getElementById('rot-spin').onclick = (e) => { if (spin) { clearInterval(spin); spin = null; e.currentTarget.classList.remove('on'); return; } e.currentTarget.classList.add('on'); spin = setInterval(() => turn(1.2), 40); };
   sheet.addEventListener('wheel', e => {
+    if (onOrbit(e)) return;
     e.preventDefault();
     const rect = sheet.getBoundingClientRect();
     const mx = e.clientX - rect.left - RULER, my = e.clientY - rect.top - RULER;

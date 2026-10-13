@@ -98,7 +98,7 @@ decisions dan diterjemahkan ke model Dash di bawah.
    dirender dari urutan bin di data: rak → kolom = ⌈n ÷ levels⌉, bin ke-i di (⌊i ÷ levels⌋, i mod levels).
 9. Storage tanpa baris layout tampil di tray "Belum ditempatkan" (location dulu, baru section); menambah/menghapus
    section atau bin tetap lewat menu Storage; "Lepas dari peta" hanya menghapus baris layout.
-10. Editor layout: drag section (snap 50 cm, dibatasi zona location), putar, ubah level/bentuk; geser location memindahkan
+10. Editor layout: ukuran lantai hub (lebar × panjang, minimum = batas location yang ditempatkan); drag section (snap 50 cm, dibatasi zona location), putar, ubah level/bentuk; geser location memindahkan
     section di dalamnya; resize location tidak boleh lebih kecil dari rak di dalamnya; Simpan mengirim semua baris layout
     hub dalam satu request.
 11. Peta mewarnai bin dari okupansi mode m³ (default), qty, atau "bin terpakai"; filter client memudarkan bin tanpa stok
@@ -162,7 +162,7 @@ POST /v1/warehouses/storages/capacity/import  multipart csv (path|name, capacity
      → { totalData, totalSuccess, totalFail, messages: string[] }
 GET  /v1/warehouses/storages/capacity/export?hubID  → text/csv (template dengan nilai saat ini + qty_on_hand)
 GET  /v1/warehouses/storages/layout?hubID     → [{ storageID, category, x, y, w?, h?, rotation?, shape?, levels?, rows?, cellCm?, updatedAt }]
-PUT  /v1/warehouses/storages/layout           { hubID, updatedAt?, layouts: [ ...same shape... ] }   (replace semua baris hub; 409 LAYOUT_STALE)
+PUT  /v1/warehouses/storages/layout           { hubID, updatedAt?, floor: { w, h }, layouts: [ ...same shape... ] }   (replace semua baris hub; 409 LAYOUT_STALE)
 ```
 
 Validasi: kapasitas ≥ 0 atau null; dimensi > 0; section/bin harus satu hub dengan `hubID`; `levels` 1–6; `rotation` ∈ {0, 90};
@@ -176,7 +176,7 @@ Tabel diubah (aditif):
   `capacity_kg numeric(10,2) null`, `capacity_qty numeric(12,2) null`. Diset di BIN (atau SECTION tipe lantai); null = belum diset.
 
 Tabel baru:
-- `wh_storage_layouts` — `id uuid PK`, `storage_id uuid FK → wh_storages.id unique`, `hub_id bigint`, `x int`, `y int`
+- `wh_storage_layouts` — `id uuid PK`, `storage_id uuid FK → wh_storages.id unique, null = baris lantai hub (w × h lantai, satu per hub)`, `hub_id bigint`, `x int`, `y int`
   (cm; location relatif ke origin hub, section relatif ke origin location), `w int null`, `h int null` (location),
   `rotation smallint default 0`, `shape text null (RACK|FLOOR)`, `levels smallint null`, `rows smallint null`,
   `cell_cm smallint null`, `created_by`, `created_at`, `updated_at`. Index `(hub_id)`.
