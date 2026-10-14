@@ -3,7 +3,7 @@ title: Storage occupancy & peta gudang — kapasitas per bin, okupansi, denah
 module: warehouse-management
 doctype: prd-trd
 version: 1
-status: draft            # draft | in-review | approved | shipped | superseded
+status: in-review        # draft | in-review | approved | shipped | superseded
 product_owner:
 engineer: yogi.ermanto@dashelectric.co
 created: 2026-10-12
@@ -17,9 +17,9 @@ links:
 
 # Storage occupancy & peta gudang — PRD/TRD v1
 
-> **Status: ditunda.** Diputuskan 2026-10-12 untuk mengerjakan transfer storage dan stock opname lebih dulu
-> (keduanya syarat akurasi stok; okupansi membaca stok yang harus sudah dipercaya). Dokumen ini mengunci
-> keputusan desain dan hasil assessment supaya pekerjaan bisa dilanjutkan tanpa mengulang diskusi.
+> **Status: diimplementasikan (2026-10-14)** di branch `feat/wms-storage-occupancy` BE `nest-logistic-service` dan FE
+> `react-logistic-web` — kontrak final ada di BE `docs/warehouse/storage-occupancy-layout.md`; e2e Playwright hijau
+> (okupansi 11, peta 4, regresi transfer/opname 12). Sebelumnya ditunda 2026-10-12 demi transfer storage dan stock opname.
 > Mockup klikabel: `wms-storage-occupancy-mockup-v1.html` (empat halaman + simulasi end-to-end).
 
 ---
