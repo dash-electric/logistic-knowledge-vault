@@ -88,10 +88,15 @@ decisions dan diterjemahkan ke model Dash di bawah.
    `used_qty = Σ qty`; persen = used ÷ capacity; roll-up ke section/location/hub lewat `path <@`.
 5. Status okupansi per bin memakai ambang eFishery (>0, >50, >80) + `OVER` (>100) + `KAPASITAS_BELUM_DIATUR` (ada stok,
    kapasitas null). Bin kosong tanpa kapasitas berstatus `TERSEDIA` tetapi dihitung di KPI "belum diset".
-6. Halaman Okupansi storage menampilkan: alert jumlah bin tanpa kapasitas → "Atur sekarang" membuka Storage dengan filter
-   belum diset; board per location (persen, progress warna 0 hijau / <51 kuning / <81 oranye / ≥81 merah, "x/y bin
-   digunakan", detail per section "n bin · n tersedia"); tabel per bin × SKU (client, hub, lokasi, section, bin, SKU, nama
-   produk, qty on hand, terpakai/kapasitas m³ + %, status); pagination; export CSV sesuai filter.
+6. Halaman Okupansi storage mengikuti tata letak Storage Capacity eFishery (satu kartu, satu tabel — bukan tile + board +
+   tab): (a) satu kartu ringkasan hub: persen ruang terpakai (angka besar + bar warna 0 hijau / ≤50 kuning / ≤80 oranye /
+   >80 merah), "x dari y bin terpakai", m³ terpakai / kapasitas, badge "n bin penuh / over" dan "n bin belum punya
+   kapasitas → Atur sekarang" (membuka Storage dengan filter belum diset), serta tombol "Lihat per location" yang membuka
+   daftar peringkat location (paling penuh dulu, 12 per halaman dari `GET /storages/occupancy/board`; klik baris = filter
+   tabel ke location itu); (b) tabel per bin × SKU (client, lokasi, section, bin, SKU, nama produk, qty on hand,
+   terpakai/kapasitas m³ + %, status) dengan pencarian dan dropdown status di atasnya, pagination server 10/20/50, export
+   CSV sesuai filter. Filter lanjutan (client, lokasi, section) di drawer. Kartu dan tabel membaca filter yang sama, jadi
+   hanya ada satu set angka.
 7. List Storage menampilkan kapasitas, terpakai, okupansi %, status per baris (location/section/bin).
 8. Peta gudang membaca pohon storage dari `GET /storages` dan hanya menyimpan posisi: lantai hub dan location = gabungan
    blok persegi `blocks[{x, y, w, h}]` pada grid 50 cm (satu blok = persegi; 2–4 blok = bentuk L, U, W; `x, y, w, h`
