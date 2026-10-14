@@ -88,15 +88,17 @@ decisions dan diterjemahkan ke model Dash di bawah.
    `used_qty = Σ qty`; persen = used ÷ capacity; roll-up ke section/location/hub lewat `path <@`.
 5. Status okupansi per bin memakai ambang eFishery (>0, >50, >80) + `OVER` (>100) + `KAPASITAS_BELUM_DIATUR` (ada stok,
    kapasitas null). Bin kosong tanpa kapasitas berstatus `TERSEDIA` tetapi dihitung di KPI "belum diset".
-6. Halaman Okupansi storage mengikuti tata letak Storage Capacity eFishery (satu kartu, satu tabel — bukan tile + board +
-   tab): (a) satu kartu ringkasan hub: persen ruang terpakai (angka besar + bar warna 0 hijau / ≤50 kuning / ≤80 oranye /
-   >80 merah), "x dari y bin terpakai", m³ terpakai / kapasitas, badge "n bin penuh / over" dan "n bin belum punya
-   kapasitas → Atur sekarang" (membuka Storage dengan filter belum diset), serta tombol "Lihat per location" yang membuka
-   daftar peringkat location (paling penuh dulu, 12 per halaman dari `GET /storages/occupancy/board`; klik baris = filter
-   tabel ke location itu); (b) tabel per bin × SKU (client, lokasi, section, bin, SKU, nama produk, qty on hand,
-   terpakai/kapasitas m³ + %, status) dengan pencarian dan dropdown status di atasnya, pagination server 10/20/50, export
-   CSV sesuai filter. Filter lanjutan (client, lokasi, section) di drawer. Kartu dan tabel membaca filter yang sama, jadi
-   hanya ada satu set angka.
+6. Halaman Okupansi storage memakai model **Zone Occupancy Rate**: satu definisi, "posisi terpakai ÷ total posisi zona",
+   dengan posisi = bin aktif dan zona = location aktif bertipe STORAGE (staging/karantina tidak dihitung, tetapi disebut).
+   m³ TIDAK ditampilkan di halaman ini (tetap ada untuk peta dan menu Storage). Isinya, dari atas: (a) kartu hub: persen
+   besar, "x dari y posisi terisi", **"n posisi kosong"** (angka untuk keputusan inbound), bar berwarna status, legenda
+   threshold (hampir penuh ≥ 85 %, penuh ≥ 95 %), sparkline 30 hari; (b) strip "Perlu tindakan": zona ≥ threshold plus
+   saran "pindahkan sebagian ke <zona dengan posisi kosong terbanyak>"; (c) daftar zona selalu terlihat, urut paling penuh:
+   nama, terisi/total, kosong, bar, persen, status, sparkline, "Lihat stok" (ke halaman Stock), dan accordion inline ke
+   section → bin (12 per node, dimuat saat dibuka); pencarian nama zona di sisi klien; export CSV tabel zona.
+   Tidak ada tile, tab status, drawer filter, maupun tabel bin × SKU. Snapshot harian per hub dan zona
+   (`wh_storage_occupancy_snapshots`) ditulis saat dashboard dibaca dan oleh job terjadwal (`POST
+   /storages/occupancy/snapshots`, Cloud Scheduler). Threshold per hub bisa diubah di iterasi berikutnya.
 7. List Storage menampilkan kapasitas, terpakai, okupansi %, status per baris (location/section/bin).
 8. Peta gudang membaca pohon storage dari `GET /storages` dan hanya menyimpan posisi: lantai hub dan location = gabungan
    blok persegi `blocks[{x, y, w, h}]` pada grid 50 cm (satu blok = persegi; 2–4 blok = bentuk L, U, W; `x, y, w, h`
@@ -332,7 +334,9 @@ hitung ulang penuh dan memperbaiki selisih (self-healing), hasilnya dilog.
   Tidak cocok untuk Dash: bin campur SKU/client, rak tidak seragam, SKU baru harus diisi dulu sebelum okupansi kehitung
   (sumber status "belum diatur" yang sering), dan denah butuh angka per bin. Dash sudah punya dimensi/berat SKU, jadi m³ bisa
   dihitung tanpa tabel per SKU. Keputusan 2026-10-12.
-- **Satuan utama m³**, kg dan qty opsional per bin untuk kasus barang berat-kecil atau client yang minta bin eksklusif.
+- **Satuan dashboard = posisi (bin)**, bukan m³ (keputusan 2026-10-14 setelah review produk: m³ butuh kapasitas per bin yang
+  jarang diisi dan membuat dua angka berbeda untuk hal yang sama). m³, kg, qty tetap tersimpan per bin untuk status bin di
+  peta dan menu Storage, dan untuk saran put-away di fase berikutnya.
 - **Bin tidak punya koordinat sendiri** — diturunkan dari section (bentuk + urutan). Override per bin (`slot`, `span`) ditunda sampai ada
   kebutuhan nyata (rak rusak, bin lebar dobel).
 - **Ambang status mengikuti eFishery** supaya ops yang pernah memakai WMS itu familiar; `OVER` ditambah karena Dash mengizinkan
