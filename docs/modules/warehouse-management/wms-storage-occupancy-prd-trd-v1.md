@@ -17,6 +17,9 @@ links:
 
 # Storage occupancy & peta gudang — PRD/TRD v1
 
+> Tech doc (detail BE: pembuatan data, perpindahan stok, query, snapshot, Peta warehouse): BE
+> `nest-logistic-service/docs/warehouse/location-utilization-and-warehouse-map.md`.
+>
 > **Status: diimplementasikan (2026-10-14)** di branch `feat/wms-storage-occupancy` BE `nest-logistic-service` dan FE
 > `react-logistic-web` — kontrak final ada di BE `docs/warehouse/storage-occupancy-layout.md`; e2e Playwright hijau
 > (okupansi 11, peta 4, regresi transfer/opname 12). Sebelumnya ditunda 2026-10-12 demi transfer storage dan stock opname.
@@ -63,7 +66,7 @@ decisions dan diterjemahkan ke model Dash di bawah.
 - Halaman **Okupansi storage** (pola dashboard Storage Capacity eFishery): filter pencarian/hub/status bin, drawer filter
   lokasi/section/bin/client, alert bin tanpa kapasitas dengan "Atur sekarang", board kartu per location, tabel per bin × SKU,
   export CSV sesuai filter.
-- Halaman **Peta gudang**: denah isometrik per hub, warna bin dari okupansi, inspector bin/section/location, filter
+- Halaman **Peta warehouse**: denah isometrik per hub, warna bin dari okupansi, inspector bin/section/location, filter
   location/client, editor layout (tempatkan dari tray, drag snap 50 cm, putar, ubah level/bentuk, resize zona location).
 - Tabel layout `wh_storage_layouts` (satu baris per storage yang ditempatkan) + endpoint simpan layout.
 - Kolom okupansi di list Storage; KPI okupansi di dashboard Stock.
@@ -100,7 +103,7 @@ decisions dan diterjemahkan ke model Dash di bawah.
    (`wh_storage_occupancy_snapshots`) ditulis saat dashboard dibaca dan oleh job terjadwal (`POST
    /storages/occupancy/snapshots`, Cloud Scheduler). Threshold per hub bisa diubah di iterasi berikutnya.
 7. List Storage menampilkan kapasitas, terpakai, okupansi %, status per baris (location/section/bin).
-8. Peta gudang membaca pohon storage dari `GET /storages` dan hanya menyimpan posisi: lantai hub dan location = gabungan
+8. Peta warehouse membaca pohon storage dari `GET /storages` dan hanya menyimpan posisi: lantai hub dan location = gabungan
    blok persegi `blocks[{x, y, w, h}]` pada grid 50 cm (satu blok = persegi; 2–4 blok = bentuk L, U, W; `x, y, w, h`
    baris = bounding box-nya); section = x, y relatif ke origin location, rotasi 0/90, bentuk `RACK|FLOOR`, `levels` (rak) atau `rows` + `cell_cm` (lantai). Bin
    dirender dari urutan bin di data: rak → kolom = ⌈n ÷ levels⌉, bin ke-i di (⌊i ÷ levels⌋, i mod levels).
@@ -139,7 +142,7 @@ decisions dan diterjemahkan ke model Dash di bawah.
 
 Tambahkan kolom kapasitas dan dimensi pada `wh_storages`, satu view okupansi yang menjumlahkan `wh_stocks × wh_skus`
 per storage dan di-roll-up lewat ltree, dan satu tabel `wh_storage_layouts` berisi posisi per storage. Tidak ada tabel
-kapasitas per SKU, tidak ada perubahan pada alur stok. Dua halaman FE baru (Okupansi storage, Peta gudang) dan kolom
+kapasitas per SKU, tidak ada perubahan pada alur stok. Dua halaman FE baru (Okupansi storage, Peta warehouse) dan kolom
 tambahan di Storage; semuanya membaca endpoint storage yang sudah ada ditambah tiga endpoint baru (okupansi, layout,
 import/export kapasitas).
 
@@ -316,7 +319,7 @@ hitung ulang penuh dan memperbaiki selisih (self-healing), hasilnya dilog.
 - **Fase 1 (±1 minggu):** kolom kapasitas + dimensi di storage; edit storage, kapasitas massal, import/export; view okupansi +
   `GET /storages/occupancy`; kolom okupansi di Storage; KPI di Stock; halaman Okupansi storage. Backfill: tidak ada (null = belum
   diset; alert mengarahkan ops).
-- **Fase 2 (1–2 minggu):** `wh_storage_layouts` + endpoint layout; halaman Peta gudang dengan editor; mockup sudah final.
+- **Fase 2 (1–2 minggu):** `wh_storage_layouts` + endpoint layout; halaman Peta warehouse dengan editor; mockup sudah final.
 - **Fase 3:** saran bin put-away (sisa kapasitas terbesar, terdekat staging), picking walk order, snapshot okupansi harian, alert.
 - Rollback: kolom nullable dan tabel terpisah — hapus halaman FE cukup; tidak ada data stok yang bergantung.
 
