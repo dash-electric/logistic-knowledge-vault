@@ -568,6 +568,7 @@ erDiagram
         integer y "cm"
         integer w "LOCATION only — nullable"
         integer h "LOCATION only — nullable"
+        jsonb blocks "LOCATION / hub floor — [{x,y,w,h}] relative to row origin; null = single w×h rectangle; 2–4 blocks = L/U/W shape"
         smallint rotation "0|90 default 0"
         text shape "SECTION only — RACK|FLOOR; bins are laid out from bin order (rack: col = i div levels, level = i mod levels)"
         smallint levels "RACK — nullable"

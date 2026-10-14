@@ -93,8 +93,9 @@ decisions dan diterjemahkan ke model Dash di bawah.
    digunakan", detail per section "n bin · n tersedia"); tabel per bin × SKU (client, hub, lokasi, section, bin, SKU, nama
    produk, qty on hand, terpakai/kapasitas m³ + %, status); pagination; export CSV sesuai filter.
 7. List Storage menampilkan kapasitas, terpakai, okupansi %, status per baris (location/section/bin).
-8. Peta gudang membaca pohon storage dari `GET /storages` dan hanya menyimpan posisi: location = x, y, w, h; section = x, y
-   relatif ke origin location, rotasi 0/90, bentuk `RACK|FLOOR`, `levels` (rak) atau `rows` + `cell_cm` (lantai). Bin
+8. Peta gudang membaca pohon storage dari `GET /storages` dan hanya menyimpan posisi: lantai hub dan location = gabungan
+   blok persegi `blocks[{x, y, w, h}]` pada grid 50 cm (satu blok = persegi; 2–4 blok = bentuk L, U, W; `x, y, w, h`
+   baris = bounding box-nya); section = x, y relatif ke origin location, rotasi 0/90, bentuk `RACK|FLOOR`, `levels` (rak) atau `rows` + `cell_cm` (lantai). Bin
    dirender dari urutan bin di data: rak → kolom = ⌈n ÷ levels⌉, bin ke-i di (⌊i ÷ levels⌋, i mod levels).
 9. Storage tanpa baris layout tampil di tray "Belum ditempatkan" (location dulu, baru section); menambah/menghapus
    section atau bin tetap lewat menu Storage; "Lepas dari peta" hanya menghapus baris layout.
@@ -161,12 +162,16 @@ PUT  /v1/warehouses/storages/:id/bins/capacity   { capacityCbm?, capacityKg?, ca
 POST /v1/warehouses/storages/capacity/import  multipart csv (path|name, capacity_cbm, capacity_kg, capacity_qty)
      → { totalData, totalSuccess, totalFail, messages: string[] }
 GET  /v1/warehouses/storages/capacity/export?hubID  → text/csv (template dengan nilai saat ini + qty_on_hand)
-GET  /v1/warehouses/storages/layout?hubID     → [{ storageID, category, x, y, w?, h?, rotation?, shape?, levels?, rows?, cellCm?, updatedAt }]
-PUT  /v1/warehouses/storages/layout           { hubID, updatedAt?, floor: { w, h }, layouts: [ ...same shape... ] }   (replace semua baris hub; 409 LAYOUT_STALE)
+GET  /v1/warehouses/storages/layout?hubID     → { floor: { w, h, blocks: [{ x, y, w, h }] }, layouts: [{ storageID, category, x, y, w?, h?, blocks?, rotation?, shape?, levels?, rows?, cellCm?, updatedAt }] }
+PUT  /v1/warehouses/storages/layout           { hubID, updatedAt?, floor: { blocks }, layouts: [ ...same shape... ] }   (replace semua baris hub; 409 LAYOUT_STALE)
 ```
 
 Validasi: kapasitas ≥ 0 atau null; dimensi > 0; section/bin harus satu hub dengan `hubID`; `levels` 1–6; `rotation` ∈ {0, 90};
 section tidak boleh ditempatkan jika location-nya belum punya baris layout (`422 LOCATION_NOT_PLACED`).
+Bentuk: `blocks` 1–8 blok, tiap sisi kelipatan 50 cm dan ≥ 400 cm, blok-blok harus saling bersentuhan (gabungannya satu
+bidang, tidak terpecah); setiap blok location harus berada di dalam gabungan blok lantai, dan tiap section di dalam
+gabungan blok location-nya (`422 LAYOUT_OUT_OF_BOUNDS` menyebut storage yang keluar). Uji "di dalam" dilakukan per sel
+50 cm: rasterisasi gabungan ke set sel, lalu cek semua sel persegi yang diuji ada di set — O(luas/2.500), tanpa geometri poligon.
 Status okupansi dihitung di BE (konstanta ambang di `constant`), bukan di SQL literal, supaya FE tidak menduplikasi.
 
 ## Data model
@@ -176,8 +181,10 @@ Tabel diubah (aditif):
   `capacity_kg numeric(10,2) null`, `capacity_qty numeric(12,2) null`. Diset di BIN (atau SECTION tipe lantai); null = belum diset.
 
 Tabel baru:
-- `wh_storage_layouts` — `id uuid PK`, `storage_id uuid FK → wh_storages.id unique, null = baris lantai hub (w × h lantai, satu per hub)`, `hub_id bigint`, `x int`, `y int`
-  (cm; location relatif ke origin hub, section relatif ke origin location), `w int null`, `h int null` (location),
+- `wh_storage_layouts` — `id uuid PK`, `storage_id uuid FK → wh_storages.id unique, null = baris lantai hub (satu per hub)`, `hub_id bigint`, `x int`, `y int`
+  (cm; location relatif ke origin hub, section relatif ke origin location), `w int null`, `h int null` (bounding box location / lantai),
+  `blocks jsonb null` (`[{x,y,w,h}]` relatif ke origin baris; null = satu persegi `w × h`; diisi hanya untuk lantai hub dan location,
+  dipakai untuk bentuk L/U/W — outline digambar dari sel 50 cm yang hanya punya satu tetangga terisi),
   `rotation smallint default 0`, `shape text null (RACK|FLOOR)`, `levels smallint null`, `rows smallint null`,
   `cell_cm smallint null`, `created_by`, `created_at`, `updated_at`. Index `(hub_id)`.
 

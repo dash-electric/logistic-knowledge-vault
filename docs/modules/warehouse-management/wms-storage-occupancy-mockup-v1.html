@@ -303,6 +303,289 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
 
 </head>
 <body>
+<title>Peta Gudang WMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: the logistic web shell — sidebar + page; page = header, KPI tiles, map card + detail card, storage table. Light only, like the app. */
+:root {
+  --accent: #5e2aac; --accent-soft: rgba(94,42,172,.08); --accent-medium: rgba(94,42,172,.16);
+  --ink: #171717; --neutral: #5c5c5c; --soft: #8f8f8f;
+  --rule: rgba(23,23,23,.10); --tint: rgba(23,23,23,.04);
+  --page: #f6f6f6; --panel: #ffffff; --sheet: #fafafa; --unset: #e9e9e9; --grid: #f0f0f0; --faint: #a3a3a3; --line: #e5e5e5;
+  --ok: #1f9d55; --ok-soft: #e4f5ec; --warn: #d4891c; --warn-soft: #fcefd9; --err: #d93025; --err-soft: #fde5e3;
+  --full: #d93025; --full-soft: #fde5e3; --quarantine: #6d28d9; --staging: #0e7490;
+  --font: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif; --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; font-feature-settings: 'ss01','cv11','cv02'; }
+.app { display: grid; grid-template-columns: 240px minmax(0,1fr); min-height: 100%; }
+@media (max-width: 900px) { .app { grid-template-columns: minmax(0,1fr); } .side { display: none; } }
+/* sidebar */
+.side { background: var(--panel); border-right: 1px solid var(--rule); padding: 18px 14px; display: flex; flex-direction: column; gap: 18px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 2px 6px; }
+.brand .logo { width: 26px; height: 26px; border-radius: 6px; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+.brand b { display: block; font-size: 14px; font-weight: 800; letter-spacing: -.01em; }
+.brand small { display: block; font-size: 9px; letter-spacing: .22em; color: var(--neutral); text-transform: uppercase; }
+.grp { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--neutral); font-weight: 600; padding: 0 8px; margin-bottom: 6px; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 13.5px; }
+.nav a i { width: 16px; text-align: center; color: var(--soft); font-style: normal; font-size: 12px; }
+.nav a.sub { padding-left: 26px; font-size: 13px; }
+.nav a.sub2 { padding-left: 44px; font-size: 13px; }
+.nav a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
+.user { margin-top: auto; display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.user .av { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+.user b { display: block; font-size: 13px; } .user small { color: var(--neutral); font-size: 11.5px; }
+/* page */
+.main { min-width: 0; }
+.topbar { height: 48px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; padding: 0 24px; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--neutral); font-weight: 600; background: var(--panel); }
+.page { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+@media (max-width: 600px) { .page { padding: 16px; } }
+.ph { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding-bottom: 20px; }
+.eyebrow { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--neutral); font-weight: 600; margin: 0 0 8px; }
+.eyebrow b { color: var(--accent); font-weight: 700; margin-right: 12px; }
+h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+.ph p.desc { margin: 8px 0 0; color: var(--neutral); max-width: 60ch; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { font: inherit; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--ink); background: var(--ink); color: #fff; cursor: pointer; }
+.btn.stroke { background: var(--panel); color: var(--ink); border-color: var(--rule-strong, rgba(23,23,23,.22)); }
+.btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn[disabled] { opacity: .45; cursor: default; }
+.btn:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+select { font: inherit; font-size: 13px; padding: 7px 10px; border-radius: 8px; border: 1px solid rgba(23,23,23,.22); background: var(--panel); color: var(--ink); }
+/* KPI tiles — the Stock page's */
+.tiles { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 12px; }
+@media (max-width: 1100px) { .tiles { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (max-width: 600px) { .tiles { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+.tile { background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.tile .l { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--neutral); font-weight: 600; }
+.tile .v { font-size: 24px; font-weight: 800; letter-spacing: -.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.tile .s { font-size: 12px; color: var(--neutral); margin-top: 2px; }
+/* cards */
+.grid { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 20px; }
+@media (max-width: 1100px) { .grid { grid-template-columns: minmax(0,1fr); } }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; min-width: 0; }
+.card > .hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--rule); }
+.card > .hd h3 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.card > .hd .meta { margin: 2px 0 0; }
+.card > .bd { padding: 16px; }
+.meta { font-size: 12px; color: var(--neutral); margin: 0; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.seg button { font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border: 0; background: transparent; color: var(--neutral); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button.on { background: var(--ink); color: #fff; }
+.editbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--rule); background: var(--accent-soft); }
+.editbar .spacer { flex: 1; }
+.editbar .btn { padding: 6px 12px; font-size: 12.5px; }
+.steps { list-style: none; margin: 0; padding: 14px 16px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.steps li { position: relative; padding: 10px 12px 10px 40px; border: 1px solid var(--rule); border-radius: 10px; font-size: 12.5px; color: var(--neutral); background: #fff; }
+.steps li b { display: block; color: var(--ink); font-size: 13px; margin-bottom: 2px; }
+.steps li i { position: absolute; left: 12px; top: 11px; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line); font-style: normal; font-size: 11px; display: flex; align-items: center; justify-content: center; color: var(--neutral); background: #fff; }
+.steps li.done { border-color: color-mix(in srgb, var(--ok) 50%, #fff); background: color-mix(in srgb, var(--ok) 6%, #fff); }
+.steps li.done i { background: var(--ok); border-color: var(--ok); color: #fff; }
+.steps li.active { border-color: var(--accent); background: var(--accent-soft); }
+.steps li.active i { background: var(--accent); border-color: var(--accent); color: #fff; }
+.steps li .act { margin-top: 8px; }
+.steps li .act .btn { padding: 4px 10px; font-size: 12px; }
+@media (max-width: 1100px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+.chev { display: inline-block; width: 18px; color: var(--neutral); cursor: pointer; user-select: none; }
+tr.loc td { background: var(--tint); border-top: 2px solid var(--rule); }
+tr.sub td { background: var(--tint); padding: 8px 12px 10px 36px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--line); background: #fff; color: var(--neutral); }
+.chip.has { border-color: var(--accent); color: var(--accent); }
+.chip.unset { border-style: dashed; }
+pre.json { margin: 0; padding: 12px 16px; font-family: var(--mono); font-size: 11.5px; line-height: 1.45; color: var(--neutral); background: var(--tint); border-top: 1px solid var(--rule); max-height: 260px; overflow: auto; white-space: pre; }
+#dirty[hidden] { display: none; }
+.blks { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.blk { display: grid; grid-template-columns: repeat(4, 1fr) 28px; gap: 6px; align-items: end; padding-top: 6px; border-top: 1px solid rgba(23,23,23,.10); }
+.blk > .mono { grid-column: 1 / -1; font-size: 11px; color: var(--neutral); }
+.blk label { font-size: 10.5px; color: var(--neutral); display: block; }
+.blk input { width: 100%; min-width: 0; font: inherit; font-size: 12px; padding: 5px 4px; border: 1px solid rgba(23,23,23,.22); border-radius: 6px; box-sizing: border-box; }
+.blk .dd-btn { height: 28px; }
+body.product .sim-only { display: none !important; }
+.editbar[hidden], .tray[hidden] { display: none !important; }
+/* e2e guide */
+.e2e { position: fixed; right: 20px; bottom: 20px; width: 360px; background: #fff; border: 1px solid var(--rule); border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,.18); z-index: 30; font-size: 13px; }
+.e2e .eh { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--rule); } .e2e .eh b { flex: 1; font-size: 13.5px; }
+.e2e .eh .x { font: inherit; border: 0; background: none; color: var(--neutral); cursor: pointer; font-size: 16px; }
+.e2e .eb { padding: 12px 14px; }
+.e2e .step { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+.e2e h4 { margin: 0 0 6px; font-size: 14px; } .e2e p { margin: 0; color: var(--neutral); line-height: 1.45; }
+.e2e .log { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--tint); font-family: var(--mono); font-size: 11.5px; color: var(--ink); white-space: pre-wrap; max-height: 120px; overflow: auto; }
+.e2e .ef { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--rule); }
+.e2e .dots { display: flex; gap: 4px; } .e2e .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--grid); } .e2e .dots i.on { background: var(--accent); } .e2e .dots i.done { background: var(--ok); }
+.e2e .ef .btn { padding: 6px 12px; font-size: 12.5px; }
+.e2e[hidden] { display: none; }
+#e2e-open { position: fixed; right: 20px; bottom: 20px; z-index: 30; } #e2e-open[hidden] { display: none; }
+.tabs { display: flex; gap: 2px; padding: 0 16px; border-bottom: 1px solid var(--rule); }
+.tabs button { font: inherit; font-size: 13px; font-weight: 600; padding: 10px 12px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--neutral); cursor: pointer; margin-bottom: -1px; }
+.tabs button.on { color: var(--accent); border-bottom-color: var(--accent); }
+.cell-in { width: 110px; font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid rgba(23,23,23,.22); border-radius: 6px; text-align: right; }
+.cell-in.bad { border-color: var(--err); background: var(--err-soft); }
+.empty { text-align: center; padding: 28px 16px; color: var(--neutral); font-size: 13px; }
+.empty .btn { margin-top: 10px; }
+.guide { border: 1px solid color-mix(in srgb, var(--accent) 35%, #fff); background: var(--accent-soft); border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; }
+.guide ol { margin: 6px 0 0; padding-left: 18px; } .guide li { margin-bottom: 3px; }
+.result { border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 10px; }
+.result ul { margin: 6px 0 0; padding-left: 18px; color: var(--err); }
+/* occupancy page — eFishery Storage Capacity layout */
+.alert { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--warn) 45%, #fff); background: var(--warn-soft); border-radius: 10px; font-size: 13px; }
+.alert i { width: 18px; height: 18px; border-radius: 50%; background: var(--warn); color: #fff; font-style: normal; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.alert .spacer { flex: 1; } .alert .btn { padding: 5px 10px; font-size: 12px; }
+.frow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--rule); }
+.frow label { display: block; font-size: 11.5px; font-weight: 600; color: var(--neutral); margin-bottom: 4px; }
+.frow input, .frow select { width: 100%; font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; background: #fff; box-sizing: border-box; }
+@media (max-width: 900px) { .frow { grid-template-columns: 1fr; } }
+.board { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--rule); }
+@media (max-width: 1100px) { .board { grid-template-columns: 1fr 1fr; } } @media (max-width: 760px) { .board { grid-template-columns: 1fr; } }
+.ocard { border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; background: #fff; }
+.ocard .t { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.ocard .t b { font-size: 15px; display: inline-flex; align-items: center; gap: 8px; } .ocard .t b i { font-style: normal; color: var(--accent); }
+.ocard .t .pct { font-size: 16px; font-weight: 700; }
+.ocard .bar { height: 8px; border-radius: 999px; background: var(--grid); overflow: hidden; margin-bottom: 10px; } .ocard .bar i { display: block; height: 100%; border-radius: 999px; }
+.ocard .used { font-size: 12.5px; color: var(--neutral); display: flex; justify-content: space-between; align-items: center; }
+.ocard .used.hot { color: var(--err); font-weight: 600; }
+.ocard .used .link { font: inherit; font-size: 12px; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
+.ocard .det { border-top: 1px solid var(--rule); margin-top: 10px; padding-top: 10px; }
+.ocard .det b { display: block; font-size: 13px; margin-bottom: 8px; }
+.ocard .det .rows { max-height: 195px; overflow: auto; padding-right: 8px; }
+.ocard .det .row { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; margin-bottom: 8px; } .ocard .det .row span:last-child { color: var(--neutral); white-space: nowrap; }
+.bnav { position: absolute; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--rule); background: #fff; box-shadow: 0 8px 35px rgba(0,0,0,.1); cursor: pointer; font-size: 14px; z-index: 2; }
+.bnav.l { left: 2px; } .bnav.r { right: 2px; } .bnav[hidden] { display: none; }
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 16px; font-size: 12.5px; color: var(--neutral); }
+.pager .pg { display: flex; gap: 4px; align-items: center; } .pager .pg button, .pager select { font: inherit; font-size: 12.5px; padding: 4px 9px; border: 1px solid var(--rule); border-radius: 6px; background: #fff; cursor: pointer; } .pager .pg button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.drawer { position: fixed; inset: 0 0 0 auto; width: min(380px, 100%); background: #fff; box-shadow: -20px 0 60px rgba(0,0,0,.18); z-index: 40; display: flex; flex-direction: column; }
+.drawer[hidden] { display: none; }
+.drawer .dh { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--rule); } .drawer .dh h3 { margin: 0; font-size: 16px; }
+.drawer .db { padding: 16px 20px; flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+.drawer .db label { display: block; font-size: 11.5px; font-weight: 600; color: var(--neutral); margin-bottom: 4px; } .drawer .db input, .drawer .db select { width: 100%; font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; box-sizing: border-box; }
+.drawer .df { padding: 12px 20px 16px; border-top: 1px solid var(--rule); } .drawer .df .btn { width: 100%; }
+.drawer .chk { display: flex; flex-wrap: wrap; gap: 6px; } .drawer .chk label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--ink); border: 1px solid var(--rule); border-radius: 8px; padding: 5px 10px; margin: 0; cursor: pointer; } .drawer .chk input { width: auto; }
+.fbadge[hidden] { display: none; }
+.fbadge { display: inline-flex; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--ok); color: #fff; font-size: 11px; font-weight: 700; align-items: center; justify-content: center; margin-left: 6px; }
+.tag-st { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; border: 1px solid; }
+.tag-st.green { color: #047857; background: #ecfdf5; border-color: #a7f3d0; } .tag-st.yellow { color: #a16207; background: #fefce8; border-color: #fde68a; } .tag-st.orange { color: #c2410c; background: #fff7ed; border-color: #fed7aa; } .tag-st.red { color: #be123c; background: #fff1f2; border-color: #fecdd3; } .tag-st.volcano { color: #9a3412; background: #fff7ed; border-color: #fdba74; }
+.page[hidden], #a-type-wrap[hidden], #a-gen[hidden], fieldset[hidden] { display: none; }
+/* tree table */
+table.list tr.lv0 td { background: var(--tint); font-weight: 600; }
+table.list tr.lv1 td:first-child { padding-left: 30px; }
+table.list tr.lv2 td { color: var(--neutral); } table.list tr.lv2 td:first-child { padding-left: 54px; color: var(--ink); }
+table.list tr.inactive td { opacity: .55; }
+.chev { display: inline-block; width: 16px; color: var(--neutral); cursor: pointer; user-select: none; margin-right: 4px; }
+.chev.none { visibility: hidden; }
+.rowacts { position: relative; display: flex; gap: 4px; }
+.dd-btn { font: inherit; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border: 1px solid var(--rule); border-radius: 6px; background: #fff; cursor: pointer; }
+.dd { position: fixed; min-width: 200px; background: #fff; border: 1px solid var(--rule); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.14); padding: 4px; z-index: 20; display: flex; flex-direction: column; }
+.dd[hidden] { display: none; }
+.dd button { font: inherit; font-size: 12.5px; text-align: left; padding: 7px 10px; border: 0; background: none; border-radius: 6px; cursor: pointer; color: var(--ink); }
+.dd button:hover { background: var(--tint); }
+#page-storage table.list th, #page-storage table.list td, #page-occ table.list th, #page-occ table.list td { padding-left: 10px; padding-right: 10px; }
+#page-storage .prog { width: 70px; }
+table.list .sticky { position: sticky; right: 0; background: #fff; box-shadow: -8px 0 8px -8px rgba(0,0,0,.15); }
+table.list tr.lv0 td.sticky { background: var(--tint); } table.list tbody tr:hover td.sticky { background: var(--tint); }
+.rowacts button { font: inherit; font-size: 11.5px; font-weight: 600; padding: 3px 8px; border: 1px solid var(--rule); border-radius: 6px; background: #fff; color: var(--ink); cursor: pointer; }
+.rowacts button:hover { border-color: var(--ink); }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--rule); }
+.filters input, .filters select { font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; background: #fff; }
+.filters input { min-width: 220px; }
+/* modal — ActionDialog */
+.overlay { position: fixed; inset: 0; background: rgba(23,23,23,.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+.overlay[hidden] { display: none; }
+.dialog { background: #fff; border-radius: 14px; width: min(560px, 100%); max-height: 92vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.dialog .dh { padding: 16px 20px 10px; border-bottom: 1px solid var(--rule); } .dialog .dh h3 { margin: 0; font-size: 16px; } .dialog .dh p { margin: 4px 0 0; }
+.dialog .db { padding: 14px 20px; } .dialog .df { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px 16px; border-top: 1px solid var(--rule); }
+.form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.form .full { grid-column: 1 / -1; }
+.form label { display: block; font-size: 11.5px; font-weight: 600; color: var(--neutral); margin-bottom: 4px; }
+.form input, .form select, .form textarea { width: 100%; font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; background: #fff; box-sizing: border-box; }
+.form input:disabled { background: var(--tint); color: var(--neutral); }
+.form textarea { font-family: var(--mono); font-size: 12px; min-height: 120px; }
+.form .hint { font-size: 11.5px; color: var(--neutral); margin-top: 4px; }
+.form fieldset { grid-column: 1 / -1; border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px 12px; margin: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px 12px; }
+.form fieldset legend { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--neutral); font-weight: 600; padding: 0 6px; }
+.form .check { display: flex; align-items: center; gap: 8px; font-size: 13px; } .form .check input { width: auto; }
+.nav a { cursor: pointer; }
+.tray { flex-basis: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; font-size: 12px; color: var(--neutral); }
+.tray:empty { display: none; }
+.tray .tray-h { grid-column: 1 / -1; font-weight: 600; color: var(--ink); margin-top: 2px; }
+.tray .tray-h span { font-weight: 400; color: var(--neutral); }
+.tray-g { border: 1px solid var(--rule); border-radius: 10px; background: #fff; padding: 8px 10px; }
+.tray-gh { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-weight: 600; color: var(--ink); }
+.tray-gh .spacer { flex: 1; }
+.tray-gh .meta { font-weight: 400; }
+.tray-gh .link { font: inherit; font-size: 11.5px; font-weight: 500; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
+.tray .chips button { font: inherit; font-size: 12px; padding: 3px 9px; border: 1px dashed var(--accent); border-radius: 8px; background: #fff; color: var(--accent); cursor: pointer; }
+.tray .chips button:disabled { border-color: var(--line); color: var(--faint); cursor: not-allowed; }
+.tray .chips button.zone-btn { border-style: solid; background: var(--accent-soft); }
+.field select { width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; background: #fff; }
+.sheet.edit { cursor: default; outline: 2px dashed var(--accent); outline-offset: -2px; }
+
+.toast { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: var(--ink); color: #fff; font-size: 12.5px; padding: 8px 14px; border-radius: 8px; display: none; z-index: 6; }
+.field { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.field label { font-size: 11px; color: var(--neutral); display: block; margin-bottom: 3px; }
+.field input { width: 100%; font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid rgba(23,23,23,.22); border-radius: 8px; }
+.orbit { position: absolute; top: 10px; right: 10px; z-index: 4; display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: rgba(255,255,255,.94); border: 1px solid var(--rule); border-radius: 999px; font-size: 11px; color: var(--neutral); backdrop-filter: blur(4px); }
+.orbit button { width: 26px; height: 26px; border-radius: 50%; border: 1px solid transparent; background: transparent; color: var(--ink); font-size: 15px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.orbit button:hover { background: var(--tint); } .orbit button.on { background: var(--ink); color: #fff; }
+.orbit input[type=range] { width: 96px; height: 18px; accent-color: var(--accent); margin: 0 2px; }
+.orbit #rot-v { min-width: 30px; text-align: right; font-size: 11px; }
+.sheet { position: relative; height: 560px; background: #fcfcfc; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; cursor: grab; touch-action: none; }
+.sheet.dragging { cursor: grabbing; }
+@media (max-width: 600px) { .sheet { height: 400px; } }
+.sheet canvas { display: block; }
+.scale { position: absolute; right: 12px; bottom: 10px; display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10.5px; color: var(--neutral); background: var(--panel); border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px; }
+.scale i { width: 90px; height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--panel), var(--accent)); border: 1px solid var(--rule); }
+.scale b { color: var(--err); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--neutral); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; } .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; border: 1px solid var(--rule); }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: #fff; font-size: 11.5px; padding: 6px 8px; border-radius: 8px; max-width: 240px; line-height: 1.4; display: none; z-index: 5; }
+.tip b { font-family: var(--mono); font-weight: 600; }
+/* KV rows — the detail pages' */
+.kvs { display: flex; flex-direction: column; }
+.kv { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--rule); font-size: 13px; }
+.kv:last-child { border-bottom: 0; }
+.kv span:first-child { color: var(--neutral); } .kv span:last-child { text-align: right; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.dash { color: var(--faint); }
+.mono { font-family: var(--mono); font-size: 12px; }
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--tint); color: var(--neutral); }
+.badge i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge.success { background: var(--ok-soft); color: var(--ok); } .badge.warning { background: var(--warn-soft); color: var(--warn); } .badge.error { background: var(--err-soft); color: var(--err); } .badge.faded { background: var(--tint); color: var(--neutral); }
+.tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 6px; background: var(--tint); color: var(--neutral); }
+.acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.acts .btn { padding: 6px 12px; font-size: 12.5px; }
+table.tbl-mini { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12.5px; }
+table.tbl-mini th { text-align: left; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--neutral); font-weight: 600; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+table.tbl-mini td { padding: 7px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* storage table — the list pages' */
+.tbl { overflow-x: auto; }
+table.list { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.list th { text-align: left; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--neutral); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+table.list td { padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: middle; white-space: nowrap; }
+table.list tbody tr { cursor: pointer; } table.list tbody tr:hover td { background: var(--tint); }
+.prog { display: inline-block; width: 90px; height: 6px; border-radius: 999px; background: var(--grid); overflow: hidden; vertical-align: middle; margin-right: 8px; }
+.prog i { display: block; height: 100%; border-radius: 999px; }
+/* assessment (collapsed) */
+details.doc-wrap { border: 1px solid var(--rule); border-radius: 12px; background: var(--panel); }
+details.doc-wrap > summary { cursor: pointer; padding: 12px 16px; font-weight: 700; font-size: 15px; list-style: none; }
+details.doc-wrap > summary::before { content: '›'; display: inline-block; margin-right: 10px; color: var(--neutral); transition: transform .15s; }
+details.doc-wrap[open] > summary::before { transform: rotate(90deg); }
+section.doc { padding: 0 16px 16px; } section.doc .doc-h { font-size: 16px; margin: 18px 0 6px; } section.doc p { max-width: 72ch; margin: 0 0 10px; }
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-block: 10px 16px; }
+@media (max-width: 760px) { .cols { grid-template-columns: minmax(0,1fr); } }
+section.doc .card { padding: 14px 16px; } section.doc .card h4 { margin: 0 0 6px; font-size: 14px; } section.doc .card ul { margin: 0; padding-left: 18px; } section.doc .card li { margin-bottom: 4px; }
+section.doc .tbl { border: 1px solid var(--rule); border-radius: 10px; margin-block: 8px 16px; } section.doc .tbl table { border-collapse: collapse; width: 100%; font-size: 13px; }
+section.doc .tbl th, section.doc .tbl td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; } section.doc .tbl th { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--neutral); font-weight: 600; } section.doc .tbl tr:last-child td { border-bottom: 0; }
+code { font-family: var(--mono); font-size: .88em; background: var(--tint); padding: .05em .35em; border-radius: 4px; }
+.note { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 10px 14px; border-radius: 0 8px 8px 0; margin-block: 10px 16px; max-width: 72ch; }
+.phases { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; } @media (max-width: 760px) { .phases { grid-template-columns: minmax(0,1fr); } }
+.phases .ph { display: block; border: 0; padding: 0; font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+</style>
+
 <div class="app">
   <aside class="side" aria-label="Navigasi">
     <div class="brand"><div class="logo">D</div><div><b>Dash Electric</b><small>Mithril</small></div></div>
@@ -604,7 +887,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
   const LAYOUTS = new Map([
     ['L1', { x: 100, y: 100, w: 2200, h: 1800 }],
     ['L2', { x: 2400, y: 100, w: 700, h: 700 }],
-    ['L3', { x: 2400, y: 900, w: 700, h: 1000 }],
+    ['L3', { x: 100, y: 2100, w: 1100, h: 500 }],
     // sections: cm relative to their location's origin
     ['S1', { x: 120, y: 160, rot: 0, shape: 'RACK', levels: 3 }],
     ['S2', { x: 120, y: 660, rot: 0, shape: 'RACK', levels: 3 }],
@@ -613,11 +896,13 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     ['S5', { x: 1220, y: 660, rot: 0, shape: 'RACK', levels: 3 }],
     ['S6', { x: 1220, y: 1160, rot: 0, shape: 'FLOOR', rows: 2, cell: 200 }],
     ['S7', { x: 60, y: 120, rot: 0, shape: 'FLOOR', rows: 2, cell: 160 }],
-    ['S8', { x: 60, y: 100, rot: 0, shape: 'FLOOR', rows: 3, cell: 160 }],
+    ['S8', { x: 60, y: 10, rot: 0, shape: 'FLOOR', rows: 3, cell: 160 }],
   ]);
   const DEFAULT_LOC = { STORAGE: [2200, 1800], QUARANTINE: [700, 700], STAGING: [700, 1000] };
   // The hub floor itself (wh_storage_layouts row with storage_id = null): width × depth in cm.
-  LAYOUTS.set('HUB', { w: HUB.w, h: HUB.h });
+  // Floors and zones are unions of rectangular BLOCKS on the 50 cm grid (L / U / W shapes = 2–4 blocks).
+  // The hub here is an L: the main hall plus a dock wing at the bottom-left.
+  LAYOUTS.set('HUB', { w: 3200, h: 2700, blocks: [{ x: 0, y: 0, w: 3200, h: 2000 }, { x: 0, y: 2000, w: 1300, h: 700 }] });
   const HUB_MIN = 800;
   // wh_stocks grouped per bin (storage_id → lots). Lives outside the view model so rebuilding the map never touches it.
   const STOCK = new Map();
@@ -655,11 +940,16 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
   }
   let allLocations = [];
   function build() {
-    const hl = LAYOUTS.get('HUB') || { w: HUB.w, h: HUB.h }; HUB.w = hl.w; HUB.h = hl.h;
-    layout = { hub: HUB.name, w: HUB.w, h: HUB.h, locations: [] }; allSections = []; allLocations = [];
+    const hl = LAYOUTS.get('HUB') || { w: HUB.w, h: HUB.h };
+    const hubBlocks = (hl.blocks && hl.blocks.length ? hl.blocks : [{ x: 0, y: 0, w: hl.w, h: hl.h }]).map(b => ({ ...b }));
+    HUB.w = Math.max(...hubBlocks.map(b => b.x + b.w)); HUB.h = Math.max(...hubBlocks.map(b => b.y + b.h));
+    layout = { hub: HUB.name, w: HUB.w, h: HUB.h, blocks: hubBlocks, locations: [] }; allSections = []; allLocations = [];
     STORAGES.filter(r => r.category === 'LOCATION').forEach(Lr => {
       const lay = LAYOUTS.get(Lr.id); const [dw, dh] = DEFAULT_LOC[Lr.type] || [600, 600];
       const L = { id: Lr.id, name: Lr.name, type: Lr.type, row: Lr, lay: lay || null, placed: !!lay, x: lay?.x ?? 0, y: lay?.y ?? 0, w: lay?.w ?? dw, h: lay?.h ?? dh, sections: [], all: [] };
+      // Absolute blocks of the zone (one rectangle unless the layout row carries `blocks`).
+      L.blocks = (lay?.blocks && lay.blocks.length ? lay.blocks : [{ x: 0, y: 0, w: L.w, h: L.h }]).map(b => ({ x: L.x + b.x, y: L.y + b.y, w: b.w, h: b.h }));
+      L.w = Math.max(...L.blocks.map(b => b.x + b.w)) - L.x; L.h = Math.max(...L.blocks.map(b => b.y + b.h)) - L.y;
       childrenOf(Lr.id).forEach(Sr => {
         const sl = LAYOUTS.get(Sr.id);
         const dflt = Lr.type === 'STORAGE' ? 'RACK' : 'FLOOR';
@@ -672,6 +962,31 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     });
   }
   const allBins = () => allSections.flatMap(S => S.bins.map(b => ({ b, S, L: S.L })));
+  /* Block unions on the 50 cm grid: cells → outline segments (edges with one filled neighbour) and containment tests. */
+  const CELL = 50, CK = 100000;
+  const unionCells = (blocks) => { const set = new Set(); blocks.forEach(b => { for (let cx = Math.floor(b.x / CELL); cx < Math.ceil((b.x + b.w) / CELL); cx++) for (let cy = Math.floor(b.y / CELL); cy < Math.ceil((b.y + b.h) / CELL); cy++) set.add(cx * CK + cy); }); return set; };
+  function outlineOf(blocks) {
+    const cells = unionCells(blocks), segs = [];
+    cells.forEach(k => { const cx = Math.floor(k / CK), cy = k % CK, x = cx * CELL, y = cy * CELL;
+      if (!cells.has((cx - 1) * CK + cy)) segs.push([[x, y], [x, y + CELL]]);
+      if (!cells.has((cx + 1) * CK + cy)) segs.push([[x + CELL, y], [x + CELL, y + CELL]]);
+      if (!cells.has(cx * CK + cy - 1)) segs.push([[x, y], [x + CELL, y]]);
+      if (!cells.has(cx * CK + cy + 1)) segs.push([[x, y + CELL], [x + CELL, y + CELL]]); });
+    return segs;
+  }
+  /** True when every 50 cm cell of `r` lies inside the union of `blocks`. */
+  const rectInUnion = (r, blocks) => { const cells = unionCells(blocks); for (let cx = Math.floor(r.x / CELL); cx < Math.ceil((r.x + r.w) / CELL); cx++) for (let cy = Math.floor(r.y / CELL); cy < Math.ceil((r.y + r.h) / CELL); cy++) if (!cells.has(cx * CK + cy)) return false; return true; };
+  /** Recompute a zone's bounding box from its blocks and write the layout row (blocks relative to the origin). */
+  function syncLoc(L) {
+    L.x = Math.min(...L.blocks.map(b => b.x)); L.y = Math.min(...L.blocks.map(b => b.y));
+    L.w = Math.max(...L.blocks.map(b => b.x + b.w)) - L.x; L.h = Math.max(...L.blocks.map(b => b.y + b.h)) - L.y;
+    Object.assign(L.lay, { x: L.x, y: L.y, w: L.w, h: L.h, blocks: L.blocks.map(b => ({ x: b.x - L.x, y: b.y - L.y, w: b.w, h: b.h })) });
+    L.sections.forEach(S => { S.x = L.x + S.lay.x; S.y = L.y + S.lay.y; relayout(S); });
+  }
+  function syncHub() {
+    HUB.w = Math.max(...layout.blocks.map(b => b.x + b.w)); HUB.h = Math.max(...layout.blocks.map(b => b.y + b.h)); layout.w = HUB.w; layout.h = HUB.h;
+    LAYOUTS.set('HUB', { w: HUB.w, h: HUB.h, blocks: layout.blocks.map(b => ({ ...b })) });
+  }
   const unplaced = () => allSections.filter(S => !S.placed);
   const unplacedLocs = () => allLocations.filter(L => !L.placed);
   const locationOf = (id) => allLocations.find(L => L.id === id) || null;
@@ -874,24 +1189,23 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     ctx.fillStyle = '#fcfcfc'; ctx.fillRect(0, 0, W, H);
     const binPx = BIN_W * k * C; const lod = binPx < 3 ? 1 : binPx < 6 ? 2 : 3;
     // floor
-    const floorPoly = [sp(0, 0), sp(layout.w, 0), sp(layout.w, layout.h), sp(0, layout.h)];
     const hubSel = state.edit && state.section === 'HUB';
-    pathOf(floorPoly); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = hubSel ? `rgb(${COL.accent.join(',')})` : 'rgba(23,23,23,.22)'; ctx.lineWidth = hubSel ? 2.5 : 1; ctx.stroke();
-    scene.push({ kind: 'floor', id: 'HUB', poly: floorPoly });
+    const strokeSegs = (segs, color, width) => { ctx.beginPath(); segs.forEach(([a, b]) => { const pa = sp(a[0], a[1]), pb = sp(b[0], b[1]); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); }); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.stroke(); };
+    layout.blocks.forEach((b, i) => { const poly = [sp(b.x, b.y), sp(b.x + b.w, b.y), sp(b.x + b.w, b.y + b.h), sp(b.x, b.y + b.h)]; pathOf(poly); ctx.fillStyle = '#fff'; ctx.fill(); scene.push({ kind: 'floor', id: 'HUB', poly }); });
+    strokeSegs(outlineOf(layout.blocks), hubSel ? `rgb(${COL.accent.join(',')})` : 'rgba(23,23,23,.22)', hubSel ? 2.5 : 1);
     const locs = layout.locations.filter(L => state.floor === 'all' || state.floor === L.id);
     const zonePlates = [], handles = [];
-    if (state.edit) handles.push({ id: 'HUB', kind: 'hub-handle', c: sp(layout.w, layout.h) });
+    if (state.edit) layout.blocks.forEach((b, i) => handles.push({ id: String(i), kind: 'hub-handle', c: sp(b.x + b.w, b.y + b.h) }));
     locs.forEach(L => {
       const col = L.type === 'QUARANTINE' ? COL.quarantine : L.type === 'STAGING' ? COL.staging : `rgb(${COL.accent.join(',')})`;
       const corners = [[L.x, L.y], [L.x + L.w, L.y], [L.x + L.w, L.y + L.h], [L.x, L.y + L.h]];
       const sel = state.edit && state.section === L.id;
-      const poly = corners.map(c => sp(c[0], c[1]));
-      pathOf(poly); ctx.fillStyle = L.type === 'STORAGE' ? 'rgba(23,23,23,.025)' : 'rgba(23,23,23,.045)'; ctx.fill();
-      ctx.strokeStyle = sel ? `rgb(${COL.accent.join(',')})` : 'rgba(23,23,23,.12)'; ctx.lineWidth = sel ? 2.5 : 1; ctx.stroke();
-      scene.push({ kind: 'zone', id: L.id, poly });
+      const tint = L.type === 'STORAGE' ? '#f8f8f8' : '#f2f2f2';
+      L.blocks.forEach(b => { const poly = [sp(b.x, b.y), sp(b.x + b.w, b.y), sp(b.x + b.w, b.y + b.h), sp(b.x, b.y + b.h)]; pathOf(poly); ctx.fillStyle = tint; ctx.fill(); scene.push({ kind: 'zone', id: L.id, poly }); });
+      strokeSegs(outlineOf(L.blocks), sel ? `rgb(${COL.accent.join(',')})` : 'rgba(23,23,23,.14)', sel ? 2.5 : 1);
       const near = corners.reduce((a, c) => depth(c[0], c[1]) > depth(a[0], a[1]) ? c : a);
       const pt = sp(near[0], near[1]); zonePlates.push({ pt: [pt[0], pt[1] + 16], name: L.name, col });
-      if (sel) handles.push({ id: L.id, c: sp(L.x + L.w, L.y + L.h) });
+      if (sel) L.blocks.forEach((b, i) => handles.push({ id: `${L.id}#${i}`, c: sp(b.x + b.w, b.y + b.h) }));
     });
     const items = [];
     locs.forEach(L => L.sections.forEach(S => {
@@ -899,8 +1213,9 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
       if (state.edit) items.push({ key: depth(cx, cy) - 1e5, draw: () => {
         const selS = state.section === S.id;
         const poly = [sp(S.x - 8, S.y - 8), sp(S.x + S.w + 8, S.y - 8), sp(S.x + S.w + 8, S.y + S.h + 8), sp(S.x - 8, S.y + S.h + 8)];
-        pathOf(poly); ctx.fillStyle = selS ? 'rgba(94,42,172,.16)' : 'rgba(94,42,172,.05)'; ctx.fill();
-        ctx.setLineDash(selS ? [] : [5, 4]); ctx.strokeStyle = `rgb(${COL.accent.join(',')})`; ctx.lineWidth = selS ? 2 : 1; ctx.stroke(); ctx.setLineDash([]);
+        const outside = !rectInUnion({ x: S.x, y: S.y, w: S.w, h: S.h }, L.blocks);
+        pathOf(poly); ctx.fillStyle = outside ? 'rgba(217,48,37,.08)' : selS ? 'rgba(94,42,172,.16)' : 'rgba(94,42,172,.05)'; ctx.fill();
+        ctx.setLineDash(selS ? [] : [5, 4]); ctx.strokeStyle = outside ? COL.full : `rgb(${COL.accent.join(',')})`; ctx.lineWidth = selS || outside ? 2 : 1; ctx.stroke(); ctx.setLineDash([]);
         scene.push({ kind: 'section', id: S.id, poly });
       } });
       S.bins.forEach(b => items.push({ key: depth(b.x + b.w / 2, b.y + b.d / 2) + b.z * 0.001, draw: () => {
@@ -924,7 +1239,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     items.sort((a, c) => a.key - c.key).forEach(i => i.draw());
     zonePlates.forEach(z => plate(z.pt, z.name, { size: 11.5, weight: 700, dot: z.col }));
     handles.forEach(hd => { const r = hd.kind === 'hub-handle' ? 8 : 7, c = hd.c; const poly = [[c[0], c[1] - r], [c[0] + r, c[1]], [c[0], c[1] + r], [c[0] - r, c[1]]]; pathOf(poly); ctx.fillStyle = hd.kind === 'hub-handle' ? COL.ink : '#fff'; ctx.fill(); ctx.strokeStyle = hd.kind === 'hub-handle' ? COL.ink : `rgb(${COL.accent.join(',')})`; ctx.lineWidth = 2; ctx.stroke(); scene.push({ kind: hd.kind || 'handle', id: hd.id, poly }); });
-    const dock = sp(2850, layout.h - 40); ctx.font = `500 11px ${cssVar('--mono') || 'JetBrains Mono, monospace'}`; ctx.fillStyle = 'rgba(23,23,23,.35)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('DOCK', dock[0], dock[1]);
+    const lb = layout.blocks[layout.blocks.length - 1]; const dock = sp(lb.x + lb.w / 2, lb.y + lb.h - 40); ctx.font = `500 11px ${cssVar('--mono') || 'JetBrains Mono, monospace'}`; ctx.fillStyle = 'rgba(23,23,23,.35)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('DOCK', dock[0], dock[1]);
     const rs = document.getElementById('rot'); const a = ((rot.a % 360) + 360) % 360; if (rs && Number(rs.value) !== Math.round(a)) rs.value = Math.round(a);
     const rl = document.getElementById('rot-v'); if (rl) rl.textContent = `${Math.round(a)}°`;
   }
@@ -939,15 +1254,16 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
   sheet.addEventListener('pointerdown', e => {
     if (onOrbit(e)) return;
     const h = hitAt(e);
-    if (state.edit && h && h.kind === 'hub-handle') { drag = { x: e.clientX, y: e.clientY, moved: false, hub: { ow: HUB.w, oh: HUB.h } }; sheet.setPointerCapture(e.pointerId); return; }
+    if (state.edit && h && h.kind === 'hub-handle') { const i = Number(h.id); const bk = layout.blocks[i]; drag = { x: e.clientX, y: e.clientY, moved: false, hub: { i, ow: bk.w, oh: bk.h } }; sheet.setPointerCapture(e.pointerId); return; }
     const hnd = state.edit && h && h.kind === 'handle' ? h : null;
+    const hndLoc = hnd ? hnd.id.split('#')[0] : null, hndIdx = hnd ? Number(hnd.id.split('#')[1]) : 0;
     const t = h && (h.kind === 'bin' || h.kind === 'section') ? h : null;
     const z = state.edit && !t && h && h.kind === 'zone' ? h : null;
     const hit = state.edit && t ? sectionOf(t.id) : null;
-    const Lh = hnd ? locationOf(hnd.id) : z ? locationOf(z.id) : null;
+    const Lh = hnd ? locationOf(hndLoc) : z ? locationOf(z.id) : null;
     if (e.button === 2 || e.shiftKey) { drag = { x: e.clientX, y: e.clientY, moved: false, orbit: rot.a }; sheet.classList.add('dragging'); sheet.setPointerCapture(e.pointerId); return; }
     drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false, sec: hit ? { S: hit.S, L: hit.L, ox: hit.S.x, oy: hit.S.y } : null,
-      loc: Lh ? { L: Lh, ox: Lh.x, oy: Lh.y, ow: Lh.w, oh: Lh.h, resize: !!hnd } : null };
+      loc: Lh ? { L: Lh, ox: Lh.x, oy: Lh.y, ow: hnd ? Lh.blocks[hndIdx].w : Lh.w, oh: hnd ? Lh.blocks[hndIdx].h : Lh.h, resize: !!hnd, blockIdx: hndIdx, blocks0: Lh.blocks.map(b => ({ ...b })) } : null };
     if (!hit && !Lh) sheet.classList.add('dragging');
     sheet.setPointerCapture(e.pointerId);
   });
@@ -957,8 +1273,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     if (drag && drag.hub) {
       const [wx, wy] = unproject((e.clientX - drag.x) / view.k, (e.clientY - drag.y) / view.k);
       if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) drag.moved = true;
-      const [mw, mh] = minHubSize();
-      HUB.w = Math.max(mw, snap(drag.hub.ow + wx)); HUB.h = Math.max(mh, snap(drag.hub.oh + wy)); layout.w = HUB.w; layout.h = HUB.h; draw(); return;
+      const bk = layout.blocks[drag.hub.i]; bk.w = Math.max(400, snap(drag.hub.ow + wx)); bk.h = Math.max(400, snap(drag.hub.oh + wy)); syncHub(); draw(); return;
     }
     if (drag && drag.sec) {
       const [wx, wy] = unproject((e.clientX - drag.x) / view.k, (e.clientY - drag.y) / view.k);
@@ -973,13 +1288,13 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
       if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) drag.moved = true;
       const { L } = drag.loc;
       if (drag.loc.resize) {
-        const [mw, mh] = minLocSize(L);
-        L.w = Math.max(mw, Math.min(HUB.w - L.x - 50, snap(drag.loc.ow + wx))); L.h = Math.max(mh, Math.min(HUB.h - L.y - 50, snap(drag.loc.oh + wy)));
+        const bk = L.blocks[drag.loc.blockIdx]; bk.w = Math.max(400, snap(drag.loc.ow + wx)); bk.h = Math.max(400, snap(drag.loc.oh + wy));
       } else {
-        L.x = Math.min(HUB.w - L.w - 50, Math.max(50, snap(drag.loc.ox + wx))); L.y = Math.min(HUB.h - L.h - 50, Math.max(50, snap(drag.loc.oy + wy)));
-        L.sections.forEach(S => { S.x = L.x + S.lay.x; S.y = L.y + S.lay.y; relayout(S); });
+        const nx = Math.min(HUB.w - L.w - 50, Math.max(50, snap(drag.loc.ox + wx))), ny = Math.min(HUB.h - L.h - 50, Math.max(50, snap(drag.loc.oy + wy)));
+        const dx = nx - drag.loc.ox, dy = ny - drag.loc.oy;
+        L.blocks.forEach((b, i) => { b.x = drag.loc.blocks0[i].x + dx; b.y = drag.loc.blocks0[i].y + dy; });
       }
-      Object.assign(L.lay, { x: L.x, y: L.y, w: L.w, h: L.h }); draw(); return;
+      syncLoc(L); draw(); return;
     }
     if (drag) {
       const dx = (e.clientX - drag.x) / view.k, dy = (e.clientY - drag.y) / view.k;
@@ -1002,14 +1317,14 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     if (drag && drag.orbit !== undefined) { drag = null; sheet.classList.remove('dragging'); return; }
     sheet.classList.remove('dragging');
     if (drag && drag.hub) {
-      if (drag.moved) { LAYOUTS.set('HUB', { w: HUB.w, h: HUB.h }); markDirty({ id: 'HUB', name: 'Denah hub' }, 'resized'); renderTable(); toast(`Lantai hub diubah jadi ${HUB.w} × ${HUB.h} cm`); }
+      if (drag.moved) { syncHub(); markDirty({ id: 'HUB', name: 'Denah hub' }, 'resized'); renderTable(); toast(`Blok lantai ${drag.hub.i + 1} diubah — lantai hub ${HUB.w} × ${HUB.h} cm`); }
       selectHub(); drag = null; return;
     }
     if (drag && drag.sec) {
       if (drag.moved) { markDirty(drag.sec.S, 'moved'); renderTable(); toast(`${drag.sec.S.name} dipindah ke x ${drag.sec.S.x} · y ${drag.sec.S.y} cm`); }
       selectSection(drag.sec.S.id);
     } else if (drag && drag.loc) {
-      if (drag.moved) { markDirty(drag.loc.L, drag.loc.resize ? 'resized' : 'moved'); renderTable(); toast(drag.loc.resize ? `${drag.loc.L.name} diubah jadi ${drag.loc.L.w} × ${drag.loc.L.h} cm` : `${drag.loc.L.name} dipindah ke x ${drag.loc.L.x} · y ${drag.loc.L.y} cm (section ikut)`); }
+      if (drag.moved) { markDirty(drag.loc.L, drag.loc.resize ? 'resized' : 'moved'); renderTable(); const out = drag.loc.L.sections.filter(S => !rectInUnion({ x: S.x, y: S.y, w: S.w, h: S.h }, drag.loc.L.blocks)); toast(drag.loc.resize ? `${drag.loc.L.name} blok ${drag.loc.blockIdx + 1} diubah — zona ${drag.loc.L.w} × ${drag.loc.L.h} cm${out.length ? ` · ${out.length} rak di luar zona (merah)` : ''}` : `${drag.loc.L.name} dipindah ke x ${drag.loc.L.x} · y ${drag.loc.L.y} cm (section ikut)`); }
       selectLocation(drag.loc.L.id);
     } else if (drag && !drag.moved) {
       const h = hitAt(e);
@@ -1058,44 +1373,51 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     draw();
   }
   // Smallest floor that still contains every placed location (plus a 100 cm margin).
-  const minHubSize = () => [Math.max(HUB_MIN, ...layout.locations.map(L => L.x + L.w + 100)), Math.max(HUB_MIN, ...layout.locations.map(L => L.y + L.h + 100))];
+  const blockRows = (blocks, origin, prefix) => blocks.map((b, i) => `<div class="blk"><span class="mono">Blok ${i + 1}</span>
+      <label>X<input data-blk="${prefix}:${i}:x" type="number" step="50" value="${b.x - origin[0]}"></label><label>Y<input data-blk="${prefix}:${i}:y" type="number" step="50" value="${b.y - origin[1]}"></label>
+      <label>L<input data-blk="${prefix}:${i}:w" type="number" step="50" min="400" value="${b.w}"></label><label>P<input data-blk="${prefix}:${i}:h" type="number" step="50" min="400" value="${b.h}"></label>
+      <button class="dd-btn" data-blk-del="${prefix}:${i}" ${blocks.length > 1 ? '' : 'disabled'} title="Hapus blok">×</button></div>`).join('');
   function selectHub() {
     state.section = 'HUB'; state.selected = null;
     document.getElementById('rotate').disabled = true; document.getElementById('unplace').disabled = true;
     const insp = document.getElementById('insp'), title = document.getElementById('insp-title');
     title.textContent = `Layout · Denah ${HUB.name}`;
-    const [mw, mh] = minHubSize();
-    insp.innerHTML = `<div class="kvs"><div class="kv"><span>Hub</span><span>${HUB.name}</span></div><div class="kv"><span>Location di peta</span><span>${layout.locations.length} dari ${allLocations.length}</span></div><div class="kv"><span>Luas lantai</span><span class="mono">${(HUB.w * HUB.h / 1e4).toFixed(0)} m²</span></div></div>
-      <div class="field"><div><label for="h-w">Lebar (cm, min ${mw})</label><input id="h-w" type="number" step="50" min="${mw}" value="${HUB.w}"></div><div><label for="h-h">Panjang (cm, min ${mh})</label><input id="h-h" type="number" step="50" min="${mh}" value="${HUB.h}"></div></div>
-      <p class="meta" style="margin-top:10px">Ukuran lantai hub dalam cm. Tarik handle hitam di sudut jauh lantai, atau isi di sini. Lantai tidak bisa lebih kecil dari location yang sudah ditempatkan; tersimpan bersama layout.</p>`;
+    const area = layout.blocks.reduce((a, b) => a + b.w * b.h, 0) / 1e4;
+    insp.innerHTML = `<div class="kvs"><div class="kv"><span>Hub</span><span>${HUB.name}</span></div><div class="kv"><span>Location di peta</span><span>${layout.locations.length} dari ${allLocations.length}</span></div><div class="kv"><span>Bentuk lantai</span><span>${layout.blocks.length} blok · <span class="mono">${HUB.w} × ${HUB.h} cm</span> · ${area.toFixed(0)} m²</span></div></div>
+      <div class="blks">${blockRows(layout.blocks, [0, 0], 'hub')}</div>
+      <div class="acts"><button class="btn stroke" id="hub-add-blk">+ Tambah blok lantai</button></div>
+      <p class="meta" style="margin-top:10px">Lantai dibangun dari blok persegi (grid 50 cm) yang digabung — tambah blok untuk bentuk L, U, atau W. Tarik handle hitam di sudut tiap blok, atau isi angkanya. Zona yang keluar dari lantai ditandai saat Simpan.</p>`;
     const apply = () => {
-      const nw = Math.max(mw, snap(Number(insp.querySelector('#h-w').value) || HUB.w)), nh = Math.max(mh, snap(Number(insp.querySelector('#h-h').value) || HUB.h));
-      if (nw === HUB.w && nh === HUB.h) return;
-      LAYOUTS.set('HUB', { w: nw, h: nh }); markDirty({ id: 'HUB', name: 'Denah hub' }, 'resized'); refresh(); fit(); selectHub();
+      insp.querySelectorAll('[data-blk]').forEach(inp => { const [, i, k] = inp.getAttribute('data-blk').split(':'); const v = Math.max(k === 'w' || k === 'h' ? 400 : 0, snap(Number(inp.value) || 0)); layout.blocks[Number(i)][k] = v; });
+      syncHub(); markDirty({ id: 'HUB', name: 'Denah hub' }, 'resized'); refresh(); fit(); selectHub();
     };
-    insp.querySelectorAll('input').forEach(i => { i.onchange = apply; });
+    insp.querySelectorAll('[data-blk]').forEach(i => { i.onchange = apply; });
+    insp.querySelectorAll('[data-blk-del]').forEach(b => { b.onclick = () => { const i = Number(b.getAttribute('data-blk-del').split(':')[1]); layout.blocks.splice(i, 1); syncHub(); markDirty({ id: 'HUB', name: 'Denah hub' }, 'resized'); refresh(); fit(); selectHub(); }; });
+    document.getElementById('hub-add-blk').onclick = () => { const last = layout.blocks[layout.blocks.length - 1]; layout.blocks.push({ x: last.x, y: last.y + last.h, w: Math.min(last.w, 1200), h: 600 }); syncHub(); markDirty({ id: 'HUB', name: 'Denah hub' }, 'resized'); refresh(); fit(); selectHub(); toast('Blok lantai ditambahkan di bawah blok terakhir — tarik ke bentuk yang diinginkan'); };
     draw();
   }
   // Smallest rectangle that still contains the location's placed sections (plus a 60 cm margin).
-  const minLocSize = (L) => [Math.max(400, ...L.sections.map(S => S.x - L.x + S.w + 60)), Math.max(400, ...L.sections.map(S => S.y - L.y + S.h + 60))];
   function selectLocation(id) {
     const L = locationOf(id); if (!L || !L.placed) return;
     state.section = id; state.selected = null;
     document.getElementById('rotate').disabled = true; document.getElementById('unplace').disabled = false;
     const insp = document.getElementById('insp'), title = document.getElementById('insp-title');
     title.textContent = `Layout · ${L.name}`;
-    const [mw, mh] = minLocSize(L);
-    insp.innerHTML = `<div class="kvs"><div class="kv"><span>Tipe</span><span>${L.type}</span></div><div class="kv"><span>Path</span><span class="mono">${L.row.path}</span></div><div class="kv"><span>Section</span><span>${L.all.length} dari data Storage · ${L.sections.length} di peta</span></div></div>
-      <div class="field"><div><label for="l-x">X (cm)</label><input id="l-x" type="number" step="50" value="${L.x}"></div><div><label for="l-y">Y (cm)</label><input id="l-y" type="number" step="50" value="${L.y}"></div>
-      <div><label for="l-w">Lebar (cm, min ${mw})</label><input id="l-w" type="number" step="50" min="${mw}" value="${L.w}"></div><div><label for="l-h">Panjang (cm, min ${mh})</label><input id="l-h" type="number" step="50" min="${mh}" value="${L.h}"></div></div>
-      <p class="meta" style="margin-top:10px">Geser zona: section di dalamnya ikut (posisi section relatif ke origin location). Tarik handle di sudut jauh untuk mengubah ukuran; ukuran tidak bisa lebih kecil dari rak yang ada di dalamnya.</p>`;
+    const out = L.sections.filter(S => !rectInUnion({ x: S.x, y: S.y, w: S.w, h: S.h }, L.blocks));
+    insp.innerHTML = `<div class="kvs"><div class="kv"><span>Tipe</span><span>${L.type}</span></div><div class="kv"><span>Path</span><span class="mono">${L.row.path}</span></div><div class="kv"><span>Section</span><span>${L.all.length} dari data Storage · ${L.sections.length} di peta${out.length ? ` · <b style="color:var(--err)">${out.length} di luar zona</b>` : ''}</span></div><div class="kv"><span>Bentuk zona</span><span>${L.blocks.length} blok · <span class="mono">${L.w} × ${L.h} cm</span></span></div></div>
+      <div class="field"><div><label for="l-x">X (cm)</label><input id="l-x" type="number" step="50" value="${L.x}"></div><div><label for="l-y">Y (cm)</label><input id="l-y" type="number" step="50" value="${L.y}"></div></div>
+      <div class="blks">${blockRows(L.blocks, [L.x, L.y], 'loc')}</div>
+      <div class="acts"><button class="btn stroke" id="loc-add-blk">+ Tambah blok</button></div>
+      <p class="meta" style="margin-top:10px">Zona dibangun dari blok persegi yang digabung (bentuk L, U, W). Geser zona: semua blok dan section ikut. Tarik handle di sudut tiap blok untuk mengubah ukurannya; rak yang keluar dari zona ditandai merah.</p>`;
     const apply = () => {
       const nx = snap(Number(insp.querySelector('#l-x').value) || L.x), ny = snap(Number(insp.querySelector('#l-y').value) || L.y);
-      const nw = Math.max(mw, snap(Number(insp.querySelector('#l-w').value) || L.w)), nh = Math.max(mh, snap(Number(insp.querySelector('#l-h').value) || L.h));
-      const kind = nw !== L.w || nh !== L.h ? 'resized' : 'moved';
-      Object.assign(L.lay, { x: nx, y: ny, w: nw, h: nh }); markDirty(L, kind); refresh(); selectLocation(id);
+      const dx = nx - L.x, dy = ny - L.y; L.blocks.forEach(b => { b.x += dx; b.y += dy; });
+      insp.querySelectorAll('[data-blk]').forEach(inp => { const [, i, k] = inp.getAttribute('data-blk').split(':'); const v = snap(Number(inp.value) || 0); const b = L.blocks[Number(i)]; if (k === 'x') b.x = nx + v; else if (k === 'y') b.y = ny + v; else b[k] = Math.max(400, v); });
+      syncLoc(L); markDirty(L, 'resized'); refresh(); selectLocation(id);
     };
     insp.querySelectorAll('input').forEach(i => { i.onchange = apply; });
+    insp.querySelectorAll('[data-blk-del]').forEach(b => { b.onclick = () => { const i = Number(b.getAttribute('data-blk-del').split(':')[1]); L.blocks.splice(i, 1); syncLoc(L); markDirty(L, 'resized'); refresh(); selectLocation(id); }; });
+    document.getElementById('loc-add-blk').onclick = () => { const last = L.blocks[L.blocks.length - 1]; L.blocks.push({ x: last.x + last.w, y: last.y, w: 600, h: Math.min(last.h, 800) }); syncLoc(L); markDirty(L, 'resized'); refresh(); selectLocation(id); toast(`${L.name}: blok ditambahkan di kanan blok terakhir — tarik ke bentuk yang diinginkan`); };
     draw();
   }
   function placeLocation(id) {
@@ -1104,7 +1426,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     const taken = layout.locations.map(o => ({ x: o.x, y: o.y, w: o.w, h: o.h }));
     let spot = null;
     for (let y = 100; y + h <= HUB.h - 60 && !spot; y += 50)
-      for (let x = 100; x + w <= HUB.w - 60; x += 50) { const r = { x, y, w, h }; if (!taken.some(t => overlaps(r, t, 100))) { spot = r; break; } }
+      for (let x = 100; x + w <= HUB.w - 60; x += 50) { const r = { x, y, w, h }; if (!taken.some(t => overlaps(r, t, 100)) && rectInUnion(r, layout.blocks)) { spot = r; break; } }
     spot = spot || { x: 100, y: 100 };
     LAYOUTS.set(id, { x: spot.x, y: spot.y, w, h }); markDirty(L, 'placed');
     if (!state.edit) editBtn.onclick();
@@ -1139,6 +1461,9 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
   document.getElementById('save').onclick = () => {
     const body = [...LAYOUTS].filter(([id]) => id !== 'HUB').map(([storageID, l]) => ({ storageID, category: STORAGES.find(r => r.id === storageID).category, ...l }));
     console.info('PUT /v1/warehouses/storages/layout', { hubID: HUB.id, floor: LAYOUTS.get('HUB'), layouts: body });
+    const outZ = layout.locations.filter(L => !L.blocks.every(b => rectInUnion(b, layout.blocks))).map(L => L.name);
+    const outS = allSections.filter(S => S.placed && !rectInUnion({ x: S.x, y: S.y, w: S.w, h: S.h }, S.L.blocks)).map(S => S.name);
+    if (outZ.length || outS.length) { toast(`Belum bisa disimpan: ${[outZ.length ? `${outZ.join(', ')} keluar dari lantai` : '', outS.length ? `${outS.join(', ')} di luar zonanya` : ''].filter(Boolean).join(' · ')}`); return; }
     const n = dirty.size; dirty.clear(); savedOnce = true; SAVED = new Map([...LAYOUTS].map(([k, v]) => [k, { ...v }])); renderDirty(); renderTable();
     toast(`Layout tersimpan: ${n} perubahan, ${body.filter(b => b.category === 'LOCATION').length} location + ${body.filter(b => b.category === 'SECTION').length} section berposisi (PUT /storages/layout) — data Storage tidak berubah`);
   };
@@ -1159,7 +1484,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--tint); padd
     const taken = L.sections.map(s => ({ x: s.x, y: s.y, w: s.w, h: s.h }));
     let spot = null;
     for (let y = L.y + 150; y + h <= L.y + L.h - 60 && !spot; y += 50)
-      for (let x = L.x + 120; x + w <= L.x + L.w - 60; x += 50) { const r = { x, y, w, h }; if (!taken.some(t => overlaps(r, t, L.type === 'STORAGE' ? 250 : 120))) { spot = r; break; } }
+      for (let x = L.x + 120; x + w <= L.x + L.w - 60; x += 50) { const r = { x, y, w, h }; if (!taken.some(t => overlaps(r, t, L.type === 'STORAGE' ? 250 : 120)) && rectInUnion(r, L.blocks)) { spot = r; break; } }
     spot = spot || { x: L.x + 120, y: L.y + 150 };
     LAYOUTS.set(S.id, { x: spot.x - L.x, y: spot.y - L.y, rot: 0, shape, levels: 3, rows: 2, cell });
     markDirty(S, 'placed');
