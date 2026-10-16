@@ -447,10 +447,13 @@ GET    /goods-issues?hubID=&stage=PICKING|SHIPPING&status=&search=&page=&limit=
        status PICKING: NOT_PICKED|PARTIALLY_PICKED|ALL_PICKED; SHIPPING: READY_TO_PICKUP|SHIPPED|IN_DELIVERY|DELIVERED|FAILED
 GET    /goods-issues/summary?hubID=&stage=                           {total, byStatus:[{key, count}]} untuk badge tab
 GET    /goods-issues/:id                                             + lines (bin, path, lot, expiry, qtyReserved, qtyPicked) + outboundOrder (penerima, tujuan, notes) + fulfillment
-PATCH  /goods-issues/:id/picker                                      {pickerName}
+PATCH  /goods-issues/:id/picker                                      {pickerName, expectedUpdatedAt?}
+PUT    /goods-issues/:id/lines                                       {lines:[{sku, stockID, qty}], expectedUpdatedAt?} ganti seluruh daftar reservasi; menyimpan = Picked
 PATCH  /goods-issues/:id/lines/:lineId                               {qtyPicked}
 POST   /goods-issues/:id/pick-all
-POST   /goods-issues/:id/ready-to-pickup                             menerbitkan suratJalanNo
+POST   /goods-issues/:id/ready-to-pickup                             {pickerName?, expectedUpdatedAt?} menerbitkan suratJalanNo
+       expectedUpdatedAt = goodsIssue.updatedAt yang dimuat (token versi header, bergerak di tiap mutasi); tertinggal → 409 GOODS_ISSUE_STALE,
+       dicek setelah baris GI dikunci, tidak ada yang ditulis. Dipakai bulk edit picking (modal satu-per-satu, satu request per GI).
 POST   /goods-issues/:id/cancel                                      v1; v2: OO kembali OPEN
 POST   /goods-issues/:id/ship                                        v1 endpoint; v2: wajib READY_TO_PICKUP bila terikat OO; membuat AWB
 POST   /goods-issues/ship/bulk                                       {goodsIssueIDs[≤50]} → per item {goodsIssueID, ok, waybill?, error?}
@@ -511,7 +514,8 @@ sudah ada).
 
 Kode error lain: `422 INSUFFICIENT_STOCK`, `422 SKU_NOT_IN_CATALOG`, `422 HUB_NOT_ENABLED`, `422 PICKER_REQUIRED`,
 `422 PICKING_INCOMPLETE`, `422 QTY_PICKED_OUT_OF_RANGE`, `422 OVER_RECEIPT`, `422 STORAGE_NOT_BIN`, `422 BIN_NOT_IN_HUB`,
-`409 STORAGE_INACTIVE`, `409 INVALID_STATUS_TRANSITION` (body membawa state terkini), `409 PO_HAS_RECEIPTS`,
+`409 STORAGE_INACTIVE`, `409 INVALID_STATUS_TRANSITION` (body membawa state terkini), `409 GOODS_ISSUE_STALE`
+(`expectedUpdatedAt` tertinggal; `errors[0].currentUpdatedAt`), `409 PO_HAS_RECEIPTS`,
 `409 USE_LINE_PICKING` (pick v1 pada GI milik order), `503 FULFILLMENT_UNAVAILABLE`, `422 FULFILLMENT_HUB_INVALID` (pitstop hub
 tanpa alamat/koordinat), `409 FULFILLMENT_DUPLICATE_BOOKING`, serta error lain dari Shipments yang diteruskan apa adanya.
 
