@@ -847,7 +847,7 @@ erDiagram
         date expected_delivery_date
         boolean is_sandbox
         uuid api_key_id "nullable — phase 2 client API"
-        integer event_seq "webhook ordering counter per order (OUTBOUND_ORDER topic) — wms-outbound-order-webhook-prd-trd-v1"
+        integer event_seq "webhook ordering counter per order (OUTBOUND_ORDER topic) — wms-client-api-outbound-prd-trd-v1 § Fase 2"
         uuid goods_issue_id "nullable — active GI"
         text fulfillment_status "nullable — AT_HUB|DISPATCHED|IN_DELIVERY|DELIVERED|FAILED|RETURNED|CANCELLED"
         uuid fulfillment_shipment_id "nullable, indexed — soft ref shipments.id (set at ship, same tx)"
@@ -1115,7 +1115,7 @@ erDiagram
     route_plans ||--o| tariff_rings : "default_ring_id (nullable) pre-fills the wizard ring"
 
     %% ── Partner webhooks (nest-logistic-service docs/api-integration/webhook*.md; topic split + webhook list:
-    %%    docs/modules/warehouse-management/wms-outbound-order-webhook-prd-trd-v1.md) ──
+    %%    docs/modules/warehouse-management/wms-client-api-outbound-prd-trd-v1 § Fase 2.md) ──
     %% Transactional outbox: one WEBHOOK_OUTBOX row per (event × active endpoint), inserted in the producer's
     %% transaction (shipment status change, 4W milestone, or — new — outbound order status change through the
     %% warehouse OutboundOrderWebhookPort). Delivery = Cloud Tasks fast path + 1/min retry tick, HMAC-signed,

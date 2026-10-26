@@ -528,8 +528,7 @@ Semua error WMS memakai envelope `{status: 'Failed', error: <pesan>, code: <KODE
 > [`wms-client-api-outbound-prd-trd-v1.md`](./wms-client-api-outbound-prd-trd-v1.md). **Satu perubahan terhadap kontrak di
 > bawah:** `hubID` tidak dikirim client — hub dipilih server (hub Dash **terdekat** garis lurus/haversine; stok dicek di semua hub
 > hanya untuk peringatan), lihat dokumen itu.
-> Webhook status order (topik `OUTBOUND_ORDER`, `ORDER_STATUS_CHANGED`) dan Webhook list di Link › Developer:
-> [`wms-outbound-order-webhook-prd-trd-v1.md`](./wms-outbound-order-webhook-prd-trd-v1.md).
+> Webhook status order (topik `OUTBOUND_ORDER`, fase 2, di belakang toggle) ada di § Fase 2 dokumen yang sama.
 
 ```
 POST /v1/integration/outbound-orders
