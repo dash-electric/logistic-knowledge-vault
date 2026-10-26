@@ -1,0 +1,708 @@
+<!--
+title: Link · Developer — Webhooks for Shipment + Outbound order (interactive mockup)
+module: warehouse-management
+doctype: mockup
+version: 1
+status: draft            # draft | in-review | approved | shipped | superseded
+owner:
+created: 2026-10-22
+links:
+  prd-trd: ./wms-outbound-order-webhook-prd-trd-v1.md
+  client-api: ./wms-client-api-outbound-prd-trd-v1.md
+  app: react-link-web src/pages/developer (Developer page, "Webhooks" tab)
+
+One clickable page that mirrors the real Link Developer page (react-link-web@main,
+2026-10-22): tabs, the Webhooks tab's sections, EnvBadge, endpoint cards, the
+AddWebhookEndpointModal (form → one-time secret), the API docs nav and the
+Sandbox deliveries panel. A guide bar at the top walks through the workflow;
+everything is also freely clickable. Colours are the dash-ds semantic tokens
+react-link-web uses (src/index.css). UI copy is English like the real page.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Developer · Webhooks · Link · Interactive mockup · Dash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+<style>
+:root {
+  --primary: #5e2aac; --primary-alpha-10: rgba(94,42,172,.10);
+  --text-strong: #0e121b; --text-sub: #717784; --text-soft: #99a0ae;
+  --bg-white: #ffffff; --bg-weak: #f2f5f8; --bg-soft: #e1e4ea; --bg-strong: #0e121b;
+  --stroke-soft: #e1e4ea; --stroke-sub: #cacfd8;
+  --success-base: #1fc16b; --success-lighter: #e0faec; --success-dark: #0b4627;
+  --warning-base: #fa7319; --warning-lighter: #fff3eb; --warning-dark: #71330a;
+  --error-base: #fb3748;   --error-lighter: #ffebec;   --error-dark: #681219;
+  --info-lighter: #ebf1ff; --info-dark: #122368;
+  --faded-lighter: #f2f5f8; --faded-dark: #525866;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --rule: rgba(23,23,23,.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; color: var(--text-strong); background: #fafbfc; -webkit-font-smoothing: antialiased; font-size: 14px; line-height: 1.5; }
+::selection { background: var(--primary); color: #fff; }
+code, .mono { font-family: var(--mono); }
+.num { font-variant-numeric: tabular-nums; }
+b { font-weight: 600; }
+button { font: inherit; cursor: pointer; }
+
+/* ===== vault chrome ===== */
+.doc-header, .doc-footer { display: flex; justify-content: space-between; align-items: baseline; padding: 12px clamp(16px,4vw,48px); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: #5c5c5c; font-weight: 600; background: #fff; }
+.doc-header { border-bottom: 1px solid var(--rule); } .doc-footer { border-top: 1px solid var(--rule); margin-top: 40px; }
+.doc-header .left { display: flex; gap: 24px; align-items: baseline; }
+.doc-header b { color: #171717; font-weight: 800; letter-spacing: -.025em; font-size: 13px; text-transform: none; } .doc-header b span { color: var(--primary); }
+.doc-header .sub { border-left: 1px solid var(--rule); padding-left: 10px; }
+.new { display: inline-flex; align-items: center; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); border: 1px solid var(--primary); border-radius: 999px; padding: 1px 7px; margin-left: 8px; vertical-align: middle; line-height: 1.4; }
+
+/* ===== guide bar ===== */
+.guide { position: sticky; top: 0; z-index: 70; background: #fff; border-bottom: 1px solid var(--rule); padding: 10px clamp(16px,4vw,48px); display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; }
+.gsteps { display: flex; gap: 4px; flex-wrap: wrap; grid-column: 1 / -1; }
+.gsteps button { font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--stroke-soft); background: #fff; color: var(--text-sub); }
+.gsteps button.done { color: var(--primary); border-color: transparent; background: var(--primary-alpha-10); }
+.gsteps button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+.gbody b { font-size: 13px; } .gbody p { font-size: 12px; color: var(--text-sub); margin-top: 1px; max-width: 72rem; }
+.gnav { display: flex; gap: 6px; }
+.hl { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 12px; animation: pulse 1.1s ease-in-out 3; }
+@keyframes pulse { 0%,100% { outline-color: var(--primary); } 50% { outline-color: transparent; } }
+
+/* ===== Link app frame ===== */
+.wrap { padding: 20px clamp(16px,4vw,48px) 0; max-width: 1440px; }
+.frame { display: grid; grid-template-columns: 232px 1fr; background: var(--bg-weak); border: 1px solid var(--stroke-sub); border-radius: 12px; overflow: hidden; }
+.sidebar { background: #fff; border-right: 1px solid var(--stroke-soft); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px; }
+.brand { display: flex; align-items: center; gap: 8px; padding: 6px 10px 18px; }
+.brand .mark { width: 24px; height: 24px; border-radius: 6px; background: var(--primary); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+.brand .word { font-weight: 800; letter-spacing: -.025em; font-size: 15px; }
+.brand .sub { font-size: 9px; letter-spacing: .18em; font-weight: 600; color: var(--text-sub); border-left: 1px solid var(--stroke-sub); padding-left: 8px; }
+.nav { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--text-sub); font-weight: 500; font-size: 14px; }
+.nav i { font-size: 20px; } .nav.active { background: var(--primary-alpha-10); color: var(--primary); font-weight: 600; }
+.sidebar .spacer { flex: 1; }
+.user { display: flex; align-items: center; gap: 10px; padding: 10px; border-top: 1px solid var(--stroke-soft); font-size: 13px; }
+.user .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--primary-alpha-10); color: var(--primary); display: grid; place-items: center; font-weight: 700; font-size: 11px; }
+.user small { display: block; color: var(--text-soft); font-size: 11px; }
+
+.main { padding: 24px; display: flex; flex-direction: column; gap: 24px; min-height: 720px; min-width: 0; }
+.page-h1 { font-size: 20px; font-weight: 600; }
+.page-sub { margin-top: 4px; font-size: 14px; color: var(--text-sub); }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--stroke-soft); }
+.tabs span { padding: 10px 14px; margin-bottom: -1px; border-bottom: 2px solid transparent; font-size: 14px; font-weight: 500; color: var(--text-sub); cursor: pointer; }
+.tabs span.on { border-color: var(--primary); color: var(--primary); }
+.tabs span i { margin-right: 6px; }
+.subnav { display: inline-flex; gap: 2px; border: 1px solid var(--stroke-soft); border-radius: 8px; background: #fff; padding: 2px; align-self: flex-start; }
+.subnav span { padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--text-sub); cursor: pointer; }
+.subnav span.on { background: var(--primary-alpha-10); color: var(--primary); font-weight: 600; }
+.subnav span i { margin-right: 6px; }
+
+section.card { border: 1px solid var(--stroke-soft); border-radius: 16px; background: #fff; padding: 24px; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.sec-head h2 { font-size: 16px; font-weight: 600; }
+.sec-head p { margin-top: 2px; max-width: 40rem; font-size: 12px; color: var(--text-sub); }
+.btn { font-size: 14px; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid transparent; background: var(--primary); color: #fff; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn.white { background: #fff; color: var(--text-strong); border-color: var(--stroke-sub); }
+.btn.small { font-size: 12px; padding: 5px 10px; }
+.btn.xs { font-size: 11px; padding: 3px 10px; }
+.btn[disabled] { opacity: .5; cursor: default; }
+.btn .err { color: var(--error-base); }
+.banner { margin-top: 16px; display: flex; align-items: flex-start; gap: 10px; border-radius: 8px; background: var(--info-lighter); color: var(--info-dark); padding: 12px 16px; font-size: 12px; }
+.banner i { margin-top: 1px; font-size: 14px; }
+.banner.warn { background: var(--warning-lighter); color: var(--warning-dark); align-items: center; }
+.env-group { margin-top: 24px; }
+.env-group h3 { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-soft); }
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+.pill.live { background: var(--success-lighter); color: var(--success-dark); } .pill.live .dot { background: var(--success-base); }
+.pill.test { background: var(--warning-lighter); color: var(--warning-dark); } .pill.test .dot { background: var(--warning-base); }
+.pill.disabled { background: var(--error-lighter); color: var(--error-dark); }
+.chip { border-radius: 4px; background: var(--bg-weak); padding: 2px 6px; font-family: var(--mono); font-size: 11px; color: var(--text-sub); }
+.ep { border: 1px solid var(--stroke-soft); border-radius: 12px; background: #fff; padding: 16px 20px; }
+.ep + .ep, .ep + .empty-sm { margin-top: 12px; }
+.ep .url { font-family: var(--mono); font-size: 14px; font-weight: 600; word-break: break-all; }
+.ep .meta { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--text-sub); }
+.ep .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ep .actions { margin-top: 12px; display: flex; gap: 8px; }
+.events { margin-top: 16px; border: 1px solid var(--stroke-soft); border-radius: 8px; padding: 12px; }
+.events .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-soft); }
+.events p { margin-top: 4px; font-size: 11px; line-height: 1.6; color: var(--text-sub); }
+.events .chips { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.empty, .empty-sm { border: 1px dashed var(--stroke-sub); border-radius: 12px; text-align: center; }
+.empty { margin-top: 24px; padding: 40px 24px; } .empty-sm { padding: 18px; }
+.empty i, .empty-sm i { font-size: 22px; color: var(--text-soft); } .empty .t, .empty-sm .t { margin-top: 6px; font-size: 13px; font-weight: 500; } .empty .s, .empty-sm .s { margin-top: 2px; font-size: 12px; color: var(--text-sub); }
+
+/* ===== webhook list ===== */
+.toolbar { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--stroke-sub); border-radius: 8px; overflow: hidden; }
+.seg span { padding: 7px 12px; font-size: 13px; font-weight: 500; color: var(--text-sub); background: #fff; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.seg span + span { border-left: 1px solid var(--stroke-sub); }
+.seg span.on { background: var(--primary); color: #fff; font-weight: 600; }
+.sel { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--stroke-sub); border-radius: 8px; padding: 6px 10px; font-size: 13px; background: #fff; color: var(--text-strong); }
+.sel select { font: inherit; border: 0; background: transparent; color: inherit; outline: none; cursor: pointer; }
+.search { flex: 1; min-width: 240px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--stroke-sub); border-radius: 8px; padding: 6px 10px; font-size: 13px; background: #fff; }
+.search i { color: var(--text-soft); } .search input { flex: 1; border: 0; outline: none; font: inherit; font-size: 13px; min-width: 0; } .search input::placeholder { color: var(--text-soft); }
+.tbl { margin-top: 16px; border: 1px solid var(--stroke-soft); border-radius: 8px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-soft); padding: 8px 10px; border-bottom: 1px solid var(--stroke-soft); font-weight: 600; background: var(--bg-weak); white-space: nowrap; }
+td { padding: 9px 10px; border-bottom: 1px solid var(--stroke-soft); vertical-align: middle; white-space: nowrap; color: var(--text-strong); }
+td.sub { color: var(--text-sub); } td code { color: var(--text-strong); font-size: 11px; }
+tr:last-child td { border-bottom: 0; }
+tr.row { cursor: pointer; } tr.row:hover td { background: var(--bg-weak); }
+.ref { font-family: var(--mono); color: var(--primary); font-weight: 600; font-size: 12px; }
+.ext { display: block; font-family: var(--mono); font-size: 11px; color: var(--text-sub); }
+.ep-url { font-family: var(--mono); font-size: 11px; color: var(--text-sub); }
+.rsp { font-size: 11px; color: var(--text-sub); margin-left: 6px; }
+tr.exp td { background: var(--bg-weak); white-space: normal; padding: 12px 16px 16px; }
+.exp-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.15fr); gap: 16px; }
+.exp-grid .events { margin-top: 0; background: #fff; } .exp-grid table { margin-top: 6px; } .exp-grid td, .exp-grid th { padding: 6px 8px; background: transparent; }
+.spill { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; background: var(--bg-weak); color: var(--text-strong); }
+.spill.ok { background: var(--success-lighter); color: var(--success-dark); } .spill.info { background: var(--info-lighter); color: var(--info-dark); } .spill.err { background: var(--error-lighter); color: var(--error-dark); }
+.dpill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; }
+.dpill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .7; }
+.dpill.done { background: var(--success-lighter); color: var(--success-dark); }
+.dpill.failed { background: var(--warning-lighter); color: var(--warning-dark); }
+.dpill.dead { background: var(--error-lighter); color: var(--error-dark); }
+.dpill.queued { background: var(--info-lighter); color: var(--info-dark); }
+.dpill.skipped { background: var(--faded-lighter); color: var(--faded-dark); }
+.pager { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 12px; color: var(--text-sub); }
+pre.json { border-radius: 8px; background: var(--bg-strong); color: #fff; font-family: var(--mono); font-size: 11.5px; line-height: 1.55; padding: 12px 14px; overflow: auto; margin: 0; max-height: 320px; }
+pre.json .c { color: rgba(255,255,255,.55); }
+
+/* ===== modal / confirm / toast ===== */
+#overlay { position: fixed; inset: 0; background: rgba(14,18,27,.45); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+#overlay.show { display: flex; }
+.modal { width: 100%; max-width: 580px; border-radius: 12px; background: #fff; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.modal .mh { padding: 16px 24px; border-bottom: 1px solid var(--stroke-soft); }
+.modal .mh h2 { font-size: 18px; font-weight: 600; } .modal .mh p { margin-top: 2px; font-size: 12px; color: var(--text-sub); }
+.modal .mb { padding: 20px 24px; display: flex; flex-direction: column; gap: 18px; }
+.modal .mf { padding: 16px 24px; border-top: 1px solid var(--stroke-soft); display: flex; justify-content: flex-end; gap: 8px; }
+.field label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 500; color: var(--text-sub); }
+.input { width: 100%; border: 1px solid var(--stroke-sub); border-radius: 8px; padding: 8px 12px; font-family: var(--mono); font-size: 13px; background: #fff; outline: none; }
+.input:focus { border-color: var(--primary); }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.opt { border: 1px solid var(--stroke-soft); border-radius: 12px; padding: 12px 16px; cursor: pointer; }
+.opt.on { border-color: var(--primary); background: var(--primary-alpha-10); }
+.opt.taken { cursor: default; opacity: .6; }
+.opt .t { font-size: 14px; font-weight: 600; } .opt .s { margin-top: 4px; font-size: 11px; line-height: 1.6; color: var(--text-sub); }
+.secret { margin-top: 12px; border-radius: 8px; background: var(--bg-strong); padding: 12px 16px; font-family: var(--mono); font-size: 14px; color: #fff; word-break: break-all; }
+.warnbox { margin-top: 12px; display: flex; gap: 8px; align-items: flex-start; border-radius: 8px; background: var(--warning-lighter); color: var(--warning-dark); padding: 10px 12px; font-size: 12px; }
+#toast { position: fixed; right: 20px; bottom: 20px; z-index: 60; display: flex; flex-direction: column; gap: 8px; }
+.toastx { background: var(--bg-strong); color: #fff; border-radius: 10px; padding: 10px 14px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.25); min-width: 260px; max-width: 380px; }
+.toastx small { display: block; color: rgba(255,255,255,.7); font-size: 11px; margin-top: 2px; }
+
+/* ===== docs / sandbox / keys ===== */
+.docnav { position: sticky; top: 0; border-bottom: 1px solid var(--stroke-soft); background: rgba(242,245,248,.95); padding: 8px 4px; display: flex; align-items: center; gap: 4px; overflow-x: auto; }
+.docnav a { font-size: 13px; font-weight: 500; color: var(--text-sub); padding: 6px 10px; border-radius: 6px; text-decoration: none; white-space: nowrap; }
+.docnav a.on { background: #fff; color: var(--primary); box-shadow: inset 0 0 0 1px var(--stroke-soft); }
+.docnav .sep { width: 1px; height: 16px; background: var(--stroke-sub); margin: 0 4px; flex: none; }
+.flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+.step { border: 1px solid var(--stroke-soft); border-radius: 12px; padding: 14px; font-size: 12px; }
+.step .n { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin-bottom: 8px; } .step .n i { color: var(--primary); font-size: 18px; }
+.step .m { font-family: var(--mono); font-size: 11px; color: var(--text-strong); margin-bottom: 6px; } .step .m b { color: var(--primary); font-weight: 600; margin-right: 4px; }
+.step p { color: var(--text-sub); line-height: 1.6; }
+.prose { font-size: 14px; color: var(--text-sub); line-height: 1.7; margin-top: 12px; }
+.prose h3 { font-size: 16px; font-weight: 600; color: var(--text-strong); padding-top: 8px; margin-bottom: 4px; }
+.prose table { margin-top: 10px; } .prose td { white-space: normal; color: var(--text-sub); vertical-align: top; }
+.key { border: 1px solid var(--stroke-soft); border-radius: 12px; background: #fff; padding: 16px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+.key .n { font-weight: 600; } .key .p { font-family: var(--mono); font-size: 12px; color: var(--text-sub); margin-top: 4px; }
+.key .scopes { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+.deliv { border: 1px solid var(--stroke-soft); border-radius: 8px; overflow: hidden; margin-top: 12px; }
+.deliv .r { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 12px 16px; border-bottom: 1px solid var(--stroke-soft); font-size: 12px; color: var(--text-sub); }
+.deliv .r:last-child { border-bottom: 0; }
+.deliv .seq { width: 32px; font-family: var(--mono); color: var(--text-soft); } .deliv .ev { min-width: 150px; font-size: 14px; font-weight: 500; color: var(--text-strong); }
+.deliv .url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); }
+
+/* ===== build notes ===== */
+details.notes { margin-top: 24px; border: 1px solid var(--stroke-soft); border-radius: 12px; background: #fff; padding: 14px 20px; }
+details.notes summary { cursor: pointer; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #5c5c5c; font-weight: 600; }
+details.notes ol { margin-top: 12px; padding-left: 20px; display: grid; gap: 8px; font-size: 13px; }
+.tag { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
+.tag.be { background: var(--info-lighter); color: var(--info-dark); } .tag.fe { background: var(--primary-alpha-10); color: var(--primary); } .tag.ask { background: var(--warning-lighter); color: var(--warning-dark); }
+
+@media (max-width: 900px) { .frame { grid-template-columns: 1fr; } .sidebar { display: none; } .flow { grid-template-columns: 1fr 1fr; } .exp-grid { grid-template-columns: 1fr; } .opts { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header class="doc-header">
+  <div class="left"><b><span>D</span>ASH</b><span class="sub">Link · Developer · Webhooks</span><span class="sub">Interactive mockup v1</span></div>
+  <div class="right">Draft · 2026-10-22</div>
+</header>
+
+<div class="guide" id="guide"></div>
+
+<div class="wrap">
+  <div class="frame">
+    <aside class="sidebar">
+      <div class="brand"><div class="mark">D</div><span class="word">Dash</span><span class="sub">LINK</span></div>
+      <div class="nav"><i class="ri-box-3-line"></i>Shipments</div>
+      <div class="nav"><i class="ri-truck-line"></i>Deliveries</div>
+      <div class="nav"><i class="ri-archive-stack-line"></i>Packages</div>
+      <div class="nav"><i class="ri-file-list-3-line"></i>Invoices</div>
+      <div class="nav active"><i class="ri-code-s-slash-line"></i>Developer</div>
+      <div class="nav"><i class="ri-customer-service-2-line"></i>Support</div>
+      <div class="spacer"></div>
+      <div class="user"><div class="avatar">BS</div><div><div style="font-weight:600">Budi Santoso</div><small>SwipeRX · budi@swiperx.id</small></div></div>
+    </aside>
+    <main class="main" id="main"></main>
+  </div>
+
+  <details class="notes" id="notes">
+    <summary>What changes to build this — BE / Link (not part of the UI)</summary>
+    <ol>
+      <li><span class="tag fe">Link</span>Webhooks tab gets a sub-nav <b>Endpoints | Webhook list</b>. Endpoints: render <code>WebhooksSection</code> twice with a <code>topic</code> prop (<code>SHIPMENT</code> | <code>OUTBOUND_ORDER</code>) — title, description, event chips and the endpoint list filtered by topic; <code>AddWebhookEndpointModal</code> takes the topic (fixed by the section) and shows that topic's events. Webhook list: <b>one row per shipment / order</b> (grouped by AWB + bookingId, or order code + externalID) showing the latest status and that event's delivery; segmented topic, filters env / webhook status / date, filter box by AWB / booking ID; row expands to the event history + the latest payload (reuse <code>DeliveryStatusPill</code> and <code>JsonBlock</code> from <code>sandbox/sandboxUi</code>). <b>Retry now</b> only on the row's latest event when it is Failed / Gave up (older failed events show “superseded — not retryable”); <b>Retry all failed</b> in the banner; <b>Send now</b> when the latest was Skipped for lack of an endpoint. API docs: nav group “Outbound order” + “Order webhooks”. Sandbox: an outbound-order detail with the same <code>WebhookDeliveriesPanel</code> (simulator for orders is a later step).</li>
+      <li><span class="tag be">BE — exists</span>Endpoint management (<code>/v1/integration/webhook-endpoints</code>), one-time secret, per-environment wall, outbox delivery with retries, <code>GET …/shipments/:id/webhook-deliveries</code> (per shipment, count + last error only).</li>
+      <li><span class="tag be">BE — new</span><code>webhook_endpoints.topic</code> (text, default <code>SHIPMENT</code>; enum in TS only) — unique active per (client, environment, topic); the list/create API takes <code>topic</code>. Existing rows backfill to <code>SHIPMENT</code>, so nothing changes for current partners.</li>
+      <li><span class="tag be">BE — new</span>Outbound order events through the same outbox: <code>ORDER_STATUS_CHANGED</code> on <code>OPEN</code>, PREPARING, READY_TO_PICKUP, SHIPPED (with <code>fulfillment.waybill</code>), CANCELLED; <code>sequence</code> per order; fan-out only to <code>OUTBOUND_ORDER</code> endpoints of the order's environment. This reverses PRD/TRD key decision no. 3 (“no warehouse-status webhook”) — update the doc once this mock is approved.</li>
+      <li><span class="tag be">BE — new</span>Webhook list: <code>GET /v1/integration/webhooks?topic&amp;environment&amp;webhookStatus&amp;q&amp;from&amp;to&amp;page&amp;limit</code> (JWT, client-scoped) — one row per shipment / order: reference, latest status, the latest event and its delivery (status, http code, attempts, lastError, nextRetryAt), endpoint. <code>GET /v1/integration/webhooks/:topic/:refId/events</code> — history. <code>POST /v1/integration/webhooks/:topic/:refId/retry</code> — re-queues <b>only the latest event</b> (same <code>event.id</code>) to the endpoint active now; 409 when the latest is already delivered or in flight; <code>POST …/retry-all-failed?topic&amp;environment</code>. When a newer event is enqueued, still-failing older deliveries of the same ref are closed as SKIPPED (reason <code>SUPERSEDED</code>) so the queue never resends stale state. Per-attempt log <code>webhook_delivery_attempts</code> (http code, latency, error, at) — today only a count + <code>lastError</code>. Retention 30 days.</li>
+      <li><span class="tag ask">Decide</span>Single endpoint for both topics (one URL, both bodies)? This mock assumes separate endpoints — simpler to route and to rotate secrets independently.</li>
+      <li><span class="tag ask">Decide</span>Retry self-serve for the client (this mock) or ops-only? And is 30-day retention enough — Sandbox could be shorter (7 days).</li>
+    </ol>
+  </details>
+</div>
+
+<div id="overlay"></div>
+<div id="toast"></div>
+<footer class="doc-footer"><span>Dash Logistic · Knowledge Vault</span><span>wms-client-api-outbound-mockup-v1 · draft</span></footer>
+
+<script>
+// ───────────────────────── data ─────────────────────────
+const TOPIC = {
+  SHIPMENT: {
+    label: 'Shipment', icon: 'ri-box-3-line', title: 'Webhooks · Shipment', isNew: false, path: 'shipments',
+    desc: 'Get every shipment event pushed to your endpoint instead of polling: what happened, with a readable message and its photos, plus the shipment as it stood at that moment. Every delivery is signed with the endpoint\'s secret (shown once at registration) — verify the <code>x-dash-signature</code> header, dedupe on <code>event.id</code>, and order by <code>event.sequence</code>. See the API docs tab.',
+    wall: 'A Sandbox endpoint receives only sandbox events, a Production endpoint only production events. One active endpoint per environment — to move to a new URL, disable the current one first.',
+    eventsNote: 'Every shipment change (<code>event.type = STATUS_CHANGED</code> with the new <code>event.status</code>, 4W milestones as <code>MILESTONE_COMPLETED</code>); there is nothing to pick.',
+    events: ['CREATED','AT_HUB','PARTIALLY_DISPATCHED','DISPATCHED','IN_DELIVERY','FAILED','IN_DISPUTE','COMPLETED','RETURNED','CANCELLED','MILESTONE_COMPLETED'],
+    refLabel: 'Shipment', filterPh: 'Filter by AWB or booking ID — one row per shipment', unit: 'shipments',
+  },
+  OUTBOUND_ORDER: {
+    label: 'Outbound order', icon: 'ri-archive-stack-line', title: 'Webhooks · Outbound order', isNew: true, path: 'outbound-orders',
+    desc: 'For warehouse orders you create with <code>POST /v1/integration/outbound-orders</code>: Dash pushes each order status change — received, being picked, ready, shipped, cancelled — with the order as it stood at that moment. Once the order ships, its AWB arrives on <code>SHIPPED</code> and every delivery event continues on your <b>Shipment</b> endpoint (<code>bookingId</code> = your <code>externalID</code>). Separate URL and secret per environment, same signature rules.',
+    wall: 'A Sandbox endpoint receives only events from orders created with a <code>dash_test_…</code> key. One active endpoint per environment for outbound orders — independent of your Shipment endpoint.',
+    eventsNote: 'Every outbound order status change (<code>event.type = ORDER_STATUS_CHANGED</code>, the new status in <code>event.status</code>); there is nothing to pick. Delivery events after <code>SHIPPED</code> go to your Shipment endpoint.',
+    events: ['OPEN','PREPARING','READY_TO_PICKUP','SHIPPED','CANCELLED'],
+    refLabel: 'Order', filterPh: 'Filter by order code or externalID — one row per order', unit: 'orders',
+  },
+};
+const ENV = { LIVE: { label: 'Production', cls: 'live', host: 'https://erp.swiperx.id' }, TEST: { label: 'Sandbox', cls: 'test', host: 'https://staging.erp.swiperx.id' } };
+const DMETA = { done: 'Delivered', failed: 'Failed', dead: 'Gave up', queued: 'Queued', skipped: 'Skipped' };
+
+let endpoints = [
+  { id: 'e1', topic: 'SHIPMENT', env: 'LIVE', url: 'https://erp.swiperx.id/webhooks/dash/shipments', createdAt: '03 Oct 2026, 09:12', disabledAt: null },
+  { id: 'e0', topic: 'SHIPMENT', env: 'LIVE', url: 'https://erp.swiperx.id/hooks/dash-old', createdAt: '12 Jul 2026, 14:40', disabledAt: '03 Oct 2026, 09:10' },
+  { id: 'e2', topic: 'SHIPMENT', env: 'TEST', url: 'https://staging.erp.swiperx.id/webhooks/dash/shipments', createdAt: '20 Oct 2026, 16:05', disabledAt: null },
+  { id: 'e3', topic: 'OUTBOUND_ORDER', env: 'LIVE', url: 'https://erp.swiperx.id/webhooks/dash/outbound-orders', createdAt: '22 Oct 2026, 10:31', disabledAt: null },
+];
+
+const ev = (seq, code, name, d, rsp, at, extra) => Object.assign({ seq, code, name, d, rsp, at, ep: d === 'skipped' ? null : undefined }, extra || {});
+const LIST = {
+  'SHIPMENT:LIVE': [
+    { ref: 'DLSWR2610082ABC1EF', ext: 'SO-2026-001239', status: 'Dispatched', tone: 'info', recipient: 'Apotek Sehat', events: [
+      ev(3, 'DISPATCHED', 'Dispatched', 'failed', '502 × 3 · retry 09:56', '22 Oct 2026, 09:41:55', { msg: 'Shipment sudah di-dispatch dan di-assign ke rider Andi', iso: '2026-10-22T02:41:50Z', attempts: '09:41:55 → 502 Bad Gateway (1.2 s) · 09:43:01 → 502 (0.9 s) · 09:48:30 → timeout (10 s). Next automatic retry 09:56:00; Dash keeps retrying with growing gaps for up to a day, then marks it Gave up. Any 2xx counts as delivered.' }),
+      ev(2, 'AT_HUB', 'At hub', 'dead', '502 × 8', '21 Oct 2026, 15:30:40'),
+      ev(1, 'CREATED', 'Created', 'done', '200 · 350 ms', '21 Oct 2026, 08:12:00') ] },
+    { ref: 'DLSWR2610081QPR5UD', ext: 'SO-2026-001234', status: 'Completed', tone: 'ok', recipient: 'Klinik Medika', events: [
+      ev(5, 'COMPLETED', 'Completed', 'done', '200 · 310 ms', '22 Oct 2026, 14:52:10', { msg: 'Pengantaran selesai', iso: '2026-10-22T07:52:08Z' }),
+      ev(4, 'IN_DELIVERY', 'In delivery', 'done', '200 · 280 ms', '22 Oct 2026, 11:20:03'),
+      ev(3, 'DISPATCHED', 'Dispatched', 'done', '200', '22 Oct 2026, 09:40:12'),
+      ev(2, 'AT_HUB', 'At hub', 'done', '200', '21 Oct 2026, 15:28:03'),
+      ev(1, 'CREATED', 'Created', 'done', '200', '21 Oct 2026, 08:10:44') ] },
+    { ref: 'DLSWR2610065QRS7TU', ext: 'SO-2026-001177', status: 'At hub', tone: '', recipient: 'RS Harapan', events: [
+      ev(2, 'AT_HUB', 'At hub', 'queued', 'sending…', '22 Oct 2026, 14:58:02', { msg: 'Shipment sudah tiba di gudang Dash Hub Kemang dan sudah di-scan oleh PIC gudang', iso: '2026-10-22T07:58:00Z' }),
+      ev(1, 'CREATED', 'Created', 'done', '200', '22 Oct 2026, 08:03:19') ] },
+    { ref: 'DLSWR2610070KLM3NP', ext: 'SO-2026-001190', status: 'In delivery', tone: 'info', recipient: 'Apotek Kita', events: [
+      ev(4, 'IN_DELIVERY', 'In delivery', 'done', '200 · 240 ms', '22 Oct 2026, 13:05:21', { msg: 'Dalam pengantaran ke lokasi tujuan', iso: '2026-10-22T06:05:19Z' }),
+      ev(3, 'DISPATCHED', 'Dispatched', 'done', '200', '22 Oct 2026, 09:39:50'),
+      ev(2, 'AT_HUB', 'At hub', 'done', '200', '21 Oct 2026, 15:27:30'),
+      ev(1, 'CREATED', 'Created', 'done', '200', '21 Oct 2026, 08:09:10') ] },
+    { ref: 'DLSWR2610071XYZ9GH', ext: 'SO-2026-001198', status: 'Failed', tone: 'err', recipient: 'Toko Obat Jaya', events: [
+      ev(4, 'FAILED', 'Failed', 'dead', '502 × 8', '21 Oct 2026, 17:03:12', { msg: 'Penerima tidak ada di lokasi', iso: '2026-10-21T10:03:10Z', attempts: '8 attempts over 24 h, every one 502 Bad Gateway. Gave up 22 Oct 2026, 17:03.' }),
+      ev(3, 'IN_DELIVERY', 'In delivery', 'done', '200', '21 Oct 2026, 13:12:40'),
+      ev(2, 'DISPATCHED', 'Dispatched', 'done', '200', '21 Oct 2026, 09:30:05'),
+      ev(1, 'CREATED', 'Created', 'done', '200', '20 Oct 2026, 16:45:00') ] },
+    { ref: 'DLSWR2610060VWX1YZ', ext: 'SO-2026-001160', status: 'Returned', tone: '', recipient: 'Apotek Sentosa', events: [
+      ev(5, 'RETURNED', 'Returned', 'dead', 'timeout × 8', '20 Oct 2026, 18:22:40', { msg: 'Paket sudah dikembalikan', iso: '2026-10-20T11:22:38Z', attempts: '8 attempts, every one timed out after 10 s. Gave up 21 Oct 2026, 18:22.' }),
+      ev(4, 'IN_DISPUTE', 'In dispute', 'done', '200', '19 Oct 2026, 14:02:11'),
+      ev(3, 'IN_DELIVERY', 'In delivery', 'done', '200', '19 Oct 2026, 10:40:27'),
+      ev(2, 'DISPATCHED', 'Dispatched', 'done', '200', '19 Oct 2026, 08:55:02'),
+      ev(1, 'CREATED', 'Created', 'done', '200', '18 Oct 2026, 15:20:33') ] },
+    { ref: 'DLSWR2610030HIJ2KL', ext: 'SO-2026-000988', status: 'Completed', tone: 'ok', recipient: 'Klinik Sehat Selalu', events: [
+      ev(5, 'COMPLETED', 'Completed', 'skipped', 'no active endpoint', '03 Oct 2026, 09:11:02', { msg: 'Pengantaran selesai', iso: '2026-10-03T02:11:00Z' }),
+      ev(4, 'IN_DELIVERY', 'In delivery', 'done', '200', '03 Oct 2026, 07:30:00'),
+      ev(3, 'DISPATCHED', 'Dispatched', 'done', '200', '03 Oct 2026, 06:50:12'),
+      ev(2, 'AT_HUB', 'At hub', 'done', '200', '02 Oct 2026, 16:02:44'),
+      ev(1, 'CREATED', 'Created', 'done', '200', '02 Oct 2026, 09:14:08') ] },
+  ],
+  'SHIPMENT:TEST': [
+    { ref: 'DLSWR2610099TST1AA', ext: 'TEST-001', status: 'Completed', tone: 'ok', recipient: 'Sandbox recipient', events: [
+      ev(5, 'COMPLETED', 'Completed', 'done', '200 · 120 ms', '21 Oct 2026, 10:12:40', { msg: 'Pengantaran selesai', iso: '2026-10-21T03:12:38Z' }),
+      ev(4, 'IN_DELIVERY', 'In delivery', 'done', '200', '21 Oct 2026, 10:11:02'),
+      ev(3, 'DISPATCHED', 'Dispatched', 'done', '200', '21 Oct 2026, 10:10:15'),
+      ev(2, 'AT_HUB', 'At hub', 'done', '200', '21 Oct 2026, 10:09:30'),
+      ev(1, 'CREATED', 'Created', 'done', '200', '21 Oct 2026, 10:08:11') ] },
+    { ref: 'DLSWR2610099TST2BB', ext: 'TEST-002', status: 'Failed', tone: 'err', recipient: 'Sandbox recipient', events: [
+      ev(4, 'FAILED', 'Failed', 'failed', '500 × 1 · retry 10:20', '22 Oct 2026, 10:18:05', { msg: 'Pengantaran gagal', iso: '2026-10-22T03:18:03Z', attempts: '10:18:05 → 500 Internal Server Error (0.4 s). Next automatic retry 10:20:05.' }),
+      ev(3, 'IN_DELIVERY', 'In delivery', 'done', '200', '22 Oct 2026, 10:17:20'),
+      ev(2, 'DISPATCHED', 'Dispatched', 'done', '200', '22 Oct 2026, 10:16:40'),
+      ev(1, 'CREATED', 'Created', 'done', '200', '22 Oct 2026, 10:15:00') ] },
+  ],
+  'OUTBOUND_ORDER:LIVE': [
+    { ref: 'OUT-SWR-102226-Cd7M', ext: 'SO-2026-001239', status: 'Preparing', tone: 'info', hub: 'Dash Hub Kemang', events: [
+      ev(2, 'PREPARING', 'Preparing', 'failed', '503 × 2 · retry 11:17', '22 Oct 2026, 11:02:17', { msg: 'Sedang dipersiapkan', iso: '2026-10-22T04:02:15Z', attempts: '11:02:17 → 503 Service Unavailable (0.6 s) · 11:04:20 → 503 (0.5 s). Next automatic retry 11:17:00.' }),
+      ev(1, 'OPEN', 'Received', 'done', '200', '22 Oct 2026, 10:45:03') ] },
+    { ref: 'OUT-SWR-102226-Ab3K', ext: 'SO-2026-001234', status: 'Shipped', tone: 'ok', hub: 'Dash Hub Kemang', waybill: 'DLSWR2610081QPR5UD', events: [
+      ev(4, 'SHIPPED', 'Shipped', 'done', '200 · 290 ms', '22 Oct 2026, 14:15:03', { msg: 'Dikirim — AWB DLSWR2610081QPR5UD', iso: '2026-10-22T07:15:02Z' }),
+      ev(3, 'READY_TO_PICKUP', 'Ready to pick up', 'done', '200', '22 Oct 2026, 13:48:40'),
+      ev(2, 'PREPARING', 'Preparing', 'dead', '503 × 8', '22 Oct 2026, 11:02:00'),
+      ev(1, 'OPEN', 'Received', 'done', '200', '22 Oct 2026, 08:00:12') ] },
+  ],
+  'OUTBOUND_ORDER:TEST': [
+    { ref: 'OUT-SWR-102226-Tx1Z', ext: 'TEST-ORDER-003', status: 'Ready to pick up', tone: 'info', hub: 'Dash Hub Kemang', events: [
+      ev(3, 'READY_TO_PICKUP', 'Ready to pick up', 'skipped', 'no active endpoint', '22 Oct 2026, 13:50:10', { msg: 'Siap dikirim', iso: '2026-10-22T06:50:08Z' }),
+      ev(2, 'PREPARING', 'Preparing', 'skipped', 'no active endpoint', '22 Oct 2026, 13:20:00'),
+      ev(1, 'OPEN', 'Received', 'skipped', 'no active endpoint', '22 Oct 2026, 13:05:44') ] },
+    { ref: 'OUT-SWR-102126-Tf2P', ext: 'TEST-ORDER-002', status: 'Cancelled', tone: 'err', hub: 'Dash Hub Kemang', events: [
+      ev(2, 'CANCELLED', 'Cancelled', 'skipped', 'no active endpoint', '21 Oct 2026, 16:44:09', { msg: 'Order dibatalkan', iso: '2026-10-21T09:44:07Z', reason: { code: 'CLIENT_REQUEST', message: 'Customer cancelled' } }),
+      ev(1, 'OPEN', 'Received', 'skipped', 'no active endpoint', '21 Oct 2026, 15:10:30') ] },
+    { ref: 'OUT-SWR-102026-Tg4Q', ext: 'TEST-ORDER-001', status: 'Shipped', tone: 'ok', hub: 'Dash Hub Kemang', waybill: 'DLSWR2610099TST1AA', events: [
+      ev(4, 'SHIPPED', 'Shipped', 'skipped', 'no active endpoint', '21 Oct 2026, 10:08:00', { msg: 'Dikirim — AWB DLSWR2610099TST1AA', iso: '2026-10-21T03:08:00Z' }),
+      ev(3, 'READY_TO_PICKUP', 'Ready to pick up', 'skipped', 'no active endpoint', '21 Oct 2026, 09:50:00'),
+      ev(2, 'PREPARING', 'Preparing', 'skipped', 'no active endpoint', '21 Oct 2026, 09:20:00'),
+      ev(1, 'OPEN', 'Received', 'skipped', 'no active endpoint', '21 Oct 2026, 09:00:00') ] },
+  ],
+};
+
+// ───────────────────────── state ─────────────────────────
+const state = { tab: 'webhooks', sub: 'endpoints', topic: 'SHIPMENT', env: 'LIVE', wh: 'ALL', q: '', expanded: null, modal: null, confirm: null, step: 0, hlSel: null };
+
+const activeEp = (topic, env) => endpoints.find(e => e.topic === topic && e.env === env && !e.disabledAt);
+const shortUrl = (u) => u ? u.replace(/^https:\/\/[^/]+/, '…') : '—';
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+const nowStr = () => { const d = new Date(); const p = n => String(n).padStart(2, '0'); return `${p(d.getDate())} Oct 2026, ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; };
+const envPill = (env) => `<span class="pill ${ENV[env].cls}"><span class="dot"></span>${ENV[env].label}</span>`;
+const dpill = (d) => `<span class="dpill ${d}">${DMETA[d]}</span>`;
+
+// ───────────────────────── guide ─────────────────────────
+const STEPS = [
+  { t: 'Where it lives', d: 'Developer › Webhooks — the same page partners use today. New: a sub-nav <b>Endpoints | Webhook list</b>, and two endpoint sections instead of one. Everything below is clickable.', go() { Object.assign(state, { tab: 'webhooks', sub: 'endpoints', modal: null }); }, hl: '.subnav' },
+  { t: 'Outbound order endpoints', d: 'A second section with the same shape as Shipment: its own URL + secret per environment, one active endpoint per environment, five status events. Production is already set up; Sandbox is empty — click <b>Add endpoint</b> there.', go() { Object.assign(state, { tab: 'webhooks', sub: 'endpoints', modal: null }); }, hl: '#sec-OUTBOUND_ORDER' },
+  { t: 'Add endpoint', d: 'The existing two-phase modal. The topic is fixed by the section you opened it from, so the only choices are the URL and the environment (an environment that already has an endpoint is greyed out). Click <b>Add endpoint</b>.', go() { Object.assign(state, { tab: 'webhooks', sub: 'endpoints' }); openModal('OUTBOUND_ORDER'); }, hl: '#overlay .modal' },
+  { t: 'Secret shown once', d: 'Dash signs every delivery to this URL with this secret. It is never shown again — copy it, then click <b>I\'ve stored it safely</b> and the endpoint appears under Sandbox.', go() { Object.assign(state, { tab: 'webhooks', sub: 'endpoints' }); if (!state.modal || state.modal.topic !== 'OUTBOUND_ORDER') openModal('OUTBOUND_ORDER'); if (state.modal) toSecret(); }, hl: '#overlay .modal' },
+  { t: 'Webhook list', d: '<b>One row per shipment</b> (AWB + booking ID): the latest shipment status and whether <i>that</i> webhook reached your endpoint. Filter by AWB / booking ID, environment or webhook status; switch topic with the segmented control. Try typing <code>001239</code> in the filter.', go() { Object.assign(state, { tab: 'webhooks', sub: 'list', topic: 'SHIPMENT', env: 'LIVE', wh: 'ALL', q: '', expanded: null, modal: null }); }, hl: '.toolbar' },
+  { t: 'Event history', d: 'Open a row: every event of that shipment with its delivery result. Only the <b>latest</b> event matters — it carries the shipment as it stands now — so an older event that failed is marked <i>superseded, not retryable</i>.', go() { Object.assign(state, { tab: 'webhooks', sub: 'list', topic: 'SHIPMENT', env: 'LIVE', wh: 'ALL', q: '', expanded: 'DLSWR2610082ABC1EF', modal: null }); }, hl: 'tr.exp' },
+  { t: 'Retry — latest only', d: 'Click <b>Retry now</b>: the latest event is queued and delivered again; the row turns Delivered and the banner count drops. <b>Retry all failed</b> does the same for every shipment whose latest webhook failed.', go() { Object.assign(state, { tab: 'webhooks', sub: 'list', topic: 'SHIPMENT', env: 'LIVE', wh: 'ALL', q: '', expanded: 'DLSWR2610082ABC1EF', modal: null }); }, hl: '[data-retry="DLSWR2610082ABC1EF"]' },
+  { t: 'Outbound order list', d: 'Same table per order (code + externalID), here on Sandbox: orders created with your <code>dash_test_…</code> key before any endpoint existed were <i>Skipped</i>. Once you add the Sandbox endpoint (step 3), <b>Send now</b> pushes the latest state of each order.', go() { Object.assign(state, { tab: 'webhooks', sub: 'list', topic: 'OUTBOUND_ORDER', env: 'TEST', wh: 'ALL', q: '', expanded: null, modal: null }); }, hl: '.seg' },
+  { t: 'API docs', d: 'The docs nav gets a group <b>Outbound order</b> (Create / Track or webhook / Cancel / Delivery) and <b>Order webhooks</b> — same envelope and signature as shipment webhooks, with <code>data.order</code> instead of <code>data.shipment</code>.', go() { Object.assign(state, { tab: 'docs', modal: null }); }, hl: '#doc-outbound' },
+  { t: 'Build notes', d: 'What is new on the backend (topic on endpoints, order events through the same outbox, the webhook-list and retry endpoints) and what Link reuses. Two decisions are flagged.', go() { state.modal = null; document.getElementById('notes').open = true; }, hl: '#notes' },
+];
+
+function renderGuide() {
+  const g = document.getElementById('guide');
+  const s = STEPS[state.step];
+  g.innerHTML = `
+    <div class="gsteps">${STEPS.map((x, i) => `<button data-step="${i}" class="${i === state.step ? 'on' : i < state.step ? 'done' : ''}">${i + 1} · ${x.t}</button>`).join('')}</div>
+    <div class="gbody"><b>Step ${state.step + 1} of ${STEPS.length} · ${s.t}</b><p>${s.d}</p></div>
+    <div class="gnav"><button class="btn white small" data-prev ${state.step === 0 ? 'disabled' : ''}><i class="ri-arrow-left-line"></i>Back</button><button class="btn small" data-next ${state.step === STEPS.length - 1 ? 'disabled' : ''}>Next<i class="ri-arrow-right-line"></i></button></div>`;
+}
+function goStep(i) { state.step = Math.max(0, Math.min(STEPS.length - 1, i)); STEPS[state.step].go(); state.hlSel = STEPS[state.step].hl; render(); }
+
+// ───────────────────────── render ─────────────────────────
+function render() {
+  renderGuide();
+  const m = document.getElementById('main');
+  const tab = (id, icon, label) => `<span class="${state.tab === id ? 'on' : ''}" data-tab="${id}"><i class="${icon}"></i>${label}</span>`;
+  let body = '';
+  if (state.tab === 'webhooks') body = renderWebhooks();
+  else if (state.tab === 'docs') body = renderDocs();
+  else if (state.tab === 'sandbox') body = renderSandbox();
+  else body = renderKeys();
+  m.innerHTML = `
+    <div><h1 class="page-h1">Developer</h1><p class="page-sub">Credentials, docs, and a sandbox for integrating your systems with the Dash shipment API.</p></div>
+    <div class="tabs">${tab('keys', 'ri-key-2-line', 'API keys')}${tab('docs', 'ri-book-2-line', 'API docs')}${tab('sandbox', 'ri-flask-line', 'Sandbox')}${tab('webhooks', 'ri-broadcast-line', 'Webhooks')}</div>
+    ${body}`;
+  renderOverlay();
+  if (state.hlSel) {
+    const el = document.querySelector(state.hlSel);
+    if (el) { el.classList.add('hl'); setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 30); }
+    state.hlSel = null;
+  }
+}
+
+function renderWebhooks() {
+  const sub = (id, icon, label, isNew) => `<span class="${state.sub === id ? 'on' : ''}" data-sub="${id}"><i class="${icon}"></i>${label}${isNew ? '<span class="new" style="margin-left:6px">New</span>' : ''}</span>`;
+  return `<div class="subnav">${sub('endpoints', 'ri-link', 'Endpoints')}${sub('list', 'ri-list-check-2', 'Webhook list', true)}</div>` +
+    (state.sub === 'endpoints' ? renderSection('SHIPMENT') + renderSection('OUTBOUND_ORDER') : renderList());
+}
+
+function renderSection(topic) {
+  const T = TOPIC[topic];
+  const rows = endpoints.filter(e => e.topic === topic);
+  const bothTaken = !!activeEp(topic, 'LIVE') && !!activeEp(topic, 'TEST');
+  const card = (e) => `
+    <div class="ep" style="${e.disabledAt ? 'opacity:.7' : ''}">
+      <div class="row"><span class="url">${e.url}</span>${envPill(e.env)}${e.disabledAt ? '<span class="pill disabled">Disabled</span>' : ''}</div>
+      <div class="meta"><span>Created: ${e.createdAt}</span>${e.disabledAt ? `<span>Disabled: ${e.disabledAt}</span>` : ''}</div>
+      ${e.disabledAt ? '' : `<div class="actions"><button class="btn white small" data-disable="${e.id}"><i class="ri-forbid-line err"></i><span class="err">Disable</span></button></div>`}
+    </div>`;
+  const group = (env) => {
+    const r = rows.filter(e => e.env === env);
+    const active = activeEp(topic, env);
+    if (r.length === 0 && topic === 'SHIPMENT') return '';
+    return `<div class="env-group"><h3>${envPill(env)}</h3>${r.map(card).join('')}
+      ${active ? '' : `<div class="empty-sm"><i class="ri-broadcast-line"></i><div class="t">No ${ENV[env].label} endpoint for ${T.label.toLowerCase()}s yet</div><div class="s">${env === 'TEST' ? 'Add one to receive events from orders you create with your <code>dash_test_…</code> key.' : 'Add one to go live.'}</div><button class="btn white small" style="margin-top:10px" data-add="${topic}" data-add-env="${env}"><i class="ri-add-line"></i>Add ${ENV[env].label} endpoint</button></div>`}
+    </div>`;
+  };
+  return `
+    <section class="card" id="sec-${topic}">
+      <div class="sec-head">
+        <div><h2>${T.title}${T.isNew ? '<span class="new">New</span>' : ''}</h2><p>${T.desc}</p></div>
+        <button class="btn" data-add="${topic}" ${bothTaken ? 'disabled' : ''}><i class="ri-add-line"></i>Add endpoint</button>
+      </div>
+      <div class="banner"><i class="ri-shield-keyhole-line"></i><span><b>Production and Sandbox are separate environments.</b> ${T.wall}${bothTaken ? ' Both environments have their endpoint, so adding is off.' : ''}</span></div>
+      ${rows.length === 0 ? `<div class="empty"><i class="ri-broadcast-line"></i><div class="t">No webhook endpoints yet</div><div class="s">Add a Sandbox endpoint first to build your handler, then a Production endpoint to go live.</div></div>` : group('LIVE') + group('TEST')}
+      <div class="events"><span class="lbl">Events this endpoint receives</span><p>${T.eventsNote}</p><div class="chips">${T.events.map(e => `<code class="chip">${e}</code>`).join('')}</div></div>
+    </section>`;
+}
+
+function listRows() {
+  const all = LIST[`${state.topic}:${state.env}`] || [];
+  const q = state.q.trim().toLowerCase();
+  return all.filter(r => {
+    const d = r.events[0].d;
+    if (state.wh === 'FAILED' && !(d === 'failed' || d === 'dead')) return false;
+    if (state.wh !== 'ALL' && state.wh !== 'FAILED' && d !== state.wh) return false;
+    if (q && !(r.ref.toLowerCase().includes(q) || r.ext.toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+function payloadOf(row) {
+  const e = row.events[0];
+  const event = { id: e.id || '5b7d9e1c-4a2e-4f0b-9c33-' + row.ref.slice(-6).toLowerCase(), type: state.topic === 'SHIPMENT' ? 'STATUS_CHANGED' : 'ORDER_STATUS_CHANGED', sequence: e.seq, status: e.code, message: e.msg || e.name, occurredAt: e.iso || '2026-10-22T07:00:00Z' };
+  if (state.topic === 'SHIPMENT') {
+    event.photos = [];
+    return { status: 'Success', message: 'OK', data: { event, shipment: { id: '7f0a3c1e-…', waybill: row.ref, bookingId: row.ext, status: e.code, recipient: { name: row.recipient, phone: '0812…' }, items: ['…'] } } };
+  }
+  event.reason = e.reason || null;
+  return { status: 'Success', message: 'OK', data: { event, order: { id: '9c1e4f0a-…', code: row.ref, externalID: row.ext, status: e.code, hub: { id: 906, name: row.hub, code: 'DASH_KMG' }, lines: [{ sku: '100001', itemName: 'Atlas Headstrap', uomName: 'pcs', qty: 12 }], fulfillment: { waybill: row.waybill || null } } } };
+}
+
+function renderList() {
+  const T = TOPIC[state.topic];
+  const rows = listRows();
+  const all = LIST[`${state.topic}:${state.env}`] || [];
+  const failed = all.filter(r => ['failed', 'dead'].includes(r.events[0].d)).length;
+  const skipped = all.filter(r => r.events[0].d === 'skipped').length;
+  const ep = activeEp(state.topic, state.env);
+  const seg = (t) => `<span class="${state.topic === t ? 'on' : ''}" data-topic="${t}"><i class="${TOPIC[t].icon}"></i>${TOPIC[t].label}</span>`;
+  const action = (r) => {
+    const d = r.events[0].d;
+    if (d === 'failed' || d === 'dead') return `<button class="btn xs" data-retry="${r.ref}"><i class="ri-restart-line"></i>Retry now</button>`;
+    if (d === 'skipped') return ep ? `<button class="btn white xs" data-send="${r.ref}"><i class="ri-send-plane-line"></i>Send now</button>` : `<span class="rsp">add an endpoint first</span>`;
+    return '';
+  };
+  const row = (r) => {
+    const e = r.events[0];
+    const open = state.expanded === r.ref;
+    return `
+      <tr class="row" data-row="${r.ref}">
+        <td><span class="ref">${r.ref}</span><span class="ext">${r.ext}</span></td>
+        <td><span class="spill ${r.tone}">${r.status}</span></td>
+        <td>${dpill(e.d)}<span class="rsp">${e.rsp}</span></td>
+        <td class="ep-url">${e.ep === null ? '—' : shortUrl(e.ep || (ep && ep.url) || '')}</td>
+        <td class="sub num">${e.at}</td>
+        <td style="text-align:right;white-space:nowrap">${action(r)} <i class="${open ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'}" style="color:${open ? 'var(--primary)' : 'var(--text-soft)'};vertical-align:middle"></i></td>
+      </tr>
+      ${open ? expanded(r) : ''}`;
+  };
+  const expanded = (r) => {
+    const latest = r.events[0];
+    const hist = r.events.map((e, i) => {
+      const isLatest = i === 0;
+      const stale = !isLatest && (e.d === 'failed' || e.d === 'dead' || e.d === 'skipped');
+      return `<tr style="${stale ? 'opacity:.55' : ''}"><td>${e.seq}</td><td>${isLatest ? `<b>${e.name}</b> <span class="chip" style="font-family:inherit;color:var(--primary);background:var(--primary-alpha-10)">latest</span>` : e.name}${isLatest && r.waybill ? ` · AWB ${r.waybill}` : ''}</td><td>${dpill(e.d)}<span class="rsp">${e.rsp}</span></td><td class="num">${e.at}</td><td class="sub" style="font-size:11px">${isLatest ? (e.d === 'failed' || e.d === 'dead' ? `<button class="btn xs" data-retry="${r.ref}">Retry now</button>` : e.d === 'skipped' && ep ? `<button class="btn white xs" data-send="${r.ref}">Send now</button>` : '') : stale ? `superseded by #${r.events[i - 1].seq} — not retryable` : ''}</td></tr>`;
+    }).join('');
+    const note = latest.d === 'done' ? 'Nothing to retry here: the latest event got through and it carried the whole ' + (state.topic === 'SHIPMENT' ? 'shipment' : 'order') + ' — your system is already in sync.' : latest.d === 'queued' ? 'Queued — usually leaves within seconds. Use Refresh to update.' : latest.d === 'skipped' ? 'Skipped: there was no active endpoint for this environment when the event happened. Send now pushes the latest state to the endpoint active now.' : `Attempts of #${latest.seq}: ${latest.attempts || '—'}`;
+    return `<tr class="exp"><td colspan="6"><div class="exp-grid">
+      <div>
+        <div class="events"><span class="lbl">Event history · ${r.ref}</span>
+          <table><thead><tr><th>#</th><th>Event</th><th>Webhook</th><th>Sent</th><th></th></tr></thead><tbody>${hist}</tbody></table>
+          <p>${note}</p>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px"><button class="btn white small" data-toast="Copied event ID"><i class="ri-file-copy-line"></i>Copy event ID</button><button class="btn white small" data-toast="Opens the ${state.topic === 'SHIPMENT' ? 'shipment' : 'order'} detail"><i class="ri-external-link-line"></i>Open ${state.topic === 'SHIPMENT' ? 'shipment' : 'order'}</button></div>
+      </div>
+      <pre class="json"><span class="c">// payload of the latest event (#${latest.seq}) — what Retry / Send sends</span>
+${esc(JSON.stringify(payloadOf(r), null, 2))}</pre>
+    </div></td></tr>`;
+  };
+  return `
+    <section class="card">
+      <div class="sec-head">
+        <div><h2>Webhook list</h2><p>Every ${state.topic === 'SHIPMENT' ? 'shipment' : 'order'} that produced a webhook, with its <b>latest status</b> and whether that webhook reached your endpoint. A row opens to the full event history. <b>Retry sends the latest event only</b> — it carries the ${state.topic === 'SHIPMENT' ? 'shipment' : 'order'} as it stands now, so an older event that failed is superseded and is never resent.</p></div>
+        <button class="btn white small" data-toast="Refreshed"><i class="ri-refresh-line"></i>Refresh</button>
+      </div>
+      <div class="toolbar">
+        <div class="seg">${seg('SHIPMENT')}${seg('OUTBOUND_ORDER')}</div>
+        <label class="sel">${envPill(state.env)}<select data-env><option value="LIVE" ${state.env === 'LIVE' ? 'selected' : ''}>Production</option><option value="TEST" ${state.env === 'TEST' ? 'selected' : ''}>Sandbox</option></select></label>
+        <label class="sel">Webhook<select data-wh>${[['ALL', 'All'], ['FAILED', 'Failed + Gave up'], ['done', 'Delivered'], ['queued', 'Queued'], ['skipped', 'Skipped']].map(([v, l]) => `<option value="${v}" ${state.wh === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label class="sel">Last 30 days<i class="ri-arrow-down-s-line"></i></label>
+        <div class="search"><i class="ri-filter-3-line"></i><input data-q value="${esc(state.q)}" placeholder="${T.filterPh}"></div>
+      </div>
+      ${failed > 0 ? `<div class="banner warn" style="margin-top:12px"><i class="ri-error-warning-line" style="margin-top:0"></i><span><b>${failed} ${failed === 1 ? T.unit.slice(0, -1) + ' has' : T.unit + ' have'}</b> a failed latest webhook. Retry them one by one, or all at once when your endpoint is back.</span><button class="btn small" style="margin-left:auto" data-retry-all><i class="ri-restart-line"></i>Retry all failed (${failed})</button></div>` : ''}
+      ${skipped > 0 && !ep ? `<div class="banner" style="margin-top:12px"><i class="ri-information-line"></i><span><b>${skipped} ${skipped === 1 ? T.unit.slice(0, -1) : T.unit}</b> had webhooks skipped — there is no active ${ENV[state.env].label} endpoint for ${T.label.toLowerCase()}s. Add one under Endpoints, then use Send now.</span></div>` : ''}
+      <div class="tbl"><table>
+        <thead><tr><th>${T.refLabel}</th><th>Latest status</th><th>Webhook</th><th>Endpoint</th><th>Last sent</th><th></th></tr></thead>
+        <tbody>${rows.length ? rows.map(row).join('') : `<tr><td colspan="6" class="sub" style="text-align:center;padding:28px">No ${T.unit} match this filter.</td></tr>`}</tbody>
+      </table></div>
+      <div class="pager"><span>Showing ${rows.length} of ${all.length} ${T.unit}${state.q ? ` matching “${esc(state.q)}”` : ''}</span><span>Page 1 of 1</span></div>
+    </section>`;
+}
+
+function renderDocs() {
+  return `
+    <div class="docnav">
+      <a>Overview</a><a>Authentication</a><a>Errors</a><span class="sep"></span><a>Create</a><a>Get detail</a><a>Cancel</a><span class="sep"></span><a>Webhooks</a><span class="sep"></span><a class="on">Outbound order<span class="new" style="margin-left:6px">New</span></a><a>Order webhooks</a>
+    </div>
+    <section class="card" id="doc-outbound">
+      <div class="sec-head"><div><h2>Outbound order — warehouse orders</h2><p>For clients whose stock sits in a Dash warehouse. Dash picks the hub (the nearest warehouse hub to the destination; stock is checked across all your hubs and reported as warnings), picks and packs, then ships — the shipment appears in your Shipment webhooks with <code>bookingId</code> = your <code>externalID</code>.</p></div></div>
+      <div class="flow">
+        <div class="step"><div class="n"><i class="ri-add-box-line"></i>Create</div><div class="m"><b>POST</b>/v1/integration/outbound-orders</div><p>Store <code>id</code> + <code>code</code>. Timed out? Retry the same payload — idempotent by <code>externalID</code> (<code>result: EXISTS</code>). No <code>hubID</code>: Dash picks the nearest hub (haversine); stock across all hubs comes back as <code>stockWarnings</code>.</p></div>
+        <div class="step"><div class="n"><i class="ri-radar-line"></i>Track or webhook</div><div class="m"><b>GET</b>/v1/integration/outbound-orders/:id</div><div class="m"><b>POST</b>/v1/integration/webhook-endpoints</div><p>Poll for status and lines, or register an outbound-order endpoint and get each status change pushed.</p></div>
+        <div class="step"><div class="n"><i class="ri-close-circle-line"></i>Cancel</div><div class="m"><b>POST</b>/v1/integration/outbound-orders/:id/cancel</div><p>Only before <code>SHIPPED</code>. After that, cancel the shipment instead — if it has not left the hub.</p></div>
+        <div class="step"><div class="n"><i class="ri-truck-line"></i>Delivery</div><div class="m"><b>GET</b>/v1/integration/shipments?search=&lt;waybill&gt;</div><p><code>SHIPPED</code> carries <code>fulfillment.waybill</code> — from here on it is a normal shipment: webhooks (<code>bookingId</code> = your <code>externalID</code>), detail by search, public tracking by waybill.</p></div>
+      </div>
+    </section>
+    <section class="card">
+      <div class="sec-head"><div><h2>Order webhooks</h2><p>Same envelope, signature, retry and ordering rules as shipment webhooks — only the body differs: <code>data.order</code> instead of <code>data.shipment</code>.</p></div></div>
+      <div class="prose">
+        <table><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
+          <tr><td><code>event.id</code></td><td>uuid</td><td>Dedupe key — retries carry the same value</td></tr>
+          <tr><td><code>event.type</code></td><td>enum</td><td><code>ORDER_STATUS_CHANGED</code></td></tr>
+          <tr><td><code>event.sequence</code></td><td>integer</td><td>Per order. Order by this; gaps are legal</td></tr>
+          <tr><td><code>event.status</code></td><td>enum</td><td><code>OPEN</code> · <code>PREPARING</code> · <code>READY_TO_PICKUP</code> · <code>SHIPPED</code> · <code>CANCELLED</code> — the order status after the event — same vocabulary as <code>GET /v1/integration/outbound-orders/:id</code></td></tr>
+          <tr><td><code>event.message</code></td><td>string</td><td>Readable, Indonesian: “Order diterima”, “Sedang dipersiapkan”, “Siap dikirim”, “Dikirim — AWB {waybill}”, “Order dibatalkan”</td></tr>
+          <tr><td><code>event.reason</code></td><td>object · null</td><td>Only on <code>CANCELLED</code>: <code>{ code, message }</code></td></tr>
+          <tr><td><code>order</code></td><td>object</td><td>The redacted order of <code>GET /v1/integration/outbound-orders/:id</code> — code, externalID, status, hub, lines, fulfillment</td></tr>
+        </tbody></table>
+        <pre class="json" style="margin-top:12px">${esc(JSON.stringify(payloadOf(Object.assign({}, LIST['OUTBOUND_ORDER:LIVE'][1])), null, 2))}</pre>
+      </div>
+    </section>`;
+}
+
+function renderSandbox() {
+  const r = LIST['OUTBOUND_ORDER:TEST'][2];
+  return `
+    <section class="card">
+      <div class="sec-head"><div><h2 class="mono" style="font-size:15px">${r.ref} <span class="spill ok" style="margin-left:6px">Shipped</span><span class="new">Outbound order</span></h2><p>externalID <code>${r.ext}</code> · ${r.hub} (chosen automatically, 3.1 km) · AWB <code>${r.waybill}</code> → <a style="color:var(--primary);font-weight:600">open shipment</a></p></div><button class="btn white small" data-toast="Refreshed"><i class="ri-refresh-line"></i>Refresh</button></div>
+      <p style="margin-top:16px;font-size:12px;color:var(--text-sub)">Webhooks · Signed with your endpoint secret in <code>x-dash-signature</code>. Dedupe on <code>data.event.id</code>, order by <code>data.event.sequence</code>.</p>
+      <div class="deliv">${r.events.map(e => `<div class="r"><span class="seq">#${e.seq}</span><span class="ev">${e.name}</span>${dpill(e.d)}<span class="url">${e.d === 'skipped' ? 'no active endpoint at the time' : shortUrl(e.ep || '')}</span><span class="num">${e.at}</span><i class="ri-arrow-down-s-line" style="color:var(--text-soft)"></i></div>`).join('')}</div>
+      <p style="margin-top:12px;font-size:12px;color:var(--text-sub)">Same <code>WebhookDeliveriesPanel</code> as a sandbox shipment. A simulator for orders (advance to Preparing → Ready → Shipped) is a later step; for now the Sandbox hub processes test orders automatically.</p>
+    </section>`;
+}
+
+function renderKeys() {
+  const k = (n, p, env, scopes) => `<div class="key"><div><div class="n">${n}</div><div class="p">${p}••••••••</div><div class="scopes">${scopes.map(s => `<code class="chip">${s}</code>`).join('')}</div></div><div style="display:flex;gap:8px;align-items:flex-start">${envPill(env)}<button class="btn white small">History</button><button class="btn white small"><span class="err">Revoke</span></button></div></div>`;
+  return `<section class="card"><div class="sec-head"><div><h2>API keys</h2><p>Unchanged. Keys already carry the scopes; outbound-order endpoints use the same key (scopes per the PRD/TRD).</p></div><button class="btn"><i class="ri-add-line"></i>Create key</button></div>
+    <div style="margin-top:16px;display:grid;gap:12px">${k('ERP integration', 'dash_live_7Kp2', 'LIVE', ['shipments:write', 'shipments:read', 'shipments:cancel'])}${k('Staging ERP', 'dash_test_Qm9x', 'TEST', ['all'])}</div></section>`;
+}
+
+// ───────────────────────── modal / confirm ─────────────────────────
+function openModal(topic, env) {
+  const first = env || (!activeEp(topic, 'TEST') ? 'TEST' : 'LIVE');
+  state.modal = { phase: 'form', topic, env: first, url: `${ENV[first].host}/webhooks/dash/${TOPIC[topic].path}` };
+}
+function toSecret() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let s = ''; for (let i = 0; i < 32; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  state.modal.phase = 'secret'; state.modal.secret = 'dash_whsec_' + s;
+}
+function renderOverlay() {
+  const o = document.getElementById('overlay');
+  if (state.confirm) {
+    const e = endpoints.find(x => x.id === state.confirm);
+    o.className = 'show';
+    o.innerHTML = `<div class="modal" style="max-width:460px"><div class="mh"><h2>Disable webhook endpoint?</h2><p>It stops receiving events immediately. This cannot be undone — register a new endpoint to resume.</p></div>
+      <div class="mb"><div class="ep"><div class="row"><span class="url">${e.url}</span>${envPill(e.env)}</div></div></div>
+      <div class="mf"><button class="btn white" data-confirm-cancel>Cancel</button><button class="btn" style="background:var(--error-base)" data-confirm-ok>Disable</button></div></div>`;
+    return;
+  }
+  if (!state.modal) { o.className = ''; o.innerHTML = ''; return; }
+  const M = state.modal, T = TOPIC[M.topic];
+  o.className = 'show';
+  if (M.phase === 'form') {
+    const opt = (env, blurb) => { const taken = !!activeEp(M.topic, env); return `<div class="opt ${M.env === env ? 'on' : ''} ${taken ? 'taken' : ''}" ${taken ? '' : `data-modal-env="${env}"`}><div class="t">${ENV[env].label}</div><div class="s">${taken ? 'Already has an active endpoint — disable it first.' : blurb}</div></div>`; };
+    o.innerHTML = `<div class="modal">
+      <div class="mh"><h2>Add webhook endpoint</h2><p>Dash will POST every <b>${T.label.toLowerCase()}</b> event to this URL. One active endpoint per environment.</p></div>
+      <div class="mb">
+        <div class="field"><label>Endpoint URL</label><input class="input" data-modal-url value="${esc(M.url)}" placeholder="https://…"></div>
+        <div class="field"><label>Environment</label><div class="opts">${opt('TEST', 'Receives only sandbox events — pair it with your dash_test_… key while building.')}${opt('LIVE', 'Receives production events. Go live once your handler is proven on Sandbox.')}</div></div>
+        <div class="events" style="margin-top:0"><span class="lbl">Events this endpoint will receive</span><p>${T.eventsNote}</p><div class="chips">${T.events.map(e => `<code class="chip">${e}</code>`).join('')}</div></div>
+      </div>
+      <div class="mf"><button class="btn white" data-modal-cancel>Cancel</button><button class="btn" data-modal-submit>Add endpoint</button></div></div>`;
+  } else {
+    o.innerHTML = `<div class="modal"><div class="mb">
+      <div style="display:flex;align-items:center;gap:8px"><i class="ri-broadcast-line" style="font-size:18px;color:var(--success-base)"></i><h2 style="font-size:18px;font-weight:600">Endpoint registered</h2></div>
+      <p style="font-size:14px;color:var(--text-sub);margin-top:-6px">Every delivery to <code style="font-size:12px;color:var(--text-strong);word-break:break-all">${esc(M.url)}</code> (${ENV[M.env].label} · ${T.label}) will be signed with this secret:</p>
+      <div class="secret" style="margin-top:0">${M.secret}</div>
+      <div class="warnbox" style="margin-top:0"><i class="ri-error-warning-line"></i><span><b>This secret is shown only once.</b> Store it in your secret manager now — you need it to verify the <code>x-dash-signature</code> header on each delivery. If it's lost, disable this endpoint and register it again.</span></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn white" data-modal-copy><i class="ri-file-copy-line"></i>Copy secret</button><button class="btn" data-modal-done>I've stored it safely</button></div>
+    </div></div>`;
+  }
+}
+
+// ───────────────────────── actions ─────────────────────────
+function toast(t, s) {
+  const box = document.getElementById('toast'); const el = document.createElement('div'); el.className = 'toastx'; el.innerHTML = `<b>${t}</b>${s ? `<small>${s}</small>` : ''}`; box.appendChild(el); setTimeout(() => el.remove(), 2600);
+}
+function findRow(ref) { return (LIST[`${state.topic}:${state.env}`] || []).find(r => r.ref === ref); }
+function resend(ref, verb) {
+  const r = findRow(ref); if (!r) return;
+  const e = r.events[0]; const ep = activeEp(state.topic, state.env);
+  if (!ep) { toast('No active endpoint', `Add a ${ENV[state.env].label} endpoint for ${TOPIC[state.topic].label.toLowerCase()}s first`); return; }
+  e.d = 'queued'; e.rsp = 'sending…'; e.ep = ep.url; render();
+  toast(`${verb} #${e.seq} ${e.name}`, `${r.ref} → ${shortUrl(ep.url)}`);
+  setTimeout(() => { e.d = 'done'; e.rsp = `200 · ${200 + Math.floor(Math.random() * 200)} ms`; e.at = nowStr(); render(); toast('Delivered', `${r.ref} · #${e.seq} ${e.name} · 200 OK`); }, 1400);
+}
+
+document.addEventListener('click', (evn) => {
+  const t = evn.target.closest('[data-tab],[data-sub],[data-topic],[data-add],[data-disable],[data-row],[data-retry],[data-send],[data-retry-all],[data-step],[data-prev],[data-next],[data-modal-env],[data-modal-submit],[data-modal-cancel],[data-modal-copy],[data-modal-done],[data-confirm-ok],[data-confirm-cancel],[data-toast]');
+  if (!t) return;
+  const d = t.dataset;
+  if (d.tab) { state.tab = d.tab; state.expanded = null; return render(); }
+  if (d.sub) { state.sub = d.sub; return render(); }
+  if (d.topic) { state.topic = d.topic; state.expanded = null; state.q = ''; return render(); }
+  if (d.add) { openModal(d.add, d.addEnv); return render(); }
+  if (d.disable) { state.confirm = d.disable; return render(); }
+  if (d.confirmCancel !== undefined) { state.confirm = null; return render(); }
+  if (d.confirmOk !== undefined) { const e = endpoints.find(x => x.id === state.confirm); e.disabledAt = nowStr().slice(0, 17); state.confirm = null; render(); return toast('Webhook endpoint disabled', 'It stops receiving events immediately'); }
+  if (d.retry) { evn.stopPropagation(); return resend(d.retry, 'Retrying latest event'); }
+  if (d.send) { evn.stopPropagation(); return resend(d.send, 'Sending latest event'); }
+  if (d.retryAll !== undefined) { const refs = (LIST[`${state.topic}:${state.env}`] || []).filter(r => ['failed', 'dead'].includes(r.events[0].d)).map(r => r.ref); refs.forEach((ref, i) => setTimeout(() => resend(ref, 'Retrying latest event'), i * 350)); return; }
+  if (d.row) { state.expanded = state.expanded === d.row ? null : d.row; return render(); }
+  if (d.step) return goStep(+d.step);
+  if (d.prev !== undefined) return goStep(state.step - 1);
+  if (d.next !== undefined) return goStep(state.step + 1);
+  if (d.modalEnv) { state.modal.env = d.modalEnv; state.modal.url = state.modal.url.replace(/^https:\/\/[^/]+/, ENV[d.modalEnv].host); return render(); }
+  if (d.modalCancel !== undefined) { state.modal = null; return render(); }
+  if (d.modalSubmit !== undefined) { const url = document.querySelector('[data-modal-url]').value.trim(); if (!/^https:\/\//.test(url)) return toast('Endpoint URL must start with https://'); state.modal.url = url; toSecret(); return render(); }
+  if (d.modalCopy !== undefined) { try { navigator.clipboard.writeText(state.modal.secret); } catch (_) {} return toast('Secret copied'); }
+  if (d.modalDone !== undefined) { const M = state.modal; endpoints.push({ id: 'e' + Date.now(), topic: M.topic, env: M.env, url: M.url, createdAt: nowStr().slice(0, 17), disabledAt: null }); state.modal = null; render(); return toast('Webhook endpoint added', `${ENV[M.env].label} · ${TOPIC[M.topic].label} · ${shortUrl(M.url)}`); }
+  if (d.toast) return toast(d.toast);
+});
+document.addEventListener('change', (evn) => {
+  const t = evn.target;
+  if (t.matches('[data-env]')) { state.env = t.value; state.expanded = null; render(); }
+  if (t.matches('[data-wh]')) { state.wh = t.value; state.expanded = null; render(); }
+});
+document.addEventListener('input', (evn) => {
+  const t = evn.target;
+  if (t.matches('[data-q]')) { state.q = t.value; render(); const i = document.querySelector('[data-q]'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+  if (t.matches('[data-modal-url]')) { state.modal.url = t.value; }
+});
+document.getElementById('overlay').addEventListener('click', (evn) => { if (evn.target.id === 'overlay') { state.modal = null; state.confirm = null; render(); } });
+
+goStep(0);
+</script>
+</body>
+</html>

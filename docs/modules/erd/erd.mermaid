@@ -74,6 +74,7 @@ erDiagram
         integer client_id "external core-service.clients.id"
         jsonb client "ShipmentClientSnapshot {id,name}"
         text booking_id
+        integer event_seq "webhook ordering counter per shipment (webhook_outbox.sequence)"
         text delivery_group_id
         text service_type
         text type "DOCKING|DIRECT_2W|DIRECT_4W default DOCKING — set at intake; a route derives its type from the shipments it serves"
@@ -838,11 +839,15 @@ erDiagram
         numeric destination_lat
         numeric destination_long
         text destination_notes
+        text destination_city "CR-1: snapshot of the resolved city name (text from the address, or the core m_city name)"
+        integer destination_city_id "CR-1: nullable soft ref core-service m_city.id — null when unresolved/ambiguous"
+        integer distance "metres, nullable — WMS mode (DISTANCE_WMS_CALCULATION_MODE), typed in Ubah, or filled by dispatch via ShipmentDistanceHook when null (CR-1)"
         text notes
         timestamptz order_date
         date expected_delivery_date
         boolean is_sandbox
         uuid api_key_id "nullable — phase 2 client API"
+        integer event_seq "webhook ordering counter per order (OUTBOUND_ORDER topic) — wms-outbound-order-webhook-prd-trd-v1"
         uuid goods_issue_id "nullable — active GI"
         text fulfillment_status "nullable — AT_HUB|DISPATCHED|IN_DELIVERY|DELIVERED|FAILED|RETURNED|CANCELLED"
         uuid fulfillment_shipment_id "nullable, indexed — soft ref shipments.id (set at ship, same tx)"
@@ -1108,3 +1113,56 @@ erDiagram
     tariff_configs ||--o{ tariff_rings : "config-scoped rings (tariff_config_id)"
     tariff_configs ||--o{ ujp : "tariff_config_id tagged at create, snapshotted at approve"
     route_plans ||--o| tariff_rings : "default_ring_id (nullable) pre-fills the wizard ring"
+
+    %% ── Partner webhooks (nest-logistic-service docs/api-integration/webhook*.md; topic split + webhook list:
+    %%    docs/modules/warehouse-management/wms-outbound-order-webhook-prd-trd-v1.md) ──
+    %% Transactional outbox: one WEBHOOK_OUTBOX row per (event × active endpoint), inserted in the producer's
+    %% transaction (shipment status change, 4W milestone, or — new — outbound order status change through the
+    %% warehouse OutboundOrderWebhookPort). Delivery = Cloud Tasks fast path + 1/min retry tick, HMAC-signed,
+    %% backoff 1m→5m→15m→1h→3h→6h→12h then DEAD. client_id = core-service providers (external master, no FK).
+    WEBHOOK_ENDPOINTS {
+        uuid id PK
+        integer client_id "external core-service provider id"
+        text url "https only"
+        text environment "LIVE|TEST — same wall as api_keys"
+        text topic "SHIPMENT|OUTBOUND_ORDER, default SHIPMENT — one ACTIVE endpoint per (client_id, environment, topic)"
+        text secret "dash_whsec_<32 base62>, plaintext signing key, shown once"
+        timestamptz disabled_at "nullable — set once, never unset; rows never deleted"
+        text created_by
+        timestamptz created_at
+    }
+    WEBHOOK_OUTBOX {
+        uuid id PK
+        uuid event_id "partner dedupe key — same on every fan-out row and retry"
+        uuid endpoint_id FK "soft → webhook_endpoints.id; NULL = SKIPPED NO_ACTIVE_ENDPOINT (client has endpoints, none active)"
+        text topic "SHIPMENT|OUTBOUND_ORDER"
+        uuid ref_id "shipments.id | wh_outbound_orders.id — retry group key with endpoint_id"
+        text ref_label "waybill | order code (denormalized for the webhook list)"
+        text ref_external_id "booking_id | external_id (denormalized for the webhook list)"
+        uuid shipment_id "nullable — legacy, = ref_id for SHIPMENT; dropped after one retention cycle"
+        integer client_id
+        text environment "LIVE|TEST"
+        text event_type "outbox label: CREATED|ARRIVED_AT_HUB|…|MILESTONE_COMPLETED | ORDER_STATUS_CHANGED"
+        integer sequence "per-ref ordering key (shipments.event_seq / wh_outbound_orders.event_seq); gaps legal"
+        json payload "frozen envelope {status,message,data:{event, shipment|order}} — json not jsonb (key order)"
+        text status "PENDING|PROCESSING|DONE|FAILED|DEAD|SKIPPED"
+        integer attempts "reset to 0 by a manual retry"
+        timestamptz next_retry_at
+        text last_error "HTTP <status>: <body…> | fetch failed … | timeout | NO_ACTIVE_ENDPOINT"
+        timestamptz processing_at
+        timestamptz delivered_at
+        timestamptz created_at
+    }
+    WEBHOOK_DELIVERY_ATTEMPTS {
+        uuid id PK
+        uuid outbox_id FK "soft → webhook_outbox.id; pruned with it (DONE 30d, DEAD/SKIPPED 90d)"
+        integer attempt_no "unique with outbox_id"
+        integer http_status "nullable — null on timeout/DNS/reclaim"
+        integer latency_ms
+        text error "nullable — same format as webhook_outbox.last_error; RECLAIMED for a stalled worker"
+        timestamptz attempted_at
+    }
+    WEBHOOK_ENDPOINTS ||--o{ WEBHOOK_OUTBOX : "fan-out target (endpoint_id, nullable)"
+    WEBHOOK_OUTBOX ||--o{ WEBHOOK_DELIVERY_ATTEMPTS : "one row per POST attempt"
+    SHIPMENTS ||--o{ WEBHOOK_OUTBOX : "topic SHIPMENT (ref_id)"
+    WH_OUTBOUND_ORDERS ||--o{ WEBHOOK_OUTBOX : "topic OUTBOUND_ORDER (ref_id)"
