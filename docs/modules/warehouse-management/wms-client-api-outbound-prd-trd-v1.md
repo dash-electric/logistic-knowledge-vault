@@ -26,7 +26,7 @@ menunya tetap "Outbound request"). Dua fase, **keduanya dikerjakan sekarang**:
 
 | Fase | Isi | Status saat merge |
 |---|---|---|
-| **1 — API (prioritas)** | `POST / GET / list / cancel` outbound order dengan API key; hub dipilih server (terdekat); sandbox; **ubah hub** di detail ops | aktif begitu client punya key |
+| **1 — API (prioritas)** | `POST / GET / list / cancel` outbound order dengan API key; hub dipilih server (hybrid stok → jarak); sandbox + simulate; **ubah hub** di detail ops | **sudah di `main`** (#516/#520) kecuali delta di § Delta vs main |
 | **2 — Webhook** | topik webhook `OUTBOUND_ORDER` (`ORDER_STATUS_CHANGED`), Webhook list + retry di Link › Developer | **mati** — toggle env `ENABLE_OUTBOUND_ORDER_WEBHOOK=false`; dinyalakan per environment |
 
 Mengimplementasikan kontrak fase 2 yang dikunci di `wms-prd-trd-v2.md` (§ Client — fase 2) dengan satu perubahan: `hubID`
@@ -163,7 +163,8 @@ jadi jalur mesin-ke-mesin-nya sudah ada; yang belum ada adalah pintu masuk **ord
   status berikutnya; partner yang perlu tahu lebih cepat memakai `GET`.
 - Satu endpoint untuk dua topik (satu URL dua body) — lihat Open questions.
 - Pilih-pilih event (subscription list) — tetap "semua event topik ini", partner mengabaikan yang tidak dikenal.
-- Simulator order di Sandbox (seperti simulator shipment) — Sandbox hub memproses order test secara alami; menyusul.
+- Simulator order di Sandbox — **sudah ada** (`POST …/:id/simulate`, PR #520); fase 2 memakainya untuk menguji event ke
+  endpoint TEST, tidak membuat yang baru.
 - Auto-disable endpoint yang terus gagal, dashboard per endpoint (`webhook-delivery.md` §8 — tetap "later").
 - Mengubah perilaku retry otomatis event lama (lihat Key decisions no. 13).
 
@@ -177,31 +178,40 @@ jadi jalur mesin-ke-mesin-nya sudah ada; yang belum ada adalah pintu masuk **ord
    `200 { result: "EXISTS" }` beserta order yang ada — **tanpa** membandingkan body (idempotensi by key, bukan by isi).
 3. Body divalidasi oleh **`OutboundOrderValidator` yang sama** dengan form dan CSV (v2 § Validasi): semua masalah dijawab
    sekaligus (`422 VALIDATION`, `errors[]` per field), `SKU_INACTIVE` bila hanya itu masalahnya.
-4. **Hub dipilih server**, client tidak mengirim `hubID` (field `hubID` yang dikirim → `422 hubID`). Aturan:
-   1. Kandidat = hub Dash (core-service tipe HUB, `hasStaff`, koordinat valid) yang punya storage tree WMS.
-   2. **Hub terdekat** ke titik tujuan (haversine garis lurus, `DistanceHelper.haversineKm`) menjadi `hubID`; seri →
-      `hubId` lebih kecil. Jarak hanya untuk memilih, **tidak disimpan** (`distance` order tetap `null`, dispatch yang
-      mengukur); dikembalikan sekali di respons create sebagai `hubDistanceKm` (informasi).
-   3. Stok **tidak** menggeser pilihan hub, tapi dicek di **semua** hub kandidat untuk client itu (satu query): per SKU,
-      available di hub terpilih vs qty → `stockWarnings[]`, masing-masing dengan `availableElsewhere[]` (hub lain yang
-      memegang SKU itu + qty) supaya client dan ops tahu stok harus ditransfer dari mana. Order tetap dibuat (seperti form).
-   4. Tidak ada hub kandidat sama sekali (belum ada hub dengan storage tree / koordinat) → `422 NO_HUB_AVAILABLE`.
-   Hub tanpa koordinat valid di core-service dilewati (dilog `warn`).
+4. **Hub dipilih server**, client tidak mengirim `hubID` (field `hubID` yang dikirim → `400 hubID`). Aturan **hybrid**
+   (keputusan Yogi 2026-10-28):
+   1. Hitung stok **allocatable** client (on hand − reserved, bin ACTIVE di bawah lokasi STORAGE, stok REGULAR) per SKU di
+      **semua** hub — satu query (`sumAllocatableByHub`, sudah ada di main).
+   2. **Ada hub yang stoknya lengkap untuk semua baris** → kandidat = hub-hub itu → pilih yang **terdekat** ke tujuan
+      (haversine garis lurus, `DistanceHelper.haversineKm`, koordinat hub dari `FulfillmentGateway.describeHubs`); hub tanpa
+      koordinat ranking terakhir; seri → `hubId` lebih kecil. Tidak ada `stockWarnings`. (= perilaku `main` hari ini.)
+   3. **Tidak ada hub yang lengkap** → **jangan `422`**: kandidat = semua hub Dash yang punya storage tree WMS → pilih yang
+      **terdekat** (aturan yang sama) → order **tetap dibuat** dengan `stockWarnings[]` (SKU yang kurang di hub terpilih)
+      dan `availableElsewhere[]` per SKU (hub lain yang memegangnya, urut available DESC — `[]` bila tidak ada di mana pun).
+      Ops menangani lewat transfer antar hub atau **ubah hub** (Req. 13).
+   4. Tidak ada hub Dash dengan storage tree/koordinat sama sekali → `422 NO_HUB_AVAILABLE` (bukan soal stok).
+   Jarak hanya untuk memilih, **tidak disimpan** (`distance` order tetap `null`, dispatch yang mengukur); dikembalikan sekali
+   sebagai `hubDistanceKm` (informasi). Stok hanya **dicek, tidak direservasi** — reservasi tetap di create picking.
 5. Order yang berhasil lahir `OPEN`, `source = CLIENT_API`, `api_key_id` = key pemanggil, `createdBy` = prefix key, satu
    baris timeline "Order diterima dari client API · external ID … · hub terdekat: {nama} ({jarak} km)" (+ "stok kurang: SKU …,
    tersedia di {hub lain}" bila ada warning), dan tampil di
    daftar Outbound request ops dengan tag **Client API** — diproses persis seperti order lain (picking, ready, submit shipping).
-6. Respons create memuat `hub` yang dipilih, `hubDistanceKm`, dan `stockWarnings` (SKU yang qty-nya melebihi available **di hub
-   terpilih**, dengan `availableElsewhere[]`) sebagai informasi; order tetap dibuat.
+6. Respons create memuat `hub` yang dipilih, `hubDistanceKm`, dan `stockWarnings[]` (hanya terisi pada kasus 4.3 — SKU yang
+   qty-nya melebihi available di hub terpilih, masing-masing dengan `availableElsewhere[]`) sebagai informasi; order tetap dibuat.
 7. GET detail & daftar hanya mengembalikan order **milik client** dan **environment key** yang sama (cross-client /
    cross-env → `404`, keberadaan tidak bocor), dengan field teredaksi (§ API contracts).
 8. Cancel lewat API mengikuti aturan ops: hanya `OPEN | PREPARING | READY_TO_PICKUP`, wajib `reason`, melepas reservasi
    picking; `409 INVALID_STATUS_TRANSITION` selain itu. Dicatat di timeline dengan origin `CLIENT`.
-9. Key `dash_test_` membuat order sandbox: tidak muncul di daftar/summary/export ops, tidak mengubah stok nyata saat
-   di-ship (mengikuti `shipments.is_sandbox` yang ada), dan `externalID` boleh sama dengan order live.
+9. Key `dash_test_` membuat order **sandbox** (sesuai `main` #516/#520): selalu di **Dash Sandbox Hub** (`id 0`), stok tetap
+   **100 unit per SKU** (hybrid: > 100 → tetap dibuat + `stockWarnings`, `availableElsewhere: []`), katalog SKU = katalog
+   nyata client, `is_sandbox = true` (tidak tampil di daftar/summary/export ops, tidak bisa di-picking → 409), bisa di-step
+   sampai end state lewat `POST /v1/integration/outbound-orders/:id/simulate` (sandbox only, `shipments:write`:
+   `OPEN → PREPARING → READY_TO_PICKUP → SHIPPED (carrier DASH, AWB SBX-<code>) → IN_DELIVERY → DELIVERED | FAILED`), dan
+   `externalID` boleh sama dengan order live.
 10. Setelah submit shipping, client menerima webhook `shipment.*` yang sudah ada dengan `shipment.bookingId = externalID`
-    dan `waybill`; GET order memuat `fulfillment.waybill`, dan `status` order mencerminkan pengiriman (`IN_DELIVERY` /
-    `DELIVERED` / `FAILED`).
+    dan `waybill` (hanya carrier **DASH**); GET order memuat `fulfillment.carrier` (`DASH` = dikirim Dash/internal,
+    `LION_PARCEL` = 3PL, `HANDOVER` = serah terima di hub tanpa AWB) + `fulfillment.waybill` (AWB Dash atau AWB 3PL), dan
+    `status` order mencerminkan pengiriman (`IN_DELIVERY` / `DELIVERED` / `FAILED`).
 11. Setiap request ditolak oleh guard tercatat sebagai `AUTH_REJECTED` pada key (perilaku `api-key.md` yang ada).
 12. Dokumentasi partner: satu halaman (body, kode error, contoh sukses/gagal, sandbox) + request di koleksi "Dash Integration".
 13. **Ubah hub (ops).** Di detail outbound request, "Ubah" memuat field **Hub** selama `status = OPEN` (belum ada reservasi
@@ -224,7 +234,7 @@ F2-2. Setiap perubahan status gudang order (`OPEN`→`PREPARING`→`READY_TO_PIC
 F2-3. Body event: envelope `{ status: "Success", message: "OK", data: { event, order } }`. `event`: `id` (dedupe, sama pada
    setiap retry), `type: "ORDER_STATUS_CHANGED"`, `sequence` (monoton per order, gap sah), `status` (status order **setelah**
    event, vocabulary internal sama dengan GET), `message` (Bahasa Indonesia, § API contracts), `occurredAt`, `reason`
-   (hanya `CANCELLED`). `order` = `IntegrationOutboundOrderEntity` saat itu (`SHIPPED` membawa `fulfillment.waybill`).
+   (hanya `CANCELLED`). `order` = `IntegrationOutboundOrderEntity` saat itu (`SHIPPED` membawa `fulfillment.carrier` + `waybill`).
 F2-4. Tanda tangan, header, timeout, backoff, `DEAD`, `SKIPPED`, wall LIVE/TEST — **identik** dengan webhook shipment
    (`webhook-delivery.md`). Partner memverifikasi dengan secret endpoint order (bukan secret endpoint shipment).
 F2-5. Event order hanya di-fan-out ke endpoint `OUTBOUND_ORDER` client pemilik order, environment mengikuti `is_sandbox`.
@@ -270,13 +280,14 @@ F2-16. **Toggle** `ENABLE_OUTBOUND_ORDER_WEBHOOK` (boolean env, default `false`,
 | Dua request paralel `externalID` sama | Satu `CREATED`, satu `EXISTS` (unique index + retry on unique violation yang ada). |
 | `externalID` sama, isi berbeda | Tetap `EXISTS` dengan order lama; tidak ada update. Client harus cancel + buat ulang dengan id baru. |
 | SKU tidak ada / nonaktif | `422 VALIDATION` (`lines[i].sku`, `SKU_NOT_IN_CATALOG`) / `422 SKU_INACTIVE`. Tidak ada order parsial. |
-| Client belum punya storage/stok di hub mana pun | `422 NO_HUB_AVAILABLE` (pesan: hubungi Dash untuk mengaktifkan gudang). |
+| Tidak ada hub Dash dengan storage tree / koordinat sama sekali | `422 NO_HUB_AVAILABLE` (pesan: hubungi Dash). Client yang stoknya nol di semua hub **bukan** kasus ini — ordernya dibuat di hub terdekat dengan warning. |
 | Koordinat di luar Indonesia / tanggal lampau / qty ≤ 0 | `422 VALIDATION` dengan semua field bermasalah sekaligus. |
-| Stok lengkap hanya di hub yang jauh | Hub **terdekat** tetap dipilih; `stockWarnings[].availableElsewhere` menyebut hub jauh itu → ops transfer antar hub (atau cancel & buat ulang manual di hub jauh). |
-| Stok tidak ada di hub mana pun | Hub terdekat dipilih; `stockWarnings[]` dengan `availableElsewhere: []`; order tetap dibuat, picking nanti yang gagal (`INSUFFICIENT_STOCK`) dan ops yang menangani — lihat Open question 2. |
-| Dua hub berjarak sama | Yang `hubID`-nya lebih kecil (deterministik, bisa direproduksi di log). |
+| Stok lengkap hanya di hub yang jauh | Hub jauh itu yang dipilih (kasus 4.2 — stok lengkap menang); tanpa warning. Ops bisa **ubah hub** ke yang dekat lalu transfer bila mau. |
+| Stok kurang / tidak ada di semua hub | Kasus 4.3: hub **terdekat** dipilih, order tetap dibuat, `stockWarnings[]` (+ `availableElsewhere` bila ada di hub lain, `[]` bila tidak ada di mana pun); picking nanti yang gagal (`INSUFFICIENT_STOCK`) dan ops yang menangani (transfer / ubah hub). |
+| Stok tersebar (SKU A di Kemang, SKU B di Blok M) | Tidak ada hub yang lengkap → kasus 4.3: terdekat + warning yang menyebut hub lain untuk SKU yang kurang. |
+| Dua hub berjarak sama (dalam kandidat yang sama) | Yang `hubID`-nya lebih kecil (deterministik, bisa direproduksi di log). |
 | Core-service tidak bisa dihubungi saat memilih hub | `503 FULFILLMENT_UNAVAILABLE`; tidak ada yang ditulis; client retry (idempoten). |
-| Hub kandidat tanpa koordinat | Dilewati saat memilih (dilog `warn`); bila itu satu-satunya kandidat → `422 NO_HUB_AVAILABLE`. |
+| Hub kandidat tanpa koordinat | Ranking terakhir (tetap bisa terpilih bila satu-satunya yang lengkap), dilog `warn`. |
 | Key revoked / expired / scope kurang | `401` / `403` dari `ApiKeyGuard`, dicatat `AUTH_REJECTED`. |
 | GET order milik client lain atau beda environment | `404 OUTBOUND_ORDER_NOT_FOUND`. |
 | Cancel saat order sudah `SHIPPED` atau setelahnya | `409 INVALID_STATUS_TRANSITION` (client membatalkan shipment lewat `POST /v1/integration/shipments/:id/cancel` bila masih boleh). |
@@ -336,7 +347,7 @@ F2-16. **Toggle** `ENABLE_OUTBOUND_ORDER_WEBHOOK` (boolean env, default `false`,
 ## Summary
 
 Satu paket kerja dua fase. **Fase 1 (prioritas):** controller `WarehouseIntegrationController` di modul `warehouse`
-(`/v1/integration/outbound-orders`), hub dipilih server (terdekat haversine; stok dicek di semua hub untuk `stockWarnings`),
+(`/v1/integration/outbound-orders`), hub dipilih server (hybrid: hub yang stoknya lengkap → terdekat; tidak ada → terdekat + `stockWarnings`),
 idempotensi by `externalID`, respons teredaksi, cancel, sandbox, plus **ubah hub** di detail ops saat `OPEN` — tanpa migration.
 **Fase 2 (di belakang `ENABLE_OUTBOUND_ORDER_WEBHOOK`, default `false`):** generalisasi outbox webhook ke topik
 (`SHIPMENT` | `OUTBOUND_ORDER`), event `ORDER_STATUS_CHANGED` dari modul `warehouse` lewat port yang diimplementasikan
@@ -375,23 +386,21 @@ backward-compatible; tanpa flag.
   `apiKeyId` diambil dari `auth` (perlu guard mengisi `auth.api_key_id` — lihat Key decisions no. 4).
 - **Alur status** tidak berubah: order → GI → submit shipping → shipment (`bookingId = externalID`) → webhook
   `shipment.*` → status balik ke order lewat PubSub. Lihat `outbound-order-shipment-sync.md`.
-- **Pemilihan hub (`OutboundHubSelector`, domain service WMS, pure + dua query):**
-  1. `WarehouseRepository.listHubsWithStorages()` → id hub yang punya storage tree (query baru, `SELECT DISTINCT hub_id
-     FROM wh_storages`, kecil).
-  2. `CoreService.listHubs()` → hub Dash (`GET /v1/pitstop?type=HUB&hasStaff=true&size=100`, **call baru** di
-     `CoreService`, di-cache 60 detik seperti masterdata di adapter) → koordinat; irisan dengan (1) = kandidat.
-  3. Pure: `haversineKm(tujuan, hub)` tiap kandidat → terkecil (seri → `hubId` terkecil) = `hubId`. Hub tanpa koordinat
-     dilewati. Diuji unit tanpa DB.
-  4. `WarehouseRepository.sumAllocatableBySkuAcrossHubs(hubIds, clientId, skus)` → available per (hub, SKU) dalam **satu**
-     query (varian `sumAllocatableBySku` yang sudah ada, `GROUP BY hub_id, sku`) → `stockWarnings` (hub terpilih) +
-     `availableElsewhere` (hub lain). **Tidak mengubah** pilihan hub.
-  Semua di luar transaksi (seperti `loadContext`); `hubId` + snapshot nama/kode + jarak diteruskan ke use case create yang
-  ada. Form manual & CSV **tidak berubah** (ops tetap memilih hub).
+- **Pemilihan hub (`OutboundHubSelectionService` — sudah ada di `main`, ditambah fallback hybrid):**
+  1. `WarehouseRepository.sumAllocatableByHub(clientId, skus)` (ada) → available per (hub, SKU) dalam satu query.
+  2. Kandidat penuh = hub yang menutup semua baris. Ada → `describeHubs(kandidat)` (ada, koordinat dari core) → terdekat
+     haversine (seri → id terkecil). **Sama dengan main.**
+  3. Tidak ada kandidat penuh (**baru**) → `WarehouseRepository.listHubsWithStorages()` (query baru, `SELECT DISTINCT hub_id
+     FROM wh_storages`, kecil) → `describeHubs` → terdekat; `stockWarnings` dari peta stok langkah 1 (hub terpilih vs qty;
+     `availableElsewhere` = hub lain yang memegang SKU itu). Tidak ada hub dengan storage/koordinat → `NO_HUB_AVAILABLE`.
+  4. Hasil `{ hubId, distanceKm, warnings[] }` ke `CreateIntegrationOutboundOrderUseCase` (ada) → respons `hubDistanceKm` +
+     `stockWarnings`; timeline menyebut hub + jarak (+ stok kurang bila ada).
+  Semua di luar transaksi (seperti sekarang). Form manual & CSV **tidak berubah** (ops tetap memilih hub).
 
 ```
 Client ──x-api-key──▶ WarehouseIntegrationController (warehouse)
                         ├─ create ──▶ CreateIntegrationOutboundOrderUseCase
-                        │               ├─ OutboundHubSelector (kandidat → terdekat haversine; stok semua hub → warnings)
+                        │               ├─ OutboundHubSelectionService (hub lengkap → terdekat; tidak ada → terdekat + stockWarnings)
                         │               └─▶ CreateOutboundOrderUseCase (ada, hubId hasil pilihan)
                         ├─ get/list ─▶ Get/ListIntegrationOutboundOrdersUseCase ─▶ OutboundOrderRepository (filter client+sandbox)
                         └─ cancel ──▶ CancelIntegrationOutboundOrderUseCase ──▶ CancelOutboundOrderUseCase (ada)
@@ -466,9 +475,9 @@ POST /v1/integration/outbound-orders/:id/cancel @Scopes(shipments:cancel)  HTTP 
 }
 ```
 
-Penjelasan field (semua masalah dijawab sekaligus di `errors[]`):
+Penjelasan field (semua masalah dijawab sekaligus dalam satu pesan `400`, format `field: pesan; field: pesan` — konvensi integrasi yang ada):
 
-| Field | Tipe | Wajib | Aturan | `errors[].field` |
+| Field | Tipe | Wajib | Aturan | prefix di pesan `400` |
 |---|---|---|---|---|
 | `externalID` | string | **ya** | trim, tidak kosong; unik per client **per environment**; **tanpa batas panjang**; nilai sama → `200 EXISTS` | `externalID` |
 | `serviceType` | `SAME_DAY` \| `NEXT_DAY` | tidak — default `SAME_DAY` | nilai lain → 422 | `serviceType` |
@@ -507,7 +516,7 @@ auth.is_sandbox`, `apiKeyId: auth.api_key_id`, `actor: key prefix` (`dash_live_k
   "result": "CREATED",                      // atau "EXISTS" (replay externalID)
   "order": { /* IntegrationOutboundOrderEntity, di bawah — order.hub = hub yang dipilih server */ },
   "hubDistanceKm": 3.1,                     // garis lurus tujuan → hub terpilih (informasi; tidak disimpan); null pada EXISTS
-  "stockWarnings": [                        // SKU yang qty-nya > available di hub terpilih; [] pada EXISTS
+  "stockWarnings": [                        // hanya kasus 4.3 (tidak ada hub yang lengkap): SKU yang qty-nya > available di hub terpilih; [] bila lengkap / EXISTS
     { "sku": "100001", "requested": 12, "available": 5,
       "availableElsewhere": [ { "hub": { "id": 874, "name": "Dash Hub Blok M", "code": "DASH_BLM" }, "available": 40 } ] }
   ]
@@ -519,7 +528,7 @@ auth.is_sandbox`, `apiKeyId: auth.api_key_id`, `actor: key prefix` (`dash_live_k
 | `result` | `CREATED` \| `EXISTS` | `EXISTS` = replay `externalID` di environment ini; body tidak dibandingkan |
 | `order` | `IntegrationOutboundOrderEntity` | status `OPEN` saat `CREATED`; apa adanya saat `EXISTS` |
 | `hubDistanceKm` | number \| null | garis lurus tujuan → hub terpilih, 1 desimal; informasi, tidak disimpan; `null` saat `EXISTS` |
-| `stockWarnings[]` | array | baris yang `qty`-nya > available di hub terpilih; `[]` bila semua tercukupi dan saat `EXISTS` |
+| `stockWarnings[]` | array | hanya kasus 4.3 (tidak ada hub yang lengkap): baris yang `qty`-nya > available di hub terpilih; `[]` bila ada hub lengkap dan saat `EXISTS` |
 | `stockWarnings[].sku` | string | uppercase |
 | `stockWarnings[].requested` | number | qty yang dikirim |
 | `stockWarnings[].available` | number | available di hub terpilih = on hand − reserved, stok REGULAR (`sumAllocatableBySku`) |
@@ -539,7 +548,7 @@ auth.is_sandbox`, `apiKeyId: auth.api_key_id`, `actor: key prefix` (`dash_live_k
   "destination": { "address": "…", "latitude": -6.2615, "longitude": 106.8139, "notes": "…" },
   "lines": [ { "sku": "100001", "itemName": "Atlas Headstrap", "uomName": "pcs", "qty": 12 } ],
   "notes": "…",
-  "fulfillment": { "waybill": null },        // AWB, terisi setelah SHIPPED; shipment dicari lewat waybill / bookingId = externalID (tanpa shipmentID)
+  "fulfillment": { "carrier": null, "waybill": null },   // setelah SHIPPED: carrier DASH | LION_PARCEL | HANDOVER (penanda internal / 3PL / serah terima), waybill = AWB Dash atau 3PL (null untuk HANDOVER)
   "cancellation": null,                      // { reason, cancelledAt } bila CANCELLED
   "createdAt": "…", "updatedAt": "…"
 }
@@ -567,7 +576,8 @@ ops, `distance`, `isSandbox` (tersirat dari key), `createdBy`.
 | `lines[].itemName` / `uomName` | string | tidak | snapshot katalog saat create |
 | `lines[].qty` | number | tidak | maks 2 desimal |
 | `notes` | string | tidak — `""` bila kosong | |
-| `fulfillment.waybill` | string | **ya** | AWB, terisi saat `SHIPPED`; `null` sebelumnya |
+| `fulfillment.carrier` | `DASH` \| `LION_PARCEL` \| `HANDOVER` | **ya** | penanda pengiriman: `DASH` = kurir Dash (internal, ada shipment + webhook shipment), `LION_PARCEL` = 3PL (AWB 3PL, tanpa webhook shipment), `HANDOVER` = serah terima di hub (tanpa AWB, order langsung `DELIVERED`); `null` sebelum `SHIPPED`; dipilih ops saat submit shipping |
+| `fulfillment.waybill` | string | **ya** | AWB Dash (`DL…`) atau AWB 3PL, terisi saat `SHIPPED`; `null` sebelumnya dan untuk `HANDOVER` |
 | `cancellation` | `{ reason, cancelledAt, by }` | **ya** | hanya saat `CANCELLED`; `by` = `CLIENT` \| `DASH` (dari `cancelled_by` / origin timeline) |
 | `createdAt` / `updatedAt` | ISO-8601 UTC | tidak | `updatedAt` berubah di tiap perubahan status/data — kunci polling murah |
 
@@ -745,7 +755,7 @@ Header & tanda tangan sama dengan shipment: `content-type: application/json`, `x
       "serviceType": "SAME_DAY", "orderDate": "2026-10-22", "expectedDeliveryDate": "2026-10-24",
       "recipient": { "name": "…", "phone": "…" }, "destination": { "address": "…", "latitude": -6.26, "longitude": 106.81, "notes": "" },
       "lines": [ { "sku": "100001", "itemName": "Atlas Headstrap", "uomName": "pcs", "qty": 12 } ],
-      "notes": "", "fulfillment": { "waybill": "DLSWR2610081QPR5UD" },
+      "notes": "", "fulfillment": { "carrier": "DASH", "waybill": "DLSWR2610081QPR5UD" },
       "cancellation": null, "createdAt": "…", "updatedAt": "…"
     }
   }
@@ -924,8 +934,8 @@ di-merge dalam keadaan **mati** (`ENABLE_OUTBOUND_ORDER_WEBHOOK=false`) dan diny
    (terdekat haversine, stok semua hub → `stockWarnings`) + DTO/entity sesuai tabel field; `ApiKeyGuard` mengisi
    `auth.api_key_id`; **ubah hub** (`PATCH …/:id` + `hubID`, `GET …/:id/hub-options`, data history `HUB_UPDATED`) + FE ops;
    koleksi "Dash Integration/Warehouse/Outbound Orders"; kontrak partner `docs/api-integration/outbound-order.md`. **Tanpa
-   migration.** Staging: skenario § Testing fase 1 (create dekat Blok M dengan stok hanya di Kemang → Blok M + warning
-   menyebut Kemang; EXISTS; list; cancel; ubah hub saat OPEN; picking → submit shipping → webhook `SHIPMENT` dengan
+   migration.** Staging: skenario § Testing fase 1 (create dekat Blok M dengan stok lengkap hanya di Kemang → Kemang tanpa
+   warning; stok kurang di semua hub → terdekat + warning; EXISTS; list; cancel; ubah hub saat OPEN; picking → submit shipping → webhook `SHIPMENT` dengan
    `bookingId = externalID`). Pilot: key `dash_test_` → `dash_live_` (scope `shipments:*`).
 2. **PR-2 — Fase 2, modul `webhook` (BE-1):** migration 1, 2, 4 (`topic` endpoint; `topic`/`ref_*` outbox, `endpoint_id`
    nullable; `webhook_delivery_attempts`); enqueue generik; attempts di deliver; group key `ref_id`; `topic` di endpoint API;
@@ -950,9 +960,11 @@ Increment terkecil yang aman: **PR-1 saja**.
 
 ### Fase 1 — API
 
-- **Unit (jest):** `OutboundHubSelector` (pure) — hub terdekat dipilih walau stoknya kurang; seri jarak → `hubId` terkecil; hub
-  tanpa koordinat dilewati; tanpa kandidat → `NO_HUB_AVAILABLE`; `stockWarnings` hanya SKU yang kurang di hub terpilih,
-  `availableElsewhere` berisi hub lain yang memegang SKU itu (urut available DESC), kosong bila tidak ada di mana pun. Use case create — `CREATED`, `EXISTS` (replay), mapping `auth → entity`
+- **Unit (jest):** `OutboundHubSelectionService` — ada hub lengkap: terdekat di antara yang lengkap (hub dekat yang kurang
+  kalah), seri → `hubId` terkecil, hub tanpa koordinat ranking terakhir, tanpa warning; tidak ada yang lengkap: terdekat dari
+  hub ber-storage + `stockWarnings` hanya SKU yang kurang di hub terpilih, `availableElsewhere` urut available DESC, `[]`
+  bila tidak ada di mana pun; stok tersebar → kasus 4.3; tidak ada hub ber-storage → `NO_HUB_AVAILABLE`; sandbox > 100 →
+  dibuat + warning (bukan 422). Use case create — `CREATED`, `EXISTS` (replay), mapping `auth → entity`
   (client/sandbox/key/actor), `hubID` di body → 422, core-service gagal → 503 tanpa tulis; get/list — filter client + sandbox, 404 cross-client, redaksi
   (snapshot entity tidak memuat field terlarang); cancel — delegasi + 409.
 - **Ubah hub:** use case update — `hubID` saat `OPEN` mengganti `hub_id` + snapshot, menulis data history `HUB_UPDATED`,
@@ -996,13 +1008,13 @@ Increment terkecil yang aman: **PR-1 saja**.
 
 ### Fase 1 — API
 
-1. **Hub dipilih server = hub terdekat (haversine); stok hanya informasi** — mengubah kontrak v2 (`hubID` wajib di body).
-   Alasan (keputusan Yogi 2026-10-22, dipertegas 2026-10-26): client tidak tahu di gudang mana stoknya, jadi `hubID`
-   dibuang dari body. Jarak garis lurus cukup untuk memilih (bukan jarak order; pure, tanpa Mapbox). Stok **tidak**
-   menggeser pilihan: hub terdekat tetap dipilih, dan stok dicek di **semua** hub client agar `stockWarnings` menyebut dari
-   hub mana stok bisa ditransfer — keputusan transfer/split tetap di ops, sama seperti form. Hanya pintu API; form & CSV
-   tetap ops yang memilih. Bila nanti ingin "hub terdekat yang punya stok", ubah skor di `OutboundHubSelector` tanpa
-   mengubah kontrak.
+1. **Hub dipilih server, aturan hybrid: hub yang stoknya lengkap menang (terdekat di antaranya), kalau tidak ada → terdekat
+   + peringatan, bukan `422`.** Mengubah kontrak v2 (`hubID` wajib di body). Alasan (keputusan Yogi 2026-10-22, hybrid
+   2026-10-28): client tidak tahu di gudang mana stoknya, jadi `hubID` dibuang. Kasus normal (stok ada) memakai perilaku
+   `main` — order jatuh ke hub yang bisa langsung picking, ops tenang. Kasus stok kurang/tersebar **tidak menolak** client
+   (`main` menjawab `422 INSUFFICIENT_STOCK`) — sama dengan form yang hanya memperingatkan — supaya order tetap tercatat dan
+   ops yang memutuskan transfer / ubah hub; client melihat `stockWarnings` + `availableElsewhere`. Jarak garis lurus cukup
+   untuk memilih (bukan jarak order; pure, tanpa Mapbox). Hanya pintu API; form & CSV tetap ops yang memilih.
 2. **Idempotensi by `externalID` saja**, tidak membandingkan body: sama dengan `POST /v1/integration/shipments`
    (`bookingId`) dan CSV; menghindari perbedaan semantik "sama/beda" yang membingungkan integrator.
 3. ~~**Tidak ada webhook untuk status gudang**~~ — **dibalik 2026-10-22** (keputusan Yogi setelah mock): status gudang
@@ -1093,6 +1105,30 @@ error Bahasa Indonesia seperti `WebhookErrors`/`WarehouseErrors`; lebar kolom da
 12. Order **MANUAL/CSV** ikut dikirim (TRD ini: ya, per client). Konfirmasi tidak ada client yang kaget menerima event order
    yang dibuat ops untuknya.
 
+## Delta vs implementasi di `main` (dicek 2026-10-28)
+
+Fase 1 **sudah di-merge** oleh engineer: PR #516 (`feat/wms-integration-outbound-orders`, create/get/list/cancel,
+`OutboundHubSelectionService`, sandbox hub 0 + 100 unit/SKU) dan PR #520 (`POST …/:id/simulate`). Link: PR #118 (allow-list
+akses API per client), #120 (docs outbound order), #121 (step sandbox order). Dokumen ini **mengikuti `main`** untuk hal yang
+tidak mengubah produk, dan menyisakan **CR** berikut untuk engineer:
+
+| # | Topik | Di `main` sekarang | Keputusan (dokumen ini) | Tindakan |
+|---|---|---|---|---|
+| CR-1 | Aturan hub | kandidat = hub yang stoknya lengkap; tidak ada → `422 INSUFFICIENT_STOCK`, order tidak dibuat | **Hybrid** Req. 4: lengkap → terdekat (sama); tidak ada → terdekat dari hub ber-storage + `stockWarnings` + `availableElsewhere`, order dibuat; `hubDistanceKm` di respons | **CR** — fallback baru di `OutboundHubSelectionService` + `listHubsWithStorages` + respons |
+| CR-2 | `fulfillment` | `null` → `{ carrier, status, waybill, shipmentID }` | `{ carrier, waybill }` (carrier = penanda Dash/internal vs 3PL vs serah terima; tanpa `status` — sudah di `status` order — dan tanpa `shipmentID` — shipment dicari lewat waybill / `bookingId`) | **CR** — mapper + entity + Link docs |
+| CR-3 | Ubah hub (ops) | belum ada | Req. 13: `PATCH …/:id` + `hubID` (hanya `OPEN`, `REGULAR`), `GET …/:id/hub-options`, data history `HUB_UPDATED`, FE ops | **CR** |
+| CR-4 | Batas panjang teks | `externalID` ≤ 64, cancel `reason` ≤ 500 | tanpa batas panjang (aturan WMS: kolom `text`, hanya wajib/angka) | **CR** — hapus `MaxLength` |
+| CR-5 | Sandbox stok > 100 | `422` | dibuat + `stockWarnings` (konsisten hybrid) | **CR** (bagian CR-1) |
+| — | Format error validasi | `400`, satu pesan `field: msg; field: msg`, tanpa `errors[]`/`code` | **ikut main** (konvensi integrasi shipment) | dokumen diubah |
+| — | Order milik client lain | `403` (env lain / transfer → `404`) | **ikut main** | dokumen diubah |
+| — | Filter daftar | `search` (contains: code, externalID, penerima, waybill) | **ikut main** (menggantikan `externalID` exact) | dokumen diubah |
+| — | Cancel `reason` | opsional, default "Dibatalkan client lewat API" | **ikut main** (tanpa batas panjang → CR-4) | dokumen diubah |
+| — | Sandbox | hub `id 0`, 100 unit/SKU, tidak bisa picking, `simulate` | **ikut main** (Req. 9) | dokumen diubah |
+| — | `lines` | DTO ≤ 200, validator 100 | 1–100 (validator yang berlaku) | dokumen tetap; DTO boleh disamakan |
+| F2 | Webhook `OUTBOUND_ORDER` | belum ada ("planned" di `docs/warehouse/wms-client-api-outbound-orders.md`) | § Fase 2, di belakang `ENABLE_OUTBOUND_ORDER_WEBHOOK` | **PR-2 / PR-3** |
+
+Urutan kerja yang disarankan: CR-1 + CR-5 (satu PR), CR-2 + CR-4 (satu PR kecil), CR-3 (BE + FE ops), lalu fase 2.
+
 ## Changelog
 
 - 2026-10-22 — created (detail dari kontrak fase 2 `wms-prd-trd-v2.md`)
@@ -1114,3 +1150,6 @@ error Bahasa Indonesia seperti `WebhookErrors`/`WarehouseErrors`; lebar kolom da
   dipisah ke `nest-logistic-service/docs/api-integration/outbound-order.md`; `GET /webhook-topics`, `WEBHOOK_TOPIC_DISABLED`
 - 2026-10-26 — **digabung** menjadi satu dokumen: fase 1 API (prioritas) + fase 2 webhook (toggle) dikerjakan sekarang;
   `wms-outbound-order-webhook-prd-trd-v1.md` dihapus (isinya di § Fase 2)
+- 2026-10-28 — aturan hub **hybrid** (lengkap → terdekat = main; tidak ada → terdekat + warning, bukan 422); `fulfillment`
+  = `{ carrier, waybill }` (carrier = penanda Dash/3PL/serah terima); sandbox & simulate sesuai #516/#520; error `400` satu
+  pesan, `403` client lain, `search` — ikut main; § Delta vs main + daftar CR-1…CR-5

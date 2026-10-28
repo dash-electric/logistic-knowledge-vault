@@ -484,7 +484,7 @@ function payloadOf(row) {
     return { status: 'Success', message: 'OK', data: { event, shipment: { id: '7f0a3c1e-…', waybill: row.ref, bookingId: row.ext, status: e.code, recipient: { name: row.recipient, phone: '0812…' }, items: ['…'] } } };
   }
   event.reason = e.reason || null;
-  return { status: 'Success', message: 'OK', data: { event, order: { id: '9c1e4f0a-…', code: row.ref, externalID: row.ext, status: e.code, hub: { id: 906, name: row.hub, code: 'DASH_KMG' }, lines: [{ sku: '100001', itemName: 'Atlas Headstrap', uomName: 'pcs', qty: 12 }], fulfillment: { waybill: row.waybill || null } } } };
+  return { status: 'Success', message: 'OK', data: { event, order: { id: '9c1e4f0a-…', code: row.ref, externalID: row.ext, status: e.code, hub: { id: 906, name: row.hub, code: 'DASH_KMG' }, lines: [{ sku: '100001', itemName: 'Atlas Headstrap', uomName: 'pcs', qty: 12 }], fulfillment: { carrier: row.waybill ? 'DASH' : null, waybill: row.waybill || null } } } };
 }
 
 function renderList() {
@@ -564,9 +564,9 @@ function renderDocs() {
       <a>Overview</a><a>Authentication</a><a>Errors</a><span class="sep"></span><a>Create</a><a>Get detail</a><a>Cancel</a><span class="sep"></span><a>Webhooks</a><span class="sep"></span><a class="on">Outbound order<span class="new" style="margin-left:6px">New</span></a><a>Order webhooks</a>
     </div>
     <section class="card" id="doc-outbound">
-      <div class="sec-head"><div><h2>Outbound order — warehouse orders</h2><p>For clients whose stock sits in a Dash warehouse. Dash picks the hub (the nearest warehouse hub to the destination; stock is checked across all your hubs and reported as warnings), picks and packs, then ships — the shipment appears in your Shipment webhooks with <code>bookingId</code> = your <code>externalID</code>.</p></div></div>
+      <div class="sec-head"><div><h2>Outbound order — warehouse orders</h2><p>For clients whose stock sits in a Dash warehouse. Dash picks the hub (the nearest hub that holds all the stock; if none does, the nearest hub plus stockWarnings — the order is still created), picks and packs, then ships — the shipment appears in your Shipment webhooks with <code>bookingId</code> = your <code>externalID</code>.</p></div></div>
       <div class="flow">
-        <div class="step"><div class="n"><i class="ri-add-box-line"></i>Create</div><div class="m"><b>POST</b>/v1/integration/outbound-orders</div><p>Store <code>id</code> + <code>code</code>. Timed out? Retry the same payload — idempotent by <code>externalID</code> (<code>result: EXISTS</code>). No <code>hubID</code>: Dash picks the nearest hub (haversine); stock across all hubs comes back as <code>stockWarnings</code>.</p></div>
+        <div class="step"><div class="n"><i class="ri-add-box-line"></i>Create</div><div class="m"><b>POST</b>/v1/integration/outbound-orders</div><p>Store <code>id</code> + <code>code</code>. Timed out? Retry the same payload — idempotent by <code>externalID</code> (<code>result: EXISTS</code>). No <code>hubID</code>: Dash picks the nearest hub that holds all the stock, or the nearest hub + <code>stockWarnings</code> when none does.</p></div>
         <div class="step"><div class="n"><i class="ri-radar-line"></i>Track or webhook</div><div class="m"><b>GET</b>/v1/integration/outbound-orders/:id</div><div class="m"><b>POST</b>/v1/integration/webhook-endpoints</div><p>Poll for status and lines, or register an outbound-order endpoint and get each status change pushed.</p></div>
         <div class="step"><div class="n"><i class="ri-close-circle-line"></i>Cancel</div><div class="m"><b>POST</b>/v1/integration/outbound-orders/:id/cancel</div><p>Only before <code>SHIPPED</code>. After that, cancel the shipment instead — if it has not left the hub.</p></div>
         <div class="step"><div class="n"><i class="ri-truck-line"></i>Delivery</div><div class="m"><b>GET</b>/v1/integration/shipments?search=&lt;waybill&gt;</div><p><code>SHIPPED</code> carries <code>fulfillment.waybill</code> — from here on it is a normal shipment: webhooks (<code>bookingId</code> = your <code>externalID</code>), detail by search, public tracking by waybill.</p></div>
