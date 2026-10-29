@@ -547,6 +547,31 @@ Diserahkan ke implementer: nama file (`export-outbound-orders.usecase.ts`, `outb
 `warehouse-shipment-distance.hook.ts`); bentuk select kota FE (reuse combobox DS); apakah `GET /v1/warehouses/cities`
 perlu `search` (master ~500 baris — cukup filter di FE).
 
+## E — Kota ikut ke shipment & delivery-service (tambahan 2026-10-29)
+
+Permintaan Yogi: delivery-service (DS) punya kapabilitas menerima **kota** saat logistic men-dispatch (bulk create
+delivery), kota-nya **opsional**; dan kota tampil di download outbound order (sudah: kolom "Kota Tujuan", § A).
+
+**DS (`ts-delivery-service`, branch `feat/bulk-delivery-city`)** — `t_addresses` sudah punya `origin_city` /
+`destination_city` (diisi dari reverse-geocode `addressesByCoordinate` saat bulk create). Perubahan: validasi
+`POST /v1/deliveries/bulk` menerima `origin.city` dan `destination.city` (string opsional, trim, boleh null/kosong);
+use case v2 memakai nilai kiriman **lebih dulu**, baru hasil geocode (`item.destination.city || geocode.city || null`).
+Tanpa migrasi, kontrak lama tetap valid.
+
+**Logistic (`nest-logistic-service`, branch `feat/wms-outbound-order-cr1`)** — kolom baru `shipments.destination_city`
+(migration `0125_shipment_destination_city`, nullable):
+- diisi saat **submit shipping** dari `wh_outbound_orders.destination_city` (nama master core), dan mengikuti **Ubah**
+  WMS (kota berubah → shipment ikut, lewat `FulfillmentDestinationEntity.city` → `ShipmentDestinationService`,
+  history `destination_city`); Ubah di menu Shipments tidak menyentuhnya (tidak ada resolver di sana);
+- client API `POST /v1/integration/shipments` menerima `destination.city` (label bebas, ≤ 200 char) → disimpan;
+  CSV import / H2H: null;
+- **Dispatch bridge** (`commit-dispatch` → `POST /v1/deliveries/bulk`) mengirim `destination.city` hanya bila ada;
+- `GET /v1/shipments/:id` & list memuat `destinationCity` (buat FE nanti);
+- backfill shipment lama: `POST /internal/v1/warehouses/outbound-orders/backfill-shipment-city?limit=` (adapter).
+
+Catatan: kota di shipment = **label** (bukan FK master) — DS hanya menyimpan teks; sumber kebenaran id master tetap
+`wh_outbound_orders.destination_city_id`.
+
 ## Open questions
 
 1. **`RETURNED`** (barang kembali ke hub setelah gagal kirim): tetap manual, atau otomatis masuk sebagai stok `RETURN`
@@ -565,6 +590,8 @@ perlu `search` (master ~500 baris — cukup filter di FE).
   alamat + master core; jarak dispatch disinkron ke order, tampil di export & detail)
 - 2026-10-26 — review Yogi: status cancel konsisten `CANCELLED`; kota hanya master core (teks → reverse-geocode core →
   kosong + peringatan, ops pilih dari daftar core di create/Ubah); export wajib rentang tanggal maks 2 bulan
+- 2026-10-29 — § E: kota ikut ke `shipments.destination_city` (migration 0125) dan dikirim ke delivery-service
+  `destination.city` (opsional) saat dispatch; DS `feat/bulk-delivery-city` menerima & memprioritaskannya
 - 2026-10-26 — diimplementasikan: BE `feat/wms-outbound-order-cr1` (migration `0124_wms_outbound_order_cr1`), FE
   `feat/wms-outbound-order-cr1`; e2e `e2e/warehouse-outbound-cr1.e2e.spec.ts`. Resolver teks memindai semua segmen koma
   alamat (helper saja melewatkan "…, Jakarta Selatan"); marker Kota/Kab. dicocokkan sebagai kata utuh (master punya
