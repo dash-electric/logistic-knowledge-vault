@@ -28,13 +28,13 @@ satu rilis:
 |---|---|---|
 | **A** | **Export CSV** outbound order | Tombol Download CSV di daftar, filter yang sama dengan daftar, satu baris per baris produk. |
 | **B** | **Stok kembali saat cancel** | Cancel setelah SHIPPED (langsung dari order, atau karena shipment-nya dibatalkan dan tersinkron) mengembalikan stok ke bin asal **dengan** ledger + timeline. Hari ini order hanya jadi `FAILED` dan stok hilang sampai GR retur manual. |
-| **C** | **Kota tujuan** | `destination_city` **selalu dari master kota core-service**: dicocokkan dari teks alamat, lalu reverse-geocode koordinat lewat core; tidak ketemu → kosong + peringatan, ops pilih sendiri dari daftar kota core (create & Ubah). Tampil di detail, daftar, export, filter. |
+| **C** | **Kota tujuan** | `destination_city` **selalu dari master kota core-service**: dicocokkan dari teks alamat saja (tanpa geocode / Google); tidak ketemu → kosong + peringatan, ops pilih sendiri dari daftar kota core (create & Ubah). Tampil di detail, daftar, export, filter. |
 | **D** | **Jarak dari dispatch → order** | Jarak hub→tujuan yang diukur dispatch (Mapbox) disalin ke order bila order belum punya; tampil di detail (sudah) dan export. |
 
 Semua additive, tanpa flag. Yang menyentuh stok (B) mengikuti aturan "aksi balik hanya sebelum end state" (v2 § Aksi balik).
 
 > **Status rilis (2026-10-29).** Diprioritaskan ulang oleh Yogi: yang dirilis dulu adalah **C (kota tujuan)** — cityID +
-> cityName di data order (dari alamat → reverse-geocode core → kosong), bisa diedit (ops cari kota dari master core di
+> cityName di data order (dari teks alamat vs master core → kosong; **tanpa geocode/Google**), bisa diedit (ops cari kota dari master core di
 > logistic web), tampil di detail (plus **kurir: nama + no. HP**, dari rider shipment Dash), ikut di export, dan tampil
 > juga di **Link** (portal klien, read-only). Branch: BE `feat/wms-outbound-city` (migration `0125_wms_outbound_city`),
 > FE `feat/wms-outbound-city`, Link `feat/wms-outbound-city` — semua dari `main` 2026-10-29.
@@ -102,7 +102,7 @@ Semua additive, tanpa flag. Yang menyentuh stok (B) mengikuti aturan "aksi balik
   dengan `fulfillment.status = AT_HUB` (carrier Dash): membatalkan shipment lewat gateway lalu restock yang sama — satu
   aksi, bukan undo-ship + cancel. (3) Order TRANSFER: PO TRANSFER tujuan ikut dibatalkan (seperti undo-ship).
 - **C.** Kolom `destination_city_id` + `destination_city` (snapshot nama master core) diisi otomatis saat create (form/CSV/API)
-  dan saat alamat diubah: teks alamat → master; gagal → reverse-geocode koordinat lewat core → master; gagal → **kosong**
+  dan saat alamat diubah: teks alamat → master; gagal → **kosong** (tanpa reverse-geocode — keputusan Yogi 2026-10-29)
   + peringatan di form/detail. Ops memilih/mengganti kota dari daftar kota core di **create** dan **Ubah**; CSV
   `destination_city` opsional (harus ada di master). Tampil di detail, daftar, export, filter; backfill order lama.
 - **D.** Hook jarak Shipments → WMS: setelah dispatch mengisi `shipments.distance`, order yang `distance`-nya null diisi
@@ -362,12 +362,12 @@ memakai upsert.
 
 ```
 GET   /v1/warehouses/cities                                → data: [{ id, name, provinceId }]   (proxy cache master core, untuk select FE)
-GET   /v1/warehouses/outbound-orders/resolve-city          ?address=&latitude=&longitude=   → { city: { id, name } | null, source: "ADDRESS" | "GEOCODE" | null, warning?: string }
+GET   /v1/warehouses/outbound-orders/resolve-city          ?address=   → { city: { id, name } | null, source: "ADDRESS" | null, warning?: string }
 PATCH /v1/warehouses/outbound-orders/:id                   body.destination.cityID?: number | null   (opsional; null = kosongkan; tidak dikirim = resolver bila alamat/koordinat berubah)
 POST  /v1/warehouses/outbound-orders                       body.destination.cityID? (sama)
 POST  /v1/integration/outbound-orders                      (tanpa input kota dari klien) — entity: destination.cityID: number | null, destination.city: string | null (resolver dari alamat → koordinat; tampil juga di Link sandbox & docs API)
 GET   /v1/warehouses/outbound-orders(+/export)             ?destinationCityID=<id>|none
-POST  /internal/v1/warehouses/outbound-orders/backfill-city  ?limit=200&maxGeocode=200   → { scanned, matched, geocoded, unresolved }   (ADMIN | INTERNAL_SERVICE)
+POST  /internal/v1/warehouses/outbound-orders/backfill-city  ?limit=500   → { scanned, matched, unresolved }   (ADMIN | INTERNAL_SERVICE; teks alamat saja)
 ```
 
 `OutboundOrderEntity` + `destinationCity: string | null`, `destinationCityID: number | null`. Peringatan di FE diturunkan
@@ -376,20 +376,17 @@ yang membawa `warning` dipakai form saat mengetik. CSV kolom opsional `destinati
 `OUTBOUND_CSV_COLUMNS` dan `OUTBOUND_CSV_ORDER_COLUMNS`, template) — nama yang tidak cocok master disimpan kosong (tidak
 ada warning dry-run khusus; ops melihatnya di daftar/filter "Belum dikenali").
 
-`DestinationCityResolver` (domain service, pure matching + dua sumber lewat port `CityMasterPort`):
+`DestinationCityResolver` (domain service, pure matching; satu sumber lewat port `CityMasterPort` — **tanpa geocoder**):
 
 ```
-resolve({ address, latitude, longitude, hint? }) :
+resolve({ address, hint? }) :
   master   = cityMaster.list()                                   // GET /v1/cities, cache 1 h; [] bila core gagal
-  m1 = match(hint ?? AddressHelper.city(address), master)       // (a) teks
-  if m1 → { city: m1, source: ADDRESS }
-  geo = cityMaster.reverseGeocodeCity(latitude, longitude)      // (b) GET /v1/poi/map/place/address-by-geolocation → .city ; null bila gagal
-  m2 = match(geo, master)
-  if m2 → { city: m2, source: GEOCODE }
-  → { city: null, source: null, warning: "Kota tidak ditemukan dari alamat/koordinat — pilih manual" }
+  kandidat = [hint, AddressHelper.city(address), ...segmen alamat dipisah koma (dari belakang)]
+  for c in kandidat: m = match(c, master); if m → { city: m, source: ADDRESS }
+  → { city: null, source: null, warning: "Kota tidak ditemukan dari teks alamat — pilih manual" }
 
 match(candidate, master):
-  norm(x) = lower(x) tanpa awalan "kota administrasi|kota adm.|kota|kabupaten|kab." , tanpa tanda baca, spasi tunggal
+  norm(x) = lower(x) tanpa awalan "kota administrasi|kota adm.|kota|kabupaten|kab." (kata utuh), tanpa tanda baca, spasi tunggal
   typeOf(x) ∈ { KOTA, KABUPATEN, null } dari awalan sebelum dinormalisasi
   exact   = master.filter(m => norm(m.name) === norm(candidate))
   exact.length === 1 → it
@@ -397,6 +394,9 @@ match(candidate, master):
   exact.length === 0 → partial = master.filter(m => norm(m.name).includes(norm(candidate)) || norm(candidate).includes(norm(m.name)))
                        partial.length === 1 → it ; selain itu null
 ```
+
+Keputusan 2026-10-29 (Yogi): fallback reverse-geocode (core → Google) **dibuang** — biaya & ketergantungan Google tidak
+sepadan; alamat tanpa nama kota dibiarkan kosong dan ops memilih dari master. Backfill lokal: 169 order → 159 kena teks.
 
 ### D — Jarak
 
@@ -481,8 +481,8 @@ di-restock otomatis (lihat Rollout 3 — skrip audit sekali jalan untuk ops).
 Rilis 1 (kota) — tiga PR dari `main`, DS tidak disentuh:
 
 1. **PR BE** `feat/wms-outbound-city` (migration `0125_wms_outbound_city`: 2 kolom + index): deploy staging → jalankan
-   `POST /internal/v1/warehouses/outbound-orders/backfill-city?limit=200&maxGeocode=200` berulang sampai `scanned = 0`
-   (text pass gratis, geocode dibatasi) → cek daftar/detail/export (kolom `ID Kota Tujuan`, `Kota Tujuan`).
+   `POST /internal/v1/warehouses/outbound-orders/backfill-city?limit=500` berulang sampai `scanned = 0`
+   (teks alamat saja, tanpa panggilan Google) → cek daftar/detail/export (kolom `Destination City ID`, `Destination City`).
 2. **PR FE** `feat/wms-outbound-city` setelah BE di staging: Kota (create otomatis + pilih, Ubah, filter "Kota tujuan"
    incl. "Belum dikenali", daftar, detail), **Kurir** (nama + telepon) di detail, kolom CSV import `destination_city`.
 3. **PR Link** `feat/wms-outbound-city` (bisa bareng FE): kota di daftar & detail Outbound request, sandbox order detail,
@@ -615,3 +615,6 @@ Catatan: kota di shipment = **label** (bukan FK master) — DS hanya menyimpan t
   menampilkan kota tanpa peringatan. Header CSV outbound request diganti **bahasa Inggris, nama mengikuti kolom
   `wh_outbound_orders`** gaya export shipment (`Code`, `Client Name`, `Destination City ID`, `Destination City`, `Fulfillment
   Status`, `Created Date`, …); urutan & format sel tetap; kolom kota di set bersama (ops + Link).
+- 2026-10-29 — **fallback reverse-geocode dibuang** (Yogi): kota hanya dari teks alamat vs master core atau pilihan ops;
+  `CityMasterPort` tinggal `listCities()`, `resolve-city?address=` saja, backfill tanpa `maxGeocode`. Edit kota setelah
+  dispatch tidak diubah (order lama cukup di-backfill).
