@@ -611,3 +611,7 @@ Catatan: kota di shipment = **label** (bukan FK master) — DS hanya menyimpan t
   main #522, + Link). Branch baru dari `main`: BE/FE/Link `feat/wms-outbound-city` (migration `0125_wms_outbound_city`);
   e2e FE `e2e/warehouse-outbound-city.e2e.spec.ts`. Client API: `destination.cityID` / `city` di response (resolver juga
   jalan untuk order dari API). B, D, E ditunda — kode tetap di `feat/wms-outbound-order-cr1`; DS tidak disentuh.
+- 2026-10-29 — Yogi: peringatan "kota belum dikenali" hanya di logistic web (Alert di atas detail + inline + daftar); Link tetap
+  menampilkan kota tanpa peringatan. Header CSV outbound request diganti **bahasa Inggris, nama mengikuti kolom
+  `wh_outbound_orders`** gaya export shipment (`Code`, `Client Name`, `Destination City ID`, `Destination City`, `Fulfillment
+  Status`, `Created Date`, …); urutan & format sel tetap; kolom kota di set bersama (ops + Link).
