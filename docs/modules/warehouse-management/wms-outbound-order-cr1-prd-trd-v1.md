@@ -583,6 +583,22 @@ Tanpa migrasi, kontrak lama tetap valid.
 Catatan: kota di shipment = **label** (bukan FK master) — DS hanya menyimpan teks; sumber kebenaran id master tetap
 `wh_outbound_orders.destination_city_id`.
 
+## F — Ubah hub & service type (tambahan 2026-10-29)
+
+**Ubah hub / warehouse** (permintaan Yogi, "edit warehouse sebelum picking"): `PATCH /v1/warehouses/outbound-orders/:id`
+menerima `hubID` (+ `hubName`, `hubCode` snapshot) di samping penerima/tujuan. Aturan:
+- Hanya saat **OPEN** (belum ada goods issue) dan bukan order yang dibuat dokumen transfer warehouse (`hubTransfer`
+  null) — selain itu 409 `INVALID_STATUS_TRANSITION` (`CHANGE_HUB`).
+- Hub baru harus WMS-enabled (punya storage tree) → 422 `hubID` kalau tidak; order TRANSFER: hub baru ≠ hub tujuan.
+- Jarak hub→tujuan dihitung ulang dari hub baru (mode `DISTANCE_WMS_CALCULATION_MODE`), kecuali diketik ops.
+- Data history `HUB_UPDATED` (`hub_id`, `hub_name` from→to) **dan** baris timeline "Hub diubah: A → B" (pindah hub =
+  pekerjaan gudang lain, bukan sekadar edit data).
+- FE: field "Hub / warehouse" di modal Ubah (HubSelect; disabled + hint "hanya sebelum picking" di luar OPEN); dikirim
+  hanya kalau berubah. e2e di `warehouse-outbound-city.e2e.spec.ts` (pindah 906 → 874, 409 setelah picking).
+
+**Service type**: form create outbound request sementara hanya **SAME_DAY** (opsi Next day tampil tapi disabled + hint);
+API klien & CSV tetap menerima NEXT_DAY.
+
 ## Open questions
 
 1. **`RETURNED`** (barang kembali ke hub setelah gagal kirim): tetap manual, atau otomatis masuk sebagai stok `RETURN`
@@ -618,3 +634,5 @@ Catatan: kota di shipment = **label** (bukan FK master) — DS hanya menyimpan t
 - 2026-10-29 — **fallback reverse-geocode dibuang** (Yogi): kota hanya dari teks alamat vs master core atau pilihan ops;
   `CityMasterPort` tinggal `listCities()`, `resolve-city?address=` saja, backfill tanpa `maxGeocode`. Edit kota setelah
   dispatch tidak diubah (order lama cukup di-backfill).
+- 2026-10-29 — § F: Ubah hub (hanya OPEN, hub WMS-enabled, jarak dihitung ulang, history `HUB_UPDATED` + timeline);
+  form create: service type SAME_DAY saja (Next day disabled).
