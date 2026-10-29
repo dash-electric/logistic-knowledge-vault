@@ -33,6 +33,16 @@ satu rilis:
 
 Semua additive, tanpa flag. Yang menyentuh stok (B) mengikuti aturan "aksi balik hanya sebelum end state" (v2 § Aksi balik).
 
+> **Status rilis (2026-10-29).** Diprioritaskan ulang oleh Yogi: yang dirilis dulu adalah **C (kota tujuan)** — cityID +
+> cityName di data order (dari alamat → reverse-geocode core → kosong), bisa diedit (ops cari kota dari master core di
+> logistic web), tampil di detail (plus **kurir: nama + no. HP**, dari rider shipment Dash), ikut di export, dan tampil
+> juga di **Link** (portal klien, read-only). Branch: BE `feat/wms-outbound-city` (migration `0125_wms_outbound_city`),
+> FE `feat/wms-outbound-city`, Link `feat/wms-outbound-city` — semua dari `main` 2026-10-29.
+> **A** sudah ada di `main` lewat PR #522 (satu baris per order, kolom ops-only untuk internal; rilis ini menambah kolom
+> `ID Kota Tujuan` + `Kota Tujuan`) — § A di bawah adalah desain awal dan tidak dipakai. **B**, **D**, **E** ditunda; kode
+> lengkapnya tetap ada di branch `feat/wms-outbound-order-cr1` (BE + FE) untuk dilanjutkan nanti. **E** (kota ke shipment &
+> delivery-service) dibatalkan untuk sekarang (DS tidak disentuh).
+
 ---
 
 # Part 1 — Product Requirements (PRD)
@@ -355,7 +365,7 @@ GET   /v1/warehouses/cities                                → data: [{ id, name
 GET   /v1/warehouses/outbound-orders/resolve-city          ?address=&latitude=&longitude=   → { city: { id, name } | null, source: "ADDRESS" | "GEOCODE" | null, warning?: string }
 PATCH /v1/warehouses/outbound-orders/:id                   body.destination.cityID?: number | null   (opsional; null = kosongkan; tidak dikirim = resolver bila alamat/koordinat berubah)
 POST  /v1/warehouses/outbound-orders                       body.destination.cityID? (sama)
-POST  /v1/integration/outbound-orders                      body.destination.city?: string (nama master, opsional) — entity: destination.city { id, name } | null
+POST  /v1/integration/outbound-orders                      (tanpa input kota dari klien) — entity: destination.cityID: number | null, destination.city: string | null (resolver dari alamat → koordinat; tampil juga di Link sandbox & docs API)
 GET   /v1/warehouses/outbound-orders(+/export)             ?destinationCityID=<id>|none
 POST  /internal/v1/warehouses/outbound-orders/backfill-city  ?limit=200&maxGeocode=200   → { scanned, matched, geocoded, unresolved }   (ADMIN | INTERNAL_SERVICE)
 ```
@@ -468,21 +478,22 @@ di-restock otomatis (lihat Rollout 3 — skrip audit sekali jalan untuk ops).
 
 ## Rollout
 
-1. **PR BE** (satu PR, empat commit terpisah A/B/C/D supaya mudah di-review; migration satu): deploy staging → jalankan
-   backfill city + distance di staging → cek daftar/detail/export.
-2. **PR FE** setelah BE di staging: Download CSV, Batalkan (SHIPPED/AT_HUB), Kota (Ubah, filter, daftar, detail), CSV modal
-   kolom baru.
-3. **Produksi**: deploy BE → backfill city & distance (internal route, batch) → deploy FE. **Audit sekali jalan** (SQL,
-   read-only) order `FAILED` dengan `fulfillment_status = CANCELLED` dan GI `SHIPPED` sebelum rilis → daftar untuk ops
-   membuat GR retur manual (tidak di-restock otomatis — angka fisik mungkin sudah dikoreksi opname).
-4. **Rollback**: FE revert → tombol hilang; BE revert → jalur sync kembali `FAILED` (stok yang sudah dikembalikan tetap
-   benar secara fisik); kolom kota tinggal nullable; hook jarak hilang. Tidak ada rollback migration yang perlu.
-5. Dokumen BE: `outbound-order-shipment-sync.md` §3/§5 (CANCELLED → CANCELLED + restock), `wms-v2-curl.md` §19 (Batalkan
-   setelah ship, export, backfill), `wms-v2-implementation.md`; vault v2 § Aksi balik tabel edge case baris "Shipment
-   cancelled… setelah ship" diperbarui.
+Rilis 1 (kota) — tiga PR dari `main`, DS tidak disentuh:
 
-Increment terkecil: **B(1)** (sync CANCELLED → restock) sendiri sudah menutup risiko stok; A, C, D independen satu sama
-lain.
+1. **PR BE** `feat/wms-outbound-city` (migration `0125_wms_outbound_city`: 2 kolom + index): deploy staging → jalankan
+   `POST /internal/v1/warehouses/outbound-orders/backfill-city?limit=200&maxGeocode=200` berulang sampai `scanned = 0`
+   (text pass gratis, geocode dibatasi) → cek daftar/detail/export (kolom `ID Kota Tujuan`, `Kota Tujuan`).
+2. **PR FE** `feat/wms-outbound-city` setelah BE di staging: Kota (create otomatis + pilih, Ubah, filter "Kota tujuan"
+   incl. "Belum dikenali", daftar, detail), **Kurir** (nama + telepon) di detail, kolom CSV import `destination_city`.
+3. **PR Link** `feat/wms-outbound-city` (bisa bareng FE): kota di daftar & detail Outbound request, sandbox order detail,
+   contoh/dokumentasi API (`destination.cityID` / `city`). Export Link otomatis ikut (header bersama).
+4. **Produksi**: BE → backfill city → FE + Link. **Rollback**: FE/Link revert → kolom hilang; BE revert → kolom tinggal
+   nullable (tanpa rollback migration).
+5. Dokumen BE: `docs/api-integration/outbound-order.md` (field `destination.cityID` / `city` — sudah), `wms-v2-curl.md`
+   (resolve-city, cities, backfill — menyusul).
+
+Rilis berikutnya (ditunda): **B** (stok kembali saat cancel setelah ship), **D** (jarak dispatch → order), **E** (kota ke
+shipment & delivery-service) — port dari `feat/wms-outbound-order-cr1` setelah rilis 1 masuk.
 
 ## Testing strategy
 
@@ -596,3 +607,7 @@ Catatan: kota di shipment = **label** (bukan FK master) — DS hanya menyimpan t
   `feat/wms-outbound-order-cr1`; e2e `e2e/warehouse-outbound-cr1.e2e.spec.ts`. Resolver teks memindai semua segmen koma
   alamat (helper saja melewatkan "…, Jakarta Selatan"); marker Kota/Kab. dicocokkan sebagai kata utuh (master punya
   "Kab Pegunungan Bintang", "Kabanjahe").
+- 2026-10-29 — **re-scope (Yogi): rilis 1 = C saja** (+ kurir nama/HP di detail, + kolom kota di export yang sudah ada di
+  main #522, + Link). Branch baru dari `main`: BE/FE/Link `feat/wms-outbound-city` (migration `0125_wms_outbound_city`);
+  e2e FE `e2e/warehouse-outbound-city.e2e.spec.ts`. Client API: `destination.cityID` / `city` di response (resolver juga
+  jalan untuk order dari API). B, D, E ditunda — kode tetap di `feat/wms-outbound-order-cr1`; DS tidak disentuh.
